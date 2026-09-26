@@ -1,10 +1,13 @@
 
-const CACHE_NAME = "hlm-franchise-manager-v1";
+const CACHE_NAME = "hlm-franchise-manager-v2";
 
 const APP_SHELL = [
   "./",
   "./index.html",
+  "./app.html",
   "./manifest.json",
+  "./hlm-roster-2026.json",
+  "./hlm-roster-import.js",
   "./icon-192.png",
   "./icon-512.png"
 ];
