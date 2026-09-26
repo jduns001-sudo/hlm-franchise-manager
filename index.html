@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HLM Franchise Tracker FINAL</title>
+<style>
+:root{--bg:#080f1f;--panel:#121d33;--panel2:#1a2947;--line:#2c3e61;--text:#eef4ff;--muted:#a9b5cc;--accent:#4da3ff}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(135deg,#070c18,#101c34);color:var(--text);font:14px system-ui,sans-serif}
+header{padding:18px;border-bottom:1px solid var(--line);background:#091120f5}h1{margin:0;font-size:23px}.sub{color:var(--muted);margin-top:4px}
+nav{display:flex;gap:7px;padding:10px;overflow:auto;background:#091120;border-bottom:1px solid var(--line)}
+button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 12px;cursor:pointer}
+button:hover,.active{border-color:var(--accent);background:#20385e}.primary{background:#245a91;border-color:#4da3ff}
+main{max-width:1500px;margin:auto;padding:16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.wrap{overflow:auto}table{border-collapse:collapse;width:100%}th,td{padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:left}th{background:#172641}
+input,select,textarea{width:100%;padding:9px;background:#0a1428;color:var(--text);border:1px solid var(--line);border-radius:7px}
+.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}.muted{color:var(--muted)}.big{font-size:25px;font-weight:700}
+.modal{position:fixed;inset:0;background:#000b;z-index:20;display:flex;align-items:flex-start;justify-content:center;padding:18px;overflow:auto}
+.modal-card{background:#0c1528;border:1px solid var(--line);border-radius:14px;padding:16px;margin:auto}
+.stat-section{margin-top:14px}.stat-section h3{margin:0 0 10px}
+.tabs{display:flex;gap:7px;overflow:auto;margin:10px 0}.small{font-size:12px}
+.notice{padding:10px;border:1px solid var(--line);border-radius:9px;background:#101b30;margin:10px 0}
+.danger{color:#ff9c9c}.success{color:#75e0a0}
+@media(max-width:650px){main{padding:10px}.modal{padding:8px}.grid{grid-template-columns:1fr 1fr}header{padding:14px}}
+
+.badge{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--line);font-size:12px}
+.keep{background:#153b2b}.watch{background:#3a3417}.trade{background:#3c2020}.call{background:#173b50}
+</style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1f33">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HLM Franchise Manager">
+
+</head>
+<body>
+<header>
+<h1>🏒 HLM Franchise Tracker FINAL</h1>
+<div class="sub">Players • season-by-season stats • skaters • goalies • playoffs • contracts • awards • records</div>
+</header>
+<nav id="nav"></nav>
+<main>
+<section id="dash"></section>
+<section id="players"></section>
+<section id="decisions"></section>
+<section id="competition"></section>
+<section id="pipeline"></section>
+<section id="history"></section>
+<section id="picks"></section>
+<section id="transactions"></section>
+<section id="compare"></section>
+<section id="contracts"></section>
+<section id="awards"></section>
+<section id="import"></section>
+<section id="teams"></section>
+<section id="seasons"></section>
+<section id="records"></section>
+<section id="backup"></section>
+<section id="snapshot"></section>
+<section id="draft"></section>
+<section id="gm"></section>
+</main>
+
+<div id="playerModal" class="modal" style="display:none">
+  <div class="modal-card" style="width:min(1200px,100%)">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center">
+      <div><h2 id="pmTitle" style="margin:0"></h2><div id="pmInfo" class="muted"></div></div>
+      <button type="button" onclick="closePlayerStats()">Close</button>
+    </div>
+    <div class="tabs">
+      <button id="regularTab" class="active" type="button" onclick="setStatsView('regular')">Regular Season</button>
+      <button id="playoffTab" type="button" onclick="setStatsView('playoff')">Playoffs</button>
+      <button id="evalTab" type="button" onclick="showEvaluation()">Evaluation</button>
+    </div>
+    <div id="evaluationPanel" class="card" style="display:none;margin-bottom:12px"></div>
+
+    <div class="card">
+      <h3 id="formTitle">Add Season</h3>
+      <div class="notice small">Enter only the stats HLM gives you. Anything you leave blank stays blank, so you can build the history gradually.</div>
+
+      <div class="grid">
+        <div class="field"><label>Season *</label><input id="sSeason" placeholder="2026-27"></div>
+        <div class="field"><label>Team</label><input id="sTeam"></div>
+        <div class="field"><label>Age</label><input id="sAge" type="number"></div>
+        <div class="field"><label>GP</label><input id="sGp" type="number" min="0"></div>
+        <div class="field"><label>Games Started (G)</label><input id="sGs" type="number" min="0"></div>
+      </div>
+
+      <div class="stat-section">
+        <h3>Skater / General</h3>
+        <div class="grid">
+          <div class="field"><label>Goals (G)</label><input id="sGoals" type="number" min="0"></div>
+          <div class="field"><label>Assists (A)</label><input id="sAssists" type="number" min="0"></div>
+          <div class="field"><label>Points (PTS)</label><input id="sPoints" type="number" min="0"></div>
+          <div class="field"><label>+/-</label><input id="sPm" type="number"></div>
+          <div class="field"><label>PIM</label><input id="sPim" type="number" min="0"></div>
+          <div class="field"><label>Shots (S)</label><input id="sShots" type="number" min="0"></div>
+          <div class="field"><label>Shot %</label><input id="sShotPct" type="number" step="0.1" min="0"></div>
+          <div class="field"><label>Hits</label><input id="sHits" type="number" min="0"></div>
+          <div class="field"><label>Blocks</label><input id="sBlocks" type="number" min="0"></div>
+          <div class="field"><label>Takeaways</label><input id="sTake" type="number" min="0"></div>
+          <div class="field"><label>Giveaways</label><input id="sGive" type="number" min="0"></div>
+          <div class="field"><label>Faceoff Wins</label><input id="sFow" type="number" min="0"></div>
+          <div class="field"><label>Faceoff Losses</label><input id="sFol" type="number" min="0"></div>
+          <div class="field"><label>Faceoff %</label><input id="sFoPct" type="number" step="0.1" min="0"></div>
+          <div class="field"><label>Avg TOI</label><input id="sToi" placeholder="19:42"></div>
+          <div class="field"><label>PP TOI</label><input id="sPpToi" placeholder="3:21"></div>
+          <div class="field"><label>SH TOI</label><input id="sShToi" placeholder="1:12"></div>
+          <div class="field"><label>Game-Winning Goals</label><input id="sGwg" type="number" min="0"></div>
+          <div class="field"><label>OT Goals</label><input id="sOtg" type="number" min="0"></div>
+          <div class="field"><label>PP Goals</label><input id="sPpg" type="number" min="0"></div>
+          <div class="field"><label>PP Assists</label><input id="sPpa" type="number" min="0"></div>
+          <div class="field"><label>PP Points</label><input id="sPppts" type="number" min="0"></div>
+          <div class="field"><label>SH Goals</label><input id="sShg" type="number" min="0"></div>
+          <div class="field"><label>SH Assists</label><input id="sSha" type="number" min="0"></div>
+          <div class="field"><label>SH Points</label><input id="sShpts" type="number" min="0"></div>
+        </div>
+      </div>
+
+      <div class="stat-section">
+        <h3>Goalie</h3>
+        <div class="grid">
+          <div class="field"><label>Wins</label><input id="gW" type="number" min="0"></div>
+          <div class="field"><label>Losses</label><input id="gL" type="number" min="0"></div>
+          <div class="field"><label>OT/SO Losses</label><input id="gOtl" type="number" min="0"></div>
+          <div class="field"><label>Minutes</label><input id="gMin" placeholder="58:30"></div>
+          <div class="field"><label>Goals Against</label><input id="gGa" type="number" min="0"></div>
+          <div class="field"><label>Goals Against Avg</label><input id="gGaa" type="number" step="0.01" min="0"></div>
+          <div class="field"><label>Saves</label><input id="gSv" type="number" min="0"></div>
+          <div class="field"><label>Shots Against</label><input id="gSa" type="number" min="0"></div>
+          <div class="field"><label>Save %</label><input id="gSvPct" type="number" step="0.001" min="0" max="1"></div>
+          <div class="field"><label>Shutouts</label><input id="gSo" type="number" min="0"></div>
+          <div class="field"><label>Goals</label><input id="gG" type="number" min="0"></div>
+          <div class="field"><label>Assists</label><input id="gA" type="number" min="0"></div>
+          <div class="field"><label>Points</label><input id="gPts" type="number" min="0"></div>
+        </div>
+      </div>
+
+      <div class="stat-section">
+        <h3>Extra</h3>
+        <div class="grid">
+          <div class="field"><label>Awards</label><input id="sAwards" placeholder="Hart, Vezina, All-Star..."></div>
+          <div class="field"><label>Notes</label><input id="sNotes" placeholder="Captain, traded mid-season, etc."></div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button class="primary" type="button" onclick="saveSeasonRecord()">Save Season</button>
+        <button type="button" onclick="clearSeasonForm()">Clear</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h3>Season History</h3>
+      <div id="historyTable"></div>
+      <div id="careerTotals" style="margin-top:12px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY="hlm_tracker_v3";
+let db=JSON.parse(localStorage.getItem(KEY)||"null")||{players:[],teams:[],seasons:[],awards:[],transactions:[],draftPicks:[]};
+if(!Array.isArray(db.draftPicks))db.draftPicks=[];
+if(!Array.isArray(db.transactions))db.transactions=[];
+if(!Array.isArray(db.prospects))db.prospects=[];
+if(!Array.isArray(db.draftClasses))db.draftClasses=[];
+if(!db.gmSettings)db.gmSettings={strategy:"Contender",priorities:{performance:5,potential:5,age:5,contract:5,playoffs:5,draftCapital:5}};
+if(!Array.isArray(db.awards))db.awards=[];
+if(!Array.isArray(db.contracts))db.contracts=[];
+let activePlayer=null, editIndex=null, statsView="regular";
+
+const nav=[["dash","Dashboard"],["players","Players"],["decisions","Decision Board"],["competition","Roster Competition"],["pipeline","Franchise Pipeline"],["history","Roster Evolution"],["picks","Draft Picks"],["transactions","Transactions"],["compare","Compare Players"],["contracts","Contracts"],["awards","Awards"],["snapshot","Opening Snapshot"],["draft","Draft Center"],["gm","GM Decision Center"],["records","Records"],["import","HLM Import"],["teams","Teams"],["seasons","Seasons"],["backup","Backup"]];
+document.getElementById("nav").innerHTML=nav.map(x=>`<button id="nav-${x[0]}" onclick="show('${x[0]}')">${x[1]}</button>`).join("");
+
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function n(v){return v===""||v==null?0:Number(v)}
+function uid(){return Math.random().toString(36).slice(2)+Date.now().toString(36)}
+function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
+function show(id){document.querySelectorAll("main section").forEach(s=>s.style.display="none");document.getElementById(id).style.display="block";document.querySelectorAll("#nav button").forEach(b=>b.classList.remove("active"));document.getElementById("nav-"+id)?.classList.add("active")}
+function team(id){return db.teams.find(t=>t.id===id)?.name||id||""}
+function totals(p){
+ let s=p.seasons||[];
+ return {
+  gp:s.reduce((a,x)=>a+n(x.gp),0),g:s.reduce((a,x)=>a+n(x.g),0),a:s.reduce((a,x)=>a+n(x.a),0),
+  pts:s.reduce((a,x)=>a+n(x.pts),0),pgp:s.reduce((a,x)=>a+n(x.pgp),0),pg:s.reduce((a,x)=>a+n(x.pg),0),
+  pa:s.reduce((a,x)=>a+n(x.pa),0),ppts:s.reduce((a,x)=>a+n(x.ppts),0),
+  w:s.reduce((a,x)=>a+n(x.w),0),l:s.reduce((a,x)=>a+n(x.l),0),so:s.reduce((a,x)=>a+n(x.so),0)
+ }
+}
+function render(){dashboard();playersPage();decisionsPage();competitionPage();pipelinePage();historyPage();picksPage();transactionsPage();comparePage();contractsPage();awardsPage();snapshotPage();draftPage();gmPage();importPage();teamsPage();seasonsPage();recordsPage();backupPage();show(document.querySelector("main section[style*='block']")?.id||"players")}
+function dashboard(){
+ let ps=db.players||[], seasons=ps.reduce((a,p)=>a+(p.seasons?.length||0),0);
+ let exp=ps.filter(p=>Number(p.yl||0)<=1).length;
+ let prospects=(db.prospects||[]).length;
+ let picks=(db.draftPicks||[]).length;
+ let recent=ps.filter(p=>p.decisionStatus==="Trade"||p.decisionStatus==="Watch").length;
+ document.getElementById("dash").innerHTML=`<h2>Franchise Command Center</h2>
+ <div class="grid">
+  <div class="card"><div class="muted">Players</div><div class="big">${ps.length}</div></div>
+  <div class="card"><div class="muted">Player-Seasons</div><div class="big">${seasons}</div></div>
+  <div class="card"><div class="muted">Prospects</div><div class="big">${prospects}</div></div>
+  <div class="card"><div class="muted">Future Picks</div><div class="big">${picks}</div></div>
+  <div class="card"><div class="muted">Contracts ≤ 1 Year</div><div class="big">${exp}</div></div>
+  <div class="card"><div class="muted">Players to Review</div><div class="big">${recent}</div></div><div class="card"><div class="muted">Transactions</div><div class="big">${db.transactions?.length||0}</div></div>
+ </div>
+ <div class="card" style="margin-top:12px"><h3>Franchise Workflow</h3>
+ <div class="grid">
+  <div><b>1. Track production</b><div class="muted small">Enter every player's season stats.</div></div>
+  <div><b>2. Evaluate contracts</b><div class="muted small">Compare performance, age and salary.</div></div>
+  <div><b>3. Watch the pipeline</b><div class="muted small">Track prospects and draft picks.</div></div>
+  <div><b>4. Manage competition</b><div class="muted small">Compare NHL players against replacements.</div></div>
+  <div><b>5. Plan ahead</b><div class="muted small">Use future picks and prospects to plan roster turnover.</div></div>
+  <div><b>6. Preserve history</b><div class="muted small">Back up the entire franchise database regularly.</div></div>
+ </div></div>`;
+}
+function playersPage(){
+ document.getElementById("players").innerHTML=`<div class="toolbar"><input id="playerSearch" placeholder="Search players..." oninput="playerTable()"><button onclick="show('import')">+ Import Players / Stats</button></div><div id="ptable"></div>`;
+ playerTable();
+}
+function playerTable(){
+ let q=(document.getElementById("playerSearch")?.value||"").toLowerCase();
+ let arr=(db.players||[]).filter(p=>(p.name||"").toLowerCase().includes(q));
+ document.getElementById("ptable").innerHTML=`<div class="wrap"><table><tr><th>Name</th><th>Team</th><th>Pos</th><th>Age</th><th>OVR</th><th>Potential</th><th>Type</th><th>YL</th><th>AAV</th><th>Seasons</th><th>Career PTS</th><th></th></tr>
+ ${arr.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(team(p.team)||p.team)}</td><td>${esc(p.pos)}</td><td>${esc(p.age)}</td><td>${esc(p.ovr)}</td><td>${esc(p.potential)}</td><td>${esc(p.type)}</td><td>${esc(p.yl)}</td><td>${esc(p.aav)}</td><td>${p.seasons?.length||0}</td><td>${totals(p).pts}</td><td><button onclick="openPlayerStats('${p.id}')">Stats</button></td></tr>`).join("")||"<tr><td colspan=12>No players found.</td></tr>"}</table></div>`;
+}
+
+function money(v){let m=String(v??"").replace(/[^0-9.]/g,"");return Number(m)||0}
+function latestSeason(p){
+ let ss=p.seasons||[];
+ return ss.length?ss.slice().sort((a,b)=>String(b.season).localeCompare(String(a.season)))[0]:null;
+}
+function seasonScore(p,s){
+ if(!s) return {performance:null,value:null,development:null,trend:null};
+ const goalie=String(p.pos||"").toUpperCase().includes("G");
+ let performance=null;
+ if(goalie){
+   let parts=[], sv=s.svPct!=null?Number(s.svPct):null, gaa=s.gaa!=null?Number(s.gaa):null;
+   if(sv!=null) parts.push(Math.max(0,Math.min(100,(sv-0.88)/0.04*100)));
+   if(gaa!=null) parts.push(Math.max(0,Math.min(100,(3.5-gaa)/1.8*100)));
+   if(s.gp) parts.push(Math.max(0,Math.min(100,(Number(s.w||0)/Number(s.gp))*100)));
+   if(Number(p.ovr)) parts.push(Number(p.ovr)/99*100);
+   if(parts.length) performance=parts.reduce((a,b)=>a+b,0)/parts.length;
+ } else {
+   let parts=[], ppg=s.gp?Number(s.pts||0)/Number(s.gp):null;
+   if(ppg!=null) parts.push(Math.max(0,Math.min(100,ppg/1.5*100)));
+   if(s.pm!=null && s.gp) parts.push(Math.max(0,Math.min(100,50+(Number(s.pm)/Number(s.gp))*25)));
+   if(Number(p.ovr)) parts.push(Number(p.ovr)/99*100);
+   if(parts.length) performance=parts.reduce((a,b)=>a+b,0)/parts.length;
+ }
+ const aav=money(p.aav);
+ let value=performance==null?null:Math.max(0,Math.min(100,performance*(aav>0?Math.min(1.5,20/aav):1)));
+ const age=Number(s.age||p.age||0);
+ let development=Math.max(0,Math.min(100,100-Math.max(0,age-18)*4));
+ const pot=String(p.potential||"").toLowerCase();
+ if(pot.includes("franchise")) development=100;
+ else if(pot.includes("elite")) development=Math.max(development,82);
+ else if(pot.includes("top 6")||pot.includes("top 4")) development=Math.max(development,68);
+ let trend=null, ss=(p.seasons||[]).slice().sort((a,b)=>String(a.season).localeCompare(String(b.season)));
+ if(ss.length>=2){
+   let prev=ss[ss.length-2],cur=ss[ss.length-1];
+   if(goalie) trend=Math.max(0,Math.min(100,50+(Number(cur.svPct||0)-Number(prev.svPct||0))*500-(Number(cur.gaa||0)-Number(prev.gaa||0))*8));
+   else trend=Math.max(0,Math.min(100,50+((cur.gp?Number(cur.pts||0)/Number(cur.gp):0)-(prev.gp?Number(prev.pts||0)/Number(prev.gp):0))*60));
+ }
+ return {performance:performance==null?null:Math.round(performance),value:value==null?null:Math.round(value),development:Math.round(development),trend:trend==null?null:Math.round(trend)};
+}
+function decisionText(m){
+ if(m.performance==null)return "Enter a season of stats";
+ let a=[m.performance,m.value,m.development,m.trend].filter(v=>v!=null);
+ let x=a.reduce((p,c)=>p+c,0)/a.length;
+ if(x>=80)return "Core / retain consideration";
+ if(x>=65)return "Roster consideration";
+ if(x>=50)return "Watch / compare contract";
+ return "Review trade or replacement options";
+}
+function showEvaluation(){
+ if(!activePlayer)return;
+ document.getElementById("regularTab").classList.remove("active");
+ document.getElementById("playoffTab").classList.remove("active");
+ document.getElementById("evalTab").classList.add("active");
+ document.getElementById("evaluationPanel").style.display="block";
+ document.getElementById("formTitle").parentElement.parentElement.style.display="none";
+ renderEvaluation(activePlayer);
+}
+function renderEvaluation(p){
+ const s=latestSeason(p),m=seasonScore(p,s),vals=[m.performance,m.value,m.development,m.trend].filter(v=>v!=null);
+ const overall=vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null;
+ const flags=[];
+ if(Number(p.yl||0)<=1)flags.push("Contract ending soon");
+ if(money(p.aav)>=20)flags.push("High AAV");
+ if(Number(p.age||0)>=30)flags.push("Age 30+");
+ if(m.trend!=null&&m.trend<40)flags.push("Recent trend down");
+ if(m.trend!=null&&m.trend>=65)flags.push("Recent trend up");
+ document.getElementById("evaluationPanel").innerHTML=`
+ <h3 style="margin-top:0">Player Evaluation</h3>
+ <div class="notice small">Scores use only the information you enter. Add more seasons to make trend and value comparisons more useful.</div>
+ <div class="grid">
+  <div class="card"><div class="muted">Overall Index</div><div class="big">${overall==null?"N/A":overall+"/100"}</div></div>
+  <div class="card"><div class="muted">Performance</div><div class="big">${m.performance==null?"N/A":m.performance+"/100"}</div></div>
+  <div class="card"><div class="muted">Contract Value</div><div class="big">${m.value==null?"N/A":m.value+"/100"}</div></div>
+  <div class="card"><div class="muted">Age / Development</div><div class="big">${m.development+"/100"}</div></div>
+  <div class="card"><div class="muted">Trend</div><div class="big">${m.trend==null?"N/A":m.trend+"/100"}</div></div>
+ </div>
+ <div class="notice"><b>Latest season:</b> ${esc(s?.season||"None")} &nbsp; <b>AAV:</b> ${esc(p.aav||"")} &nbsp; <b>Years left:</b> ${esc(p.yl||"")}<br><b>Decision-support flag:</b> ${decisionText(m)}</div>
+ <div class="notice"><b>Flags:</b> ${flags.length?flags.map(esc).join(" • "):"None"}</div>
+ <div class="field"><label>Your decision</label><select id="decisionStatus"><option value="">Choose later</option><option>Keep</option><option>Sign</option><option>Trade</option><option>Watch</option></select></div>
+ <div class="field" style="margin-top:8px"><label>Your notes</label><textarea id="decisionNotes" rows="3" placeholder="Role, salary, prospects, leadership, fit, etc."></textarea></div>
+ <div class="toolbar"><button class="primary" onclick="saveDecision()">Save Decision Notes</button><button onclick="showStatsFromEval()">Back to Stats</button></div>`;
+ document.getElementById("decisionStatus").value=p.decisionStatus||"";
+ document.getElementById("decisionNotes").value=p.decisionNotes||"";
+}
+function saveDecision(){
+ if(!activePlayer)return;
+ activePlayer.decisionStatus=document.getElementById("decisionStatus").value;
+ activePlayer.decisionNotes=document.getElementById("decisionNotes").value;
+ localStorage.setItem(KEY,JSON.stringify(db));
+ render();openPlayerStats(activePlayer.id);showEvaluation();
+}
+function showStatsFromEval(){
+ document.getElementById("evaluationPanel").style.display="none";
+ document.getElementById("formTitle").parentElement.parentElement.style.display="block";
+ setStatsView("regular");
+}
+function decisionsPage(){
+ let rows=(db.players||[]).map(p=>{
+  let s=latestSeason(p),m=seasonScore(p,s),v=[m.performance,m.value,m.development,m.trend].filter(x=>x!=null);
+  return {p,s,m,overall:v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):null};
+ }).sort((a,b)=>(b.overall??-1)-(a.overall??-1));
+ document.getElementById("decisions").innerHTML=`<h2>Decision Board</h2>
+ <div class="notice">A comparison dashboard for your franchise decisions. It does not replace your judgment. Players with no season stats will show limited information.</div>
+ <div class="wrap"><table><tr><th>Player</th><th>Pos</th><th>Latest</th><th>Overall</th><th>Performance</th><th>Value</th><th>Development</th><th>Trend</th><th>AAV</th><th>YL</th><th>Decision</th><th></th></tr>
+ ${rows.map(x=>`<tr><td><b>${esc(x.p.name)}</b></td><td>${esc(x.p.pos)}</td><td>${esc(x.s?.season||"")}</td><td>${x.overall??"N/A"}</td><td>${x.m.performance??"N/A"}</td><td>${x.m.value??"N/A"}</td><td>${x.m.development??"N/A"}</td><td>${x.m.trend??"N/A"}</td><td>${esc(x.p.aav||"")}</td><td>${esc(x.p.yl||"")}</td><td>${esc(x.p.decisionStatus||"")}</td><td><button onclick="openPlayerStats('${x.p.id}');setTimeout(showEvaluation,0)">Evaluate</button></td></tr>`).join("")}</table></div>`;
+}
+
+
+function roleType(p){
+ const pos=String(p.pos||"").toUpperCase();
+ if(pos.includes("G"))return "G";
+ if(pos.includes("D"))return "D";
+ return "F";
+}
+function competitionScore(p){
+ let s=latestSeason(p),m=seasonScore(p,s);
+ let v=[m.performance,m.value,m.development,m.trend].filter(x=>x!=null);
+ return v.length?Math.round(v.reduce((a,b)=>a+b,0)/v.length):Number(p.ovr)||0;
+}
+function competitionPage(){
+ let groups={F:[],D:[],G:[]};
+ (db.players||[]).forEach(p=>groups[roleType(p)].push(p));
+ const title={F:"Forwards",D:"Defensemen",G:"Goalies"};
+ document.getElementById("competition").innerHTML=`<h2>Roster Competition</h2>
+ <div class="notice">This compares players competing for the same roster pool. Use the Franchise Pipeline to track draft picks and prospects, then use Compare Players when deciding whether a prospect is ready to replace an NHL roster player.</div>
+ ${["F","D","G"].map(k=>`
+ <div class="card" style="margin-top:12px"><h3>${title[k]}</h3>
+ <div class="wrap"><table><tr><th>Player</th><th>Age</th><th>OVR</th><th>Potential</th><th>Latest PTS/GP</th><th>Index</th><th>AAV</th><th>YL</th><th>Status</th><th></th></tr>
+ ${groups[k].sort((a,b)=>competitionScore(b)-competitionScore(a)).map(p=>{
+  let s=latestSeason(p),idx=competitionScore(p),ppg=s&&s.gp?((Number(s.pts||0)/Number(s.gp)).toFixed(2)):"";
+  let status=p.decisionStatus||"";
+  return `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.age)}</td><td>${esc(p.ovr)}</td><td>${esc(p.potential)}</td><td>${ppg}</td><td>${idx||"N/A"}</td><td>${esc(p.aav||"")}</td><td>${esc(p.yl||"")}</td><td>${status?`<span class="badge ${status.toLowerCase()}">${esc(status)}</span>`:""}</td><td><button onclick="openCompareFromCompetition('${p.id}')">Compare</button></td></tr>`
+ }).join("")||"<tr><td colspan=10>No players.</td></tr>"}</table></div></div>`).join("")}`;
+}
+function pickStatus(pick){
+ if(pick.status)return pick.status;
+ if(pick.season && pick.round && pick.pick)return `${pick.season} R${pick.round} #${pick.pick}`;
+ return pick.season||"Future Pick";
+}
+function picksPage(){
+ document.getElementById("picks").innerHTML=`<h2>Draft Picks</h2>
+ <div class="card">
+ <h3>Add Future Draft Pick</h3>
+ <div class="grid">
+ <div class="field"><label>Draft Season</label><input id="dpSeason" placeholder="2027"></div>
+ <div class="field"><label>Round</label><input id="dpRound" type="number" min="1" max="20"></div>
+ <div class="field"><label>Pick #</label><input id="dpPick" type="number" min="1"></div>
+ <div class="field"><label>Original Team</label><input id="dpOriginal" placeholder="Buffalo Sabres"></div>
+ <div class="field"><label>Current Owner</label><input id="dpOwner" placeholder="Buffalo Sabres"></div>
+ <div class="field"><label>Status</label><select id="dpStatus"><option>Own</option><option>Acquired</option><option>Traded</option><option>Conditional</option><option>Protected</option></select></div>
+ <div class="field"><label>Condition</label><input id="dpCondition" placeholder="Top 10 protected, transfers if..."></div>
+ <div class="field"><label>Notes</label><input id="dpNotes"></div>
+ </div>
+ <div class="toolbar"><button class="primary" onclick="addDraftPick()">Add Pick</button></div></div>
+ <div class="card" style="margin-top:12px"><h3>Your Future Picks</h3><div class="wrap"><table><tr><th>Season</th><th>Round</th><th>Pick</th><th>Original Team</th><th>Owner</th><th>Status</th><th>Condition</th><th>Notes</th><th></th></tr>
+ ${(db.draftPicks||[]).sort((a,b)=>String(a.season).localeCompare(String(b.season))||Number(a.round)-Number(b.round)).map((p,i)=>`<tr><td>${esc(p.season)}</td><td>${esc(p.round)}</td><td>${esc(p.pick||"TBD")}</td><td>${esc(p.original)}</td><td>${esc(p.owner)}</td><td>${esc(p.status)}</td><td>${esc(p.condition)}</td><td>${esc(p.notes)}</td><td><button onclick="deleteDraftPick(${i})">Delete</button></td></tr>`).join("")||"<tr><td colspan=9>No future picks entered.</td></tr>"}</table></div></div>`;
+}
+function addDraftPick(){
+ let p={id:uid(),season:document.getElementById("dpSeason").value.trim(),round:Number(document.getElementById("dpRound").value)||0,pick:Number(document.getElementById("dpPick").value)||null,original:document.getElementById("dpOriginal").value.trim(),owner:document.getElementById("dpOwner").value.trim(),status:document.getElementById("dpStatus").value,condition:document.getElementById("dpCondition").value.trim(),notes:document.getElementById("dpNotes").value.trim()};
+ if(!p.season||!p.round){alert("Enter at least the draft season and round.");return}
+ db.draftPicks.push(p);localStorage.setItem(KEY,JSON.stringify(db));render();show("picks");
+}
+function deleteDraftPick(i){if(!confirm("Delete this draft pick?"))return;db.draftPicks.splice(i,1);localStorage.setItem(KEY,JSON.stringify(db));render();show("picks")}
+
+
+function pipelinePage(){
+ let prospects=db.prospects||[];
+ document.getElementById("pipeline").innerHTML=`<h2>Franchise Pipeline</h2>
+ <div class="notice">This is the bridge between your draft picks, prospects and NHL roster. A prospect can be tracked here before becoming an NHL player, then moved into the main Players database when HLM provides a full player record. Add a prospect when you draft or acquire one, then update his development over time.</div>
+ <div class="card"><h3>Add Prospect</h3>
+ <div class="grid">
+  <div class="field"><label>Name</label><input id="prName"></div>
+  <div class="field"><label>Draft Year</label><input id="prYear" type="number"></div>
+  <div class="field"><label>Draft Round</label><input id="prRound" type="number"></div>
+  <div class="field"><label>Draft Pick</label><input id="prPick" type="number"></div>
+  <div class="field"><label>Position</label><input id="prPos" placeholder="LW, C, D, G"></div>
+  <div class="field"><label>Age</label><input id="prAge" type="number"></div>
+  <div class="field"><label>OVR</label><input id="prOvr" type="number"></div>
+  <div class="field"><label>Potential</label><input id="prPot"></div>
+  <div class="field"><label>Team / League</label><input id="prTeam"></div>
+  <div class="field"><label>ETA</label><input id="prEta" placeholder="2028-29"></div>
+  <div class="field"><label>Status</label><select id="prStatus"><option>Prospect</option><option>Ready</option><option>Call-up Candidate</option><option>Trade Asset</option><option>Graduated</option></select></div>
+  <div class="field"><label>Notes</label><input id="prNotes"></div>
+ </div><div class="toolbar"><button class="primary" onclick="addProspect()">Add Prospect</button></div></div>
+ <div class="card" style="margin-top:12px"><h3>Prospect Pool</h3><div class="wrap"><table><tr><th>Name</th><th>Draft</th><th>Pos</th><th>Age</th><th>OVR</th><th>Potential</th><th>Team</th><th>ETA</th><th>Status</th><th></th></tr>
+ ${prospects.map((p,i)=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.year)} R${esc(p.round)} #${esc(p.pick||"")}</td><td>${esc(p.pos)}</td><td>${esc(p.age)}</td><td>${esc(p.ovr)}</td><td>${esc(p.pot)}</td><td>${esc(p.team)}</td><td>${esc(p.eta)}</td><td>${esc(p.status)}</td><td><button onclick="deleteProspect(${i})">Delete</button></td></tr>`).join("")||"<tr><td colspan=10>No prospects entered.</td></tr>"}</table></div></div>`;
+}
+function addProspect(){
+ let p={id:uid(),name:document.getElementById("prName").value.trim(),year:document.getElementById("prYear").value,round:document.getElementById("prRound").value,pick:document.getElementById("prPick").value,pos:document.getElementById("prPos").value.trim(),age:document.getElementById("prAge").value,ovr:document.getElementById("prOvr").value,pot:document.getElementById("prPot").value.trim(),team:document.getElementById("prTeam").value.trim(),eta:document.getElementById("prEta").value.trim(),status:document.getElementById("prStatus").value,notes:document.getElementById("prNotes").value.trim()};
+ if(!p.name){alert("Enter the prospect's name.");return} db.prospects.push(p);localStorage.setItem(KEY,JSON.stringify(db));render();show("pipeline");
+}
+function deleteProspect(i){if(!confirm("Delete this prospect?"))return;db.prospects.splice(i,1);localStorage.setItem(KEY,JSON.stringify(db));render();show("pipeline")}
+
+function transactionsPage(){
+ document.getElementById("transactions").innerHTML=`<h2>Transactions & Franchise Timeline</h2>
+ <div class="card"><h3>Add Transaction</h3><div class="grid">
+ <div class="field"><label>Date / Season</label><input id="txDate"></div>
+ <div class="field"><label>Type</label><select id="txType"><option>Trade</option><option>Signing</option><option>Extension</option><option>Waiver</option><option>Release</option><option>Call-up</option><option>Send-down</option><option>Draft</option><option>Retirement</option></select></div>
+ <div class="field"><label>Player(s)</label><input id="txPlayers"></div>
+ <div class="field"><label>From</label><input id="txFrom"></div>
+ <div class="field"><label>To</label><input id="txTo"></div>
+ <div class="field"><label>Contract / Pick Details</label><input id="txDetails"></div>
+ <div class="field"><label>Notes</label><input id="txNotes"></div>
+ </div><div class="toolbar"><button class="primary" onclick="addTransaction()">Add Transaction</button></div></div>
+ <div class="card" style="margin-top:12px"><div class="wrap"><table><tr><th>Date</th><th>Type</th><th>Player(s)</th><th>From</th><th>To</th><th>Details</th><th>Notes</th><th></th></tr>
+ ${(db.transactions||[]).slice().reverse().map((t,i)=>`<tr><td>${esc(t.date)}</td><td>${esc(t.type)}</td><td>${esc(t.players)}</td><td>${esc(t.from)}</td><td>${esc(t.to)}</td><td>${esc(t.details)}</td><td>${esc(t.notes)}</td><td><button onclick="deleteTransaction(${db.transactions.length-1-i})">Delete</button></td></tr>`).join("")||"<tr><td colspan=8>No transactions entered.</td></tr>"}</table></div></div>`;
+}
+function addTransaction(){
+ let t={date:document.getElementById("txDate").value.trim(),type:document.getElementById("txType").value,players:document.getElementById("txPlayers").value.trim(),from:document.getElementById("txFrom").value.trim(),to:document.getElementById("txTo").value.trim(),details:document.getElementById("txDetails").value.trim(),notes:document.getElementById("txNotes").value.trim()};
+ db.transactions.push(t);localStorage.setItem(KEY,JSON.stringify(db));render();show("transactions");
+}
+function deleteTransaction(i){db.transactions.splice(i,1);localStorage.setItem(KEY,JSON.stringify(db));render();show("transactions")}
+
+function comparePage(preselectId=""){
+ let opts=(db.players||[]).map(p=>`<option value="${p.id}">${esc(p.name)} (${esc(p.pos||"")})</option>`).join("");
+ document.getElementById("compare").innerHTML=`<h2>Compare Players</h2><div class="card"><div class="grid">
+ <div class="field"><label>Player A</label><select id="cmpA">${opts}</select></div>
+ <div class="field"><label>Player B</label><select id="cmpB">${opts}</select></div>
+ </div><div class="toolbar"><button class="primary" onclick="runCompare()">Compare</button></div><div id="compareResult"></div></div>`;
+ if(preselectId){
+   const a=document.getElementById("cmpA");
+   const b=document.getElementById("cmpB");
+   if(a&&[...a.options].some(o=>o.value===preselectId))a.value=preselectId;
+   if(b&&b.value===preselectId && b.options.length>1)b.selectedIndex=(b.selectedIndex+1)%b.options.length;
+ }
+}
+function openCompareFromCompetition(id){
+ show("compare");
+ comparePage(id);
+}
+function runCompare(){
+ const aId=document.getElementById("cmpA")?.value;
+ const bId=document.getElementById("cmpB")?.value;
+ if(!aId||!bId){alert("Select two players to compare.");return;}
+ if(aId===bId){alert("Select two different players to compare.");return;}
+ let a=db.players.find(p=>p.id===aId),b=db.players.find(p=>p.id===bId);if(!a||!b){alert("One of the selected players could not be found. Refresh the tracker and try again.");return;}
+ let sa=latestSeason(a),sb=latestSeason(b),ma=seasonScore(a,sa),mb=seasonScore(b,sb);
+ let rows=[["Age",a.age,b.age],["OVR",a.ovr,b.ovr],["Potential",a.potential,b.potential],["Latest Season",sa?.season||"",sb?.season||""],["GP",sa?.gp??"",sb?.gp??""],["PTS",sa?.pts??"",sb?.pts??""],["PTS/GP",sa?.gp?(Number(sa.pts||0)/Number(sa.gp)).toFixed(2):"",sb?.gp?(Number(sb.pts||0)/Number(sb.gp)).toFixed(2):""],["AAV",a.aav||"",b.aav||""],["Years Left",a.yl||"",b.yl||""],["Performance Index",ma.performance??"N/A",mb.performance??"N/A"],["Value Index",ma.value??"N/A",mb.value??"N/A"],["Development",ma.development??"N/A",mb.development??"N/A"],["Trend",ma.trend??"N/A",mb.trend??"N/A"]];
+ document.getElementById("compareResult").innerHTML=`<h3>${esc(a.name)} vs ${esc(b.name)}</h3><div class="wrap"><table><tr><th>Metric</th><th>${esc(a.name)}</th><th>${esc(b.name)}</th></tr>${rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}</table></div>`;
+}
+
+
+function rosterSnapshot(p,season){
+ let s=(p.seasons||[]).find(x=>String(x.season)===String(season));
+ return {id:p.id,name:p.name,pos:p.pos,age:s?.age??p.age,ovr:p.ovr,potential:p.potential,team:s?.team??p.team,season,stats:s||{}};
+}
+function historyPage(){
+ let ps=db.players||[], all=new Set();
+ ps.forEach(p=>(p.seasons||[]).forEach(s=>{if(s.season)all.add(s.season)}));
+ let seasons=[...all].sort().reverse();
+ if(!seasons.length) seasons=["No season data yet"];
+ document.getElementById("history").innerHTML=`<h2>Season-by-Season Roster Evolution</h2>
+ <div class="notice">This is your franchise's year-by-year roster history. Enter a player's season record and that player automatically becomes part of that season's snapshot.</div>
+ <div class="toolbar"><select id="histSeason" onchange="renderHistorySeason()">${seasons.map(s=>`<option>${esc(s)}</option>`).join("")}</select></div>
+ <div id="historySeason"></div>`;
+ renderHistorySeason();
+}
+function renderHistorySeason(){
+ let season=document.getElementById("histSeason")?.value;if(!season)return;
+ let roster=(db.players||[]).map(p=>rosterSnapshot(p,season)).filter(x=>x.stats&&Object.keys(x.stats).length>0);
+ let forwards=roster.filter(x=>roleType(x)==="F"),def=roster.filter(x=>roleType(x)==="D"),goal=roster.filter(x=>roleType(x)==="G");
+ const table=(title,arr)=>`<div class="card" style="margin-top:12px"><h3>${title} (${arr.length})</h3><div class="wrap"><table><tr><th>Player</th><th>Pos</th><th>Age</th><th>OVR</th><th>Potential</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>+/-</th><th>Role</th></tr>
+ ${arr.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.pos)}</td><td>${esc(x.age)}</td><td>${esc(x.ovr)}</td><td>${esc(x.potential)}</td><td>${x.stats.gp??""}</td><td>${x.stats.g??""}</td><td>${x.stats.a??""}</td><td>${x.stats.pts??""}</td><td>${x.stats.pm??""}</td><td>${esc(x.stats.notes||"")}</td></tr>`).join("")||"<tr><td colspan=11>No player-season records for this year.</td></tr>"}</table></div></div>`;
+ document.getElementById("historySeason").innerHTML=`<div class="grid">
+ <div class="card"><div class="muted">Rostered Players</div><div class="big">${roster.length}</div></div>
+ <div class="card"><div class="muted">Forwards</div><div class="big">${forwards.length}</div></div>
+ <div class="card"><div class="muted">Defensemen</div><div class="big">${def.length}</div></div>
+ <div class="card"><div class="muted">Goalies</div><div class="big">${goal.length}</div></div>
+ </div>${table("Forwards",forwards)}${table("Defensemen",def)}${table("Goalies",goal)}`;
+}
+function contractsPage(){
+ let ps=db.players||[];
+ document.getElementById("contracts").innerHTML=`<h2>Contract Manager</h2>
+ <div class="notice">Use this as a contract-expiration and cap-management view. AAV and years-left are pulled from your player records.</div>
+ <div class="wrap"><table><tr><th>Player</th><th>Pos</th><th>Age</th><th>OVR</th><th>AAV</th><th>Years Left</th><th>Potential</th><th>Decision</th><th>Notes</th></tr>
+ ${ps.slice().sort((a,b)=>(Number(a.yl)||99)-(Number(b.yl)||99)).map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.pos)}</td><td>${esc(p.age)}</td><td>${esc(p.ovr)}</td><td>${esc(p.aav||"")}</td><td>${esc(p.yl||"")}</td><td>${esc(p.potential||"")}</td><td>${esc(p.decisionStatus||"")}</td><td>${esc(p.decisionNotes||"")}</td></tr>`).join("")}</table></div>`;
+}
+function awardsPage(){
+ let rows=[];
+ (db.players||[]).forEach(p=>(p.seasons||[]).forEach(s=>{
+  if(s.awards)rows.push({season:s.season,name:p.name,awards:s.awards});
+ }));
+ document.getElementById("awards").innerHTML=`<h2>Awards & Honors</h2>
+ <div class="notice">Awards are attached to player-season records, so you can build a complete franchise trophy history.</div>
+ <div class="wrap"><table><tr><th>Season</th><th>Player</th><th>Awards / Honors</th></tr>${rows.sort((a,b)=>String(b.season).localeCompare(String(a.season))).map(x=>`<tr><td>${esc(x.season)}</td><td>${esc(x.name)}</td><td>${esc(x.awards)}</td></tr>`).join("")||"<tr><td colspan=3>No awards entered yet.</td></tr>"}</table></div>`;
+}
+
+function importPage(){
+ document.getElementById("import").innerHTML=`<h2>HLM Import</h2><div class="card">
+ <p>Paste CSV rows or use the format below. Existing players are matched by <b>name + team</b>. A row with a season adds that season to the player.</p>
+ <textarea id="csv" placeholder="name,team,pos,age,ovr,potential,type,terms,yl,aav,season,gp,g,a,pts,pm,pim,ppg,shg,pgp,pg,pa,ppts"></textarea>
+ <div class="toolbar"><button onclick="loadTemplate()">Load Player Template</button><button class="primary" onclick="importCSV()">Import CSV</button></div>
+ <div id="importMsg"></div></div>
+ <div class="card" style="margin-top:12px"><h3>Season-stat fields currently supported by import</h3><p class="small muted">season,gp,g,a,pts,pm,pim,ppg,shg,pgp,pg,pa,ppts</p><p class="small">For the full skater/goalie stat set, manual entry below is recommended. You can enter only the fields HLM provides.</p></div>`;
+}
+function loadTemplate(){document.getElementById("csv").value=`name,team,pos,age,ovr,potential,type,terms,yl,aav,season,gp,g,a,pts,pm,pim,ppg,shg,pgp,pg,pa,ppts`}
+function parseCSV(text){
+ let lines=text.trim().split(/\r?\n/);if(lines.length<2)return[];
+ let headers=lines[0].split(",").map(x=>x.trim());
+ return lines.slice(1).filter(Boolean).map(line=>{
+  let parts=line.split(",");let o={};headers.forEach((h,i)=>o[h]=(parts[i]??"").trim());return o;
+ });
+}
+function importCSV(){
+ let rows=parseCSV(document.getElementById("csv").value),added=0,updated=0,seasons=0;
+ rows.forEach(r=>{
+  if(!r.name)return;
+  let p=db.players.find(x=>x.name.toLowerCase()===r.name.toLowerCase()&&String(x.team||"").toLowerCase()===String(r.team||"").toLowerCase());
+  if(!p){p={id:uid(),name:r.name,seasons:[]};db.players.push(p);added++}else updated++;
+  Object.keys(r).forEach(k=>{if(k!=="season"&&k!=="name"&&k!=="team"&&k!=="gp"&&k!=="g"&&k!=="a"&&k!=="pts"&&k!=="pm"&&k!=="pim"&&k!=="ppg"&&k!=="shg"&&k!=="pgp"&&k!=="pg"&&k!=="pa"&&k!=="ppts"&&r[k]!=="" )p[k]=r[k]});
+  p.seasons=p.seasons||[];
+  if(r.season){
+   let s=p.seasons.find(x=>x.season===r.season);if(!s){s={id:uid(),season:r.season};p.seasons.push(s)}
+   ["team","age","gp","g","a","pts","pm","pim","ppg","shg","pgp","pg","pa","ppts"].forEach(k=>{if(r[k]!=="")s[k]=isNaN(Number(r[k]))?r[k]:Number(r[k])});
+   seasons++;
+  }
+ });
+ localStorage.setItem(KEY,JSON.stringify(db));document.getElementById("importMsg").innerHTML=`<div class="notice success">Imported ${rows.length} rows. ${added} new players, ${updated} existing players updated, ${seasons} season records processed.</div>`;render();show("import");
+}
+function teamsPage(){document.getElementById("teams").innerHTML=`<h2>Teams</h2><div class="wrap"><table><tr><th>Team</th><th>Players</th></tr>${(db.teams||[]).map(t=>`<tr><td>${esc(t.name)}</td><td>${db.players.filter(p=>p.team===t.id||p.team===t.name).length}</td></tr>`).join("")||"<tr><td colspan=2>No teams entered.</td></tr>"}</table></div>`}
+function seasonsPage(){document.getElementById("seasons").innerHTML=`<h2>Team Seasons</h2><div class="wrap"><table><tr><th>Season</th><th>Team</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>GF</th><th>GA</th><th>Result</th><th>Cup</th></tr>${(db.seasons||[]).map(s=>`<tr><td>${esc(s.season)}</td><td>${esc(s.team)}</td><td>${s.gp||0}</td><td>${s.w||0}</td><td>${s.l||0}</td><td>${s.otl||0}</td><td>${s.gf||0}</td><td>${s.ga||0}</td><td>${esc(s.result||"")}</td><td>${s.cup?"🏆":""}</td></tr>`).join("")||"<tr><td colspan=10>No team seasons yet.</td></tr>"}</table></div>`}
+function snapshotPage(){
+ const x=db.snapshot||{};
+ const roster=(db.players||[]).slice().sort((a,b)=>String(a.pos||"").localeCompare(String(b.pos||""))||String(a.name||"").localeCompare(String(b.name||"")));
+ document.getElementById("snapshot").innerHTML=`<h2>📸 Opening Franchise Snapshot</h2>
+ <div class="notice">This is the permanent baseline for this HLM save. It captures the team before Game 1. Your roster can change later, but this snapshot stays unchanged until you deliberately replace it.</div>
+ <div class="card"><h3>Franchise Baseline</h3><div class="grid">
+ <div class="field"><label>Franchise / Team</label><input id="snapName" value="${esc(x.name||db.franchiseName||"")}" placeholder="Buffalo Sabres"></div>
+ <div class="field"><label>HLM Start Season</label><input id="snapSeason" value="${esc(x.season||"")}" placeholder="2026-27"></div>
+ <div class="field"><label>Conference</label><input id="snapConf" value="${esc(x.conference||"")}"></div>
+ <div class="field"><label>Division</label><input id="snapDiv" value="${esc(x.division||"")}"></div>
+ <div class="field"><label>Arena</label><input id="snapArena" value="${esc(x.arena||"")}"></div>
+ <div class="field"><label>Team Overall</label><input id="snapOvr" type="number" value="${esc(x.teamOvr||"")}"></div>
+ <div class="field"><label>Offense</label><input id="snapOff" type="number" value="${esc(x.offense||"")}"></div>
+ <div class="field"><label>Defense</label><input id="snapDef" type="number" value="${esc(x.defense||"")}"></div>
+ <div class="field"><label>Goaltending</label><input id="snapGoal" type="number" value="${esc(x.goaltending||"")}"></div>
+ <div class="field"><label>Salary Cap</label><input id="snapCap" value="${esc(x.cap||"")}"></div>
+ <div class="field"><label>Opening Payroll</label><input id="snapPayroll" value="${esc(x.payroll||"")}"></div>
+ <div class="field"><label>Cap Space</label><input id="snapSpace" value="${esc(x.capSpace||"")}"></div>
+ </div>
+ <div class="grid" style="margin-top:10px"><div class="field"><label>Previous Season Record</label><input id="snapRecord" value="${esc(x.previousRecord||"")}" placeholder="45-28-9"></div><div class="field"><label>Previous Season Result</label><input id="snapResult" value="${esc(x.previousResult||"")}" placeholder="Lost in 2nd Round"></div></div>
+ <div class="field" style="margin-top:10px"><label>Opening Notes</label><textarea id="snapNotes" rows="4" placeholder="Team situation, goals, major strengths, weaknesses, etc.">${esc(x.notes||"")}</textarea></div>
+ <div class="toolbar"><button class="primary" onclick="saveSnapshot()">💾 Save Opening Snapshot</button><button onclick="captureRosterSnapshot()">📋 Refresh Roster Baseline</button></div></div>
+ <div class="card" style="margin-top:12px"><h3>Opening Roster Baseline</h3><p class="small muted">Current roster records are automatically captured when you save the snapshot. If you import another player later, use Refresh Roster Baseline only if that player should have been part of the opening roster.</p>
+ <div class="wrap"><table><tr><th>Name</th><th>Pos</th><th>Age</th><th>OVR</th><th>Potential</th><th>Type</th><th>Years Left</th><th>AAV</th></tr>${roster.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.pos)}</td><td>${esc(p.age)}</td><td>${esc(p.ovr)}</td><td>${esc(p.potential)}</td><td>${esc(p.type)}</td><td>${esc(p.yl)}</td><td>${esc(p.aav)}</td></tr>`).join("")||"<tr><td colspan=8>No roster imported yet. Import the team roster first, then save the snapshot.</td></tr>"}</table></div></div>`;
+}
+function captureRosterSnapshot(){
+ if(!db.players.length){alert("Import the new team's roster first.");return}
+ if(!confirm("Refresh the opening roster baseline with the players currently in the tracker? This replaces the saved opening roster snapshot."))return;
+ const current=(db.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,pos:p.pos,age:p.age,ovr:p.ovr,potential:p.potential,type:p.type,terms:p.terms,yl:p.yl,aav:p.aav,nmc:p.nmc,ntc:p.ntc}));
+ db.snapshot=db.snapshot||{};db.snapshot.roster=current;db.snapshot.capturedAt=new Date().toISOString();save();show("snapshot");alert("Opening roster baseline refreshed.");
+}
+function saveSnapshot(){
+ const old=db.snapshot||{};
+ const snap={...old,name:getVal("snapName").trim(),season:getVal("snapSeason").trim(),conference:getVal("snapConf").trim(),division:getVal("snapDiv").trim(),arena:getVal("snapArena").trim(),teamOvr:getVal("snapOvr"),offense:getVal("snapOff"),defense:getVal("snapDef"),goaltending:getVal("snapGoal"),cap:getVal("snapCap").trim(),payroll:getVal("snapPayroll").trim(),capSpace:getVal("snapSpace").trim(),previousRecord:getVal("snapRecord").trim(),previousResult:getVal("snapResult").trim(),notes:getVal("snapNotes").trim(),capturedAt:old.capturedAt||new Date().toISOString(),roster:old.roster&&old.roster.length?old.roster:(db.players||[]).map(p=>({id:p.id,name:p.name,team:p.team,pos:p.pos,age:p.age,ovr:p.ovr,potential:p.potential,type:p.type,terms:p.terms,yl:p.yl,aav:p.aav,nmc:p.nmc,ntc:p.ntc}))};
+ db.snapshot=snap;if(snap.name)db.franchiseName=snap.name;save();show("snapshot");alert("Opening franchise snapshot saved.");
+}
+function draftPage(){
+ const years=[...new Set((db.draftClasses||[]).map(x=>x.year))].sort();
+ const y=years[0]||new Date().getFullYear()+1;
+ const rows=(db.draftClasses||[]).slice().sort((a,b)=>Number(a.year)-Number(b.year)||Number(a.rank||999)-Number(b.rank||999));
+ const org={};(db.players||[]).forEach(p=>{let pos=String(p.pos||"").split(/[\/]/)[0];org[pos]=(org[pos]||0)+1});
+ document.getElementById('draft').innerHTML=`<h2>🏒 Draft Center</h2>
+ <div class="notice">Build each HLM draft class here. Use the board to compare prospects with your roster, pipeline and draft position. The tracker provides decision support; you make the final pick.</div>
+ <div class="card"><h3>Add / Update Draft Prospect</h3><div class="grid">
+ <div class="field"><label>Draft Year</label><input id="dcYear" type="number" value="${y}"></div><div class="field"><label>Player</label><input id="dcName"></div><div class="field"><label>Position</label><input id="dcPos" placeholder="C / LW / RD / G"></div><div class="field"><label>Age</label><input id="dcAge" type="number"></div><div class="field"><label>OVR</label><input id="dcOvr" type="number"></div><div class="field"><label>Potential</label><input id="dcPot" placeholder="Elite / Franchise / Top 6"></div><div class="field"><label>Player Type</label><input id="dcType"></div><div class="field"><label>Projected Pick / Rank</label><input id="dcRank" type="number"></div><div class="field"><label>Team / League</label><input id="dcLeague"></div><div class="field"><label>Scouting Notes</label><input id="dcNotes"></div></div><div class="toolbar"><button class="primary" onclick="addDraftProspect()">➕ Add Prospect</button><button onclick="draftCsvHelp()">CSV Format</button></div></div>
+ <div class="card"><h3>Draft-Day Board</h3><div class="toolbar"><input id="draftSearch" placeholder="Search draft class..." oninput="draftPage()"><select id="draftYearFilter" onchange="draftPage()"><option value="">All Years</option>${years.map(v=>`<option>${esc(v)}</option>`).join('')}</select><input id="draftPickFilter" type="number" placeholder="My next pick"></div>
+ <div class="wrap"><table><tr><th>Year</th><th>Rank</th><th>Player</th><th>Pos</th><th>Age</th><th>OVR</th><th>Potential</th><th>Type</th><th>Org Depth</th><th>Board Tag</th><th></th></tr>${rows.filter(r=>{let sy=document.getElementById('draftYearFilter')?.value||'';let q=(document.getElementById('draftSearch')?.value||'').toLowerCase();return(!sy||String(r.year)==sy)&&(!q||String(r.name).toLowerCase().includes(q)||String(r.pos).toLowerCase().includes(q))}).map((r,i)=>{let pos=String(r.pos||'').split(/[\/]/)[0];let depth=org[pos]||0;return `<tr><td>${esc(r.year)}</td><td>${esc(r.rank)}</td><td><b>${esc(r.name)}</b></td><td>${esc(r.pos)}</td><td>${esc(r.age)}</td><td>${esc(r.ovr)}</td><td>${esc(r.potential)}</td><td>${esc(r.type)}</td><td>${depth} roster players</td><td><select onchange="tagDraft(${r.id},this.value)"><option value="">--</option><option ${r.tag==='Target'?'selected':''}>Target</option><option ${r.tag==='Watch'?'selected':''}>Watch</option><option ${r.tag==='Later'?'selected':''}>Later</option><option ${r.tag==='Remove'?'selected':''}>Remove</option></select></td><td><button onclick="analyzeDraft(${r.id})">🔎 Analyze</button> <button onclick="deleteDraftProspect(${r.id})">Delete</button></td></tr>`}).join('')||'<tr><td colspan=11>No draft prospects entered.</td></tr>'}</table></div></div>
+ <div id="draftAnalysis" class="card" style="margin-top:12px"></div>`;
+}
+function addDraftProspect(){let r={id:uid(),year:n(getVal('dcYear')),name:getVal('dcName').trim(),pos:getVal('dcPos').trim(),age:n(getVal('dcAge')),ovr:n(getVal('dcOvr')),potential:getVal('dcPot').trim(),type:getVal('dcType').trim(),rank:n(getVal('dcRank')),league:getVal('dcLeague').trim(),notes:getVal('dcNotes').trim(),tag:''};if(!r.name){alert('Enter the prospect name.');return}db.draftClasses.push(r);save();show('draft')}
+function tagDraft(id,v){let r=db.draftClasses.find(x=>x.id===id);if(r){r.tag=v;save();show('draft')}}
+function deleteDraftProspect(id){if(confirm('Delete this draft prospect?')){db.draftClasses=db.draftClasses.filter(x=>x.id!==id);save();show('draft')}}
+function analyzeDraft(id){let r=db.draftClasses.find(x=>x.id===id);if(!r)return;let same=(db.players||[]).filter(p=>String(p.pos||'').split(/[\/]/)[0]===String(r.pos||'').split(/[\/]/)[0]);same.sort((a,b)=>n(b.ovr)-n(a.ovr));let exp=same.filter(p=>n(p.yl)<=2).length;let pick=n(document.getElementById('draftPickFilter')?.value);let text=`<h3>🔎 Draft Prospect Review: ${esc(r.name)}</h3><div class="grid"><div><b>Profile</b><br>Year ${r.year} · ${esc(r.pos)} · Age ${r.age||'?' } · OVR ${r.ovr||'?'} · ${esc(r.potential||'Unknown')} · ${esc(r.type||'')}</div><div><b>Organizational context</b><br>${same.length} current roster players at primary position; ${exp} with 2 or fewer years remaining.</div><div><b>Draft context</b><br>${r.rank?'Listed rank: '+r.rank+'. ':''}${pick?'Your next pick: '+pick+'. ':''}Compare this player with other available prospects before deciding.</div></div><p class="small muted">This is a factual decision-support report based only on data entered in the tracker. It does not automatically choose the player.</p>`;document.getElementById('draftAnalysis').innerHTML=text;show('draft')}
+function draftCsvHelp(){alert('Recommended CSV columns:\nyear,name,pos,age,ovr,potential,type,rank,league,notes\nYou can also send HLM draft-class screenshots to ChatGPT and have the data prepared for import.')}
+function gmPage(){let g=db.gmSettings||{strategy:'Contender',priorities:{performance:5,potential:5,age:5,contract:5,playoffs:5,draftCapital:5}};let ps=db.players||[];let exp=ps.filter(p=>n(p.yl)<=1);let prospects=db.prospects||[];let needs={};ps.forEach(p=>{let pos=String(p.pos||'').split(/[\/]/)[0];needs[pos]=(needs[pos]||0)+1});let trade=ps.filter(p=>p.decisionStatus==='Trade'||p.decisionStatus==='Watch');let rec=[];if(exp.length)rec.push(`Review ${exp.length} player contract(s) with 1 year or less remaining.`);if(prospects.length)rec.push(`Review ${prospects.length} prospects for development and promotion readiness.`);if(trade.length)rec.push(`${trade.length} player(s) are marked Trade/Watch on the Decision Board.`);document.getElementById('gm').innerHTML=`<h2>🧠 GM Decision Center</h2><div class="notice">A season-by-season command center for contracts, development, roster competition, prospects, draft planning and franchise strategy. It organizes evidence and creates reports. Final roster and transaction decisions remain yours.</div><div class="card"><h3>Franchise Strategy</h3><div class="grid"><div class="field"><label>Current Strategy</label><select id="gmStrategy"><option>Championship Push</option><option>Contender</option><option>Re-tool</option><option>Development</option><option>Rebuild</option></select></div><div><b>What this changes</b><p class="small muted">Your selected strategy provides context for reports. It does not override player data or automatically recommend moves.</p></div></div><div class="toolbar"><button class="primary" onclick="saveGMStrategy()">💾 Save Strategy</button><button onclick="generateSeasonReview()">📋 Generate Season Review</button><button onclick="copyGMBrief()">📋 Copy GM Brief</button></div></div><div class="grid"><div class="card"><b>Contracts needing attention</b><div class="big">${exp.length}</div></div><div class="card"><b>Prospects</b><div class="big">${prospects.length}</div></div><div class="card"><b>Players marked Trade/Watch</b><div class="big">${trade.length}</div></div><div class="card"><b>Transactions logged</b><div class="big">${(db.transactions||[]).length}</div></div></div><div class="card" style="margin-top:12px"><h3>📋 Current GM Checklist</h3><ul>${rec.map(x=>`<li>${esc(x)}</li>`).join('')||'<li>No urgent tracker flags yet. Keep entering roster, contract and season data.</li>'}</ul></div><div id="gmReport" class="card" style="margin-top:12px"></div>`;document.getElementById('gmStrategy').value=g.strategy||'Contender'}
+function saveGMStrategy(){db.gmSettings=db.gmSettings||{};db.gmSettings.strategy=getVal('gmStrategy');save();show('gm');alert('GM strategy saved.')}
+function generateSeasonReview(){let ps=db.players||[], seasons=[];ps.forEach(p=>(p.seasons||[]).forEach(s=>seasons.push({p,s})));let by={};seasons.forEach(x=>{let k=x.s.season;if(!by[k])by[k]={gp:0,g:0,a:0,pts:0,players:0};by[k].gp+=n(x.s.gp);by[k].g+=n(x.s.g);by[k].a+=n(x.s.a);by[k].pts+=n(x.s.pts);by[k].players++});let latest=Object.keys(by).sort().pop();let b=latest?by[latest]:null;document.getElementById('gmReport').innerHTML=`<h3>📊 Season Review${latest?' · '+esc(latest):''}</h3>${b?`<p>Tracked player records: ${b.players}. Combined player GP: ${b.gp}. Goals: ${b.g}. Assists: ${b.a}. Points: ${b.pts}.</p>`:'<p>No season stats have been entered yet.</p>'}<p class="small muted">Add team-season results, player stats, awards and transactions to make this report progressively richer.</p>`;show('gm')}
+function copyGMBrief(){let strategy=db.gmSettings?.strategy||'Contender';let text=`HLM GM BRIEF\nFranchise: ${db.franchiseName||'Unnamed'}\nStrategy: ${strategy}\nPlayers: ${(db.players||[]).length}\nProspects: ${(db.prospects||[]).length}\nDraft prospects: ${(db.draftClasses||[]).length}\nFuture picks: ${(db.draftPicks||[]).length}\nTransactions: ${(db.transactions||[]).length}\n\nUse this brief with the current tracker data when asking ChatGPT for a neutral GM decision analysis.`;navigator.clipboard?.writeText(text);alert('GM brief copied. Paste it into ChatGPT with your relevant screenshots/data when you want a deeper AI-assisted review.')}
+function recordsPage(){
+ let all=[];(db.players||[]).forEach(p=>(p.seasons||[]).forEach(s=>all.push({p,s})));
+ let rows=[];
+ [["Single-Season Points","pts"],["Single-Season Goals","g"],["Single-Season Assists","a"],["Single-Season Playoff Points","ppts"],["Single-Season Goalie Wins","w"],["Single-Season Shutouts","so"]].forEach(c=>{let x=all.sort((a,b)=>n(b.s[c[1]])-n(a.s[c[1]]))[0];if(x&&n(x.s[c[1]])>0)rows.push(`<tr><td>${c[0]}</td><td>${esc(x.p.name)}</td><td>${esc(x.s.season)}</td><td>${x.s[c[1]]}</td></tr>`)});
+ document.getElementById("records").innerHTML=`<h2>Records</h2><div class="wrap"><table><tr><th>Record</th><th>Player</th><th>Season</th><th>Value</th></tr>${rows.join("")||"<tr><td colspan=4>No player season stats yet.</td></tr>"}</table></div>`;
+}
+function blankDB(){return {players:[],teams:[],seasons:[],awards:[],transactions:[],draftPicks:[],prospects:[],contracts:[],snapshot:null,draftClasses:[],gmSettings:{strategy:"Contender",priorities:{performance:5,potential:5,age:5,contract:5,playoffs:5,draftCapital:5}}}}
+function newFranchise(){
+ if(!confirm("START A NEW FRANCHISE?\n\nThis will clear the current franchise from this browser. Your old franchise will be gone from the tracker unless you export a JSON backup first.\n\nPress OK only if you are starting a completely new HLM save."))return;
+ let name=prompt("New franchise name (optional):","");
+ db=blankDB();
+ if(name)db.franchiseName=name;
+ localStorage.setItem(KEY,JSON.stringify(db));
+ render();show("dash");
+ alert("New franchise started. You can now import the new team's roster from HLM Import.");
+}
+function backupPage(){document.getElementById("backup").innerHTML=`<h2>Backup & New Franchise</h2>
+ <div class="card"><h3>Protect your current franchise</h3><p>Export the JSON before starting a different HLM save. That file contains your players, season histories, teams, awards, transactions, prospects, draft picks, contracts and decisions.</p>
+ <div class="toolbar"><button class="primary" onclick="exportJSON()">Export JSON Backup</button><button onclick="document.getElementById('jfile').click()">Import JSON Backup</button><button onclick="newFranchise()" style="border-color:#d9534f">🗑️ Start New Franchise</button><input id="jfile" type="file" accept=".json" style="display:none" onchange="importJSON(event)"></div></div>
+ <div class="card" style="margin-top:12px"><h3>Starting a new HLM save</h3><ol><li>Export your old franchise JSON first.</li><li>Click <b>Start New Franchise</b>.</li><li>Go to <b>HLM Import</b>.</li><li>Paste or import the new team's roster CSV. Each player becomes a new player record.</li><li>Add season stats later as you play. The tracker will build the roster history year by year.</li></ol><p class="small muted">The new-franchise button only clears the tracker data in this browser. Your exported JSON backup remains a separate file you can restore later.</p></div>`}
+function exportJSON(){let a=document.createElement("a");a.href="data:application/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(db,null,2));a.download=(db.franchiseName?db.franchiseName.replace(/[^a-z0-9]+/gi,"_")+"_":"")+"HLM_Franchise_Backup.json";a.click()}
+function importJSON(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{db=JSON.parse(r.result);localStorage.setItem(KEY,JSON.stringify(db));render();alert("Backup restored.")}catch(err){alert("Invalid JSON backup.")}};r.readAsText(f)}
+
+const FIELDS={
+regular:["season","team","age","gp","gs","g","a","pts","pm","pim","shots","shotPct","hits","blocks","take","give","fow","fol","foPct","toi","ppToi","shToi","gwg","otg","ppg","ppa","pppts","shg","sha","shpts","w","l","otl","min","ga","gaa","sv","sa","svPct","so","gg","gaA","gPts","awards","notes"],
+playoff:["season","team","age","pgp","pGs","pg","pa","ppts","ppm","ppim","pShots","pShotPct","pHits","pBlocks","pTake","pGive","pFow","pFol","pFoPct","pToi","pPpToi","pShToi","pGwg","pOtg","pPpg","pPpa","pPppts","pShg","pSha","pShpts","w","l","otl","min","ga","gaa","sv","sa","svPct","so","gg","gaA","gPts","awards","notes"]
+};
+function setVal(id,v){let e=document.getElementById(id);if(e)e.value=v??""}
+function getVal(id){return document.getElementById(id)?.value??""}
+function openPlayerStats(id){
+ activePlayer=db.players.find(p=>p.id===id);if(!activePlayer)return;
+ editIndex=null;statsView="regular";
+ document.getElementById("playerModal").style.display="flex";
+ document.getElementById("pmTitle").textContent=activePlayer.name;
+ document.getElementById("pmInfo").textContent=`${activePlayer.team||""} • ${activePlayer.pos||""} • Age ${activePlayer.age||""} • OVR ${activePlayer.ovr||""} • ${activePlayer.potential||""}`;
+ setStatsView("regular");clearSeasonForm();
+}
+function closePlayerStats(){document.getElementById("playerModal").style.display="none";activePlayer=null}
+function setStatsView(view){
+ statsView=view;
+ document.getElementById("regularTab").classList.toggle("active",view==="regular");
+ document.getElementById("playoffTab").classList.toggle("active",view==="playoff");
+ document.getElementById("evalTab").classList.remove("active");
+ document.getElementById("evaluationPanel").style.display="none";
+ document.getElementById("formTitle").parentElement.parentElement.style.display="block";
+ document.getElementById("formTitle").textContent=`Add ${view==="regular"?"Regular Season":"Playoff"} Record`;
+ renderHistory();
+}
+function clearSeasonForm(){
+ editIndex=null;
+ const ids=["sSeason","sTeam","sAge","sGp","sGs","sGoals","sAssists","sPoints","sPm","sPim","sShots","sShotPct","sHits","sBlocks","sTake","sGive","sFow","sFol","sFoPct","sToi","sPpToi","sShToi","sGwg","sOtg","sPpg","sPpa","sPppts","sShg","sSha","sShpts","gW","gL","gOtl","gMin","gGa","gGaa","gSv","gSa","gSvPct","gSo","gG","gA","gPts","sAwards","sNotes"];
+ ids.forEach(id=>setVal(id,""));
+ setVal("sTeam",activePlayer?.team||"");setVal("sAge",activePlayer?.age||"");
+}
+function saveSeasonRecord(){
+ if(!activePlayer)return;
+ const season=getVal("sSeason").trim();if(!season){alert("Enter the season, such as 2026-27.");return}
+ activePlayer.seasons=activePlayer.seasons||[];
+ let s=editIndex!=null?activePlayer.seasons[editIndex]:null;
+ if(!s){s={id:uid(),season};activePlayer.seasons.push(s)} else s.season=season;
+ s.team=getVal("sTeam");s.age=n(getVal("sAge"));
+ const map={
+  gp:"sGp",gs:"sGs",g:"sGoals",a:"sAssists",pts:"sPoints",pm:"sPm",pim:"sPim",shots:"sShots",shotPct:"sShotPct",hits:"sHits",blocks:"sBlocks",take:"sTake",give:"sGive",fow:"sFow",fol:"sFol",foPct:"sFoPct",toi:"sToi",ppToi:"sPpToi",shToi:"sShToi",gwg:"sGwg",otg:"sOtg",ppg:"sPpg",ppa:"sPpa",pppts:"sPppts",shg:"sShg",sha:"sSha",shpts:"sShpts",
+  w:"gW",l:"gL",otl:"gOtl",min:"gMin",ga:"gGa",gaa:"gGaa",sv:"gSv",sa:"gSa",svPct:"gSvPct",so:"gSo",gg:"gG",gaA:"gA",gPts:"gPts",awards:"sAwards",notes:"sNotes"
+ };
+ if(statsView==="playoff"){
+   const base=Object.assign({},s); 
+   const pmaps={gp:"pgp",gs:"pGs",g:"pg",a:"pa",pts:"ppts",pm:"ppm",pim:"ppim",shots:"pShots",shotPct:"pShotPct",hits:"pHits",blocks:"pBlocks",take:"pTake",give:"pGive",fow:"pFow",fol:"pFol",foPct:"pFoPct",toi:"pToi",ppToi:"pPpToi",shToi:"pShToi",gwg:"pGwg",otg:"pOtg",ppg:"pPpg",ppa:"pPpa",pppts:"pPppts",shg:"pShg",sha:"pSha",shpts:"pShpts",w:"w",l:"l",otl:"otl",min:"min",ga:"ga",gaa:"gaa",sv:"sv",sa:"sa",svPct:"svPct",so:"so",gg:"gg",gaA:"gaA",gPts:"gPts",awards:"awards",notes:"notes"};
+   Object.entries(pmaps).forEach(([id,key])=>{let v=getVal(map[id]);if(v!=="")s[key]=isNaN(Number(v))?v:Number(v);});
+ }else{
+   Object.entries(map).forEach(([key,id])=>{let v=getVal(id);if(v!=="")s[key]=isNaN(Number(v))?v:Number(v);});
+ }
+ localStorage.setItem(KEY,JSON.stringify(db));editIndex=null;clearSeasonForm();render();openPlayerStats(activePlayer.id);setStatsView(statsView);
+}
+function editSeason(i){
+ const s=activePlayer.seasons[i];
+ if(!s)return;
+ editIndex=i;
+ const isP=statsView==="playoff";
+ setVal("sSeason",s.season);setVal("sTeam",s.team);setVal("sAge",s.age);
+ const ids=["sGp","sGs","sGoals","sAssists","sPoints","sPm","sPim","sShots","sShotPct","sHits","sBlocks","sTake","sGive","sFow","sFol","sFoPct","sToi","sPpToi","sShToi","sGwg","sOtg","sPpg","sPpa","sPppts","sShg","sSha","sShpts"];
+ const keys=["gp","gs","g","a","pts","pm","pim","shots","shotPct","hits","blocks","take","give","fow","fol","foPct","toi","ppToi","shToi","gwg","otg","ppg","ppa","pppts","shg","sha","shpts"];
+ const pkeys={gp:"pgp",gs:"pGs",g:"pg",a:"pa",pts:"ppts",pm:"ppm",pim:"ppim",shots:"pShots",shotPct:"pShotPct",hits:"pHits",blocks:"pBlocks",take:"pTake",give:"pGive",fow:"pFow",fol:"pFol",foPct:"pFoPct",toi:"pToi",ppToi:"pPpToi",shToi:"pShToi",gwg:"pGwg",otg:"pOtg",ppg:"pPpg",ppa:"pPpa",pppts:"pPppts",shg:"pShg",sha:"pSha",shpts:"pShpts"};
+ keys.forEach((k,j)=>setVal(ids[j],s[isP?(pkeys[k]||k):k]));
+ setVal("gW",s.w);setVal("gL",s.l);setVal("gOtl",s.otl);setVal("gMin",s.min);setVal("gGa",s.ga);setVal("gGaa",s.gaa);setVal("gSv",s.sv);setVal("gSa",s.sa);setVal("gSvPct",s.svPct);setVal("gSo",s.so);setVal("gG",s.gg);setVal("gA",s.gaA);setVal("gPts",s.gPts);setVal("sAwards",s.awards);setVal("sNotes",s.notes);
+ document.getElementById("formTitle").textContent=`Edit ${isP?"Playoff":"Regular Season"} Record`;
+}
+function deleteSeason(i){
+ if(!confirm("Delete this season record?"))return;
+ activePlayer.seasons.splice(i,1);localStorage.setItem(KEY,JSON.stringify(db));render();openPlayerStats(activePlayer.id);setStatsView(statsView);
+}
+function renderHistory(){
+ if(!activePlayer)return;
+ let ss=activePlayer.seasons||[];
+ let rows=[];
+ ss.forEach((s,i)=>{
+  const hasP=statsView==="playoff" ? (s.pgp!=null||s.pg!=null||s.ppts!=null) : (s.gp!=null||s.g!=null||s.pts!=null);
+  if(!hasP)return;
+  if(statsView==="regular")rows.push(`<tr><td>${esc(s.season)}</td><td>${esc(s.team)}</td><td>${s.gp??""}</td><td>${s.g??""}</td><td>${s.a??""}</td><td>${s.pts??""}</td><td>${s.pm??""}</td><td>${s.pim??""}</td><td>${s.shots??""}</td><td>${s.shotPct??""}</td><td>${s.ppg??""}</td><td>${s.shg??""}</td><td>${s.fow??""}</td><td>${s.foPct??""}</td><td>${s.hits??""}</td><td>${s.blocks??""}</td><td>${s.w??""}</td><td>${s.gaa??""}</td><td>${s.svPct??""}</td><td>${s.so??""}</td><td>${esc(s.awards||"")}</td><td><button onclick="editSeason(${i})">Edit</button> <button onclick="deleteSeason(${i})">Delete</button></td></tr>`);
+  else rows.push(`<tr><td>${esc(s.season)}</td><td>${esc(s.team)}</td><td>${s.pgp??""}</td><td>${s.pg??""}</td><td>${s.pa??""}</td><td>${s.ppts??""}</td><td>${s.ppm??""}</td><td>${s.ppim??""}</td><td>${s.pShots??""}</td><td>${s.pShotPct??""}</td><td>${s.pPpg??""}</td><td>${s.pShg??""}</td><td>${s.pFow??""}</td><td>${s.pFoPct??""}</td><td>${s.pHits??""}</td><td>${s.pBlocks??""}</td><td>${s.w??""}</td><td>${s.gaa??""}</td><td>${s.svPct??""}</td><td>${s.so??""}</td><td>${esc(s.awards||"")}</td><td><button onclick="editSeason(${i})">Edit</button> <button onclick="deleteSeason(${i})">Delete</button></td></tr>`);
+ });
+ const head=statsView==="regular"
+ ? `<tr><th>Season</th><th>Team</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>+/-</th><th>PIM</th><th>S</th><th>S%</th><th>PPG</th><th>SHG</th><th>FOW</th><th>FO%</th><th>Hits</th><th>Blocks</th><th>W</th><th>GAA</th><th>SV%</th><th>SO</th><th>Awards</th><th></th></tr>`
+ : `<tr><th>Season</th><th>Team</th><th>GP</th><th>G</th><th>A</th><th>PTS</th><th>+/-</th><th>PIM</th><th>S</th><th>S%</th><th>PPG</th><th>SHG</th><th>FOW</th><th>FO%</th><th>Hits</th><th>Blocks</th><th>W</th><th>GAA</th><th>SV%</th><th>SO</th><th>Awards</th><th></th></tr>`;
+ document.getElementById("historyTable").innerHTML=`<div class="wrap"><table>${head}${rows.join("")||`<tr><td colspan="22" class="muted">No ${statsView==="regular"?"regular-season":"playoff"} stats entered yet.</td></tr>`}</table></div>`;
+ let s=ss, career=`<b>Career totals:</b> GP ${s.reduce((a,x)=>a+n(statsView==="regular"?x.gp:x.pgp),0)} · G ${s.reduce((a,x)=>a+n(statsView==="regular"?x.g:x.pg),0)} · A ${s.reduce((a,x)=>a+n(statsView==="regular"?x.a:x.pa),0)} · PTS ${s.reduce((a,x)=>a+n(statsView==="regular"?x.pts:x.ppts),0)}`;
+ if(activePlayer.pos==="G"||String(activePlayer.pos||"").includes("G")) career+=` · W ${s.reduce((a,x)=>a+n(x.w),0)} · SO ${s.reduce((a,x)=>a+n(x.so),0)}`;
+ document.getElementById("careerTotals").innerHTML=career;
+}
+render();
+show("players");
+</script>
+
+<script>
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>
