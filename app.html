@@ -51,7 +51,36 @@ function rankings(){let ps=activePlayers().filter(p=>p.age<=23).sort((a,b)=>(pot
 function freeagents(){const controlled=numOrNull(db.settings?.controlledTeamId);const canSign=controlled!=null&&db.teams.some(t=>t.id===controlled);const ps=activePlayers().filter(p=>isFreeAgentPlayer(p)).sort((a,b)=>Number(b.ovr||0)-Number(a.ovr||0));shell('Free Agents','Players without a current team',`<div class="notice">${canSign?`Sign players directly to ${esc(teamName(controlled))}.`:'Set a Controlled Team to sign free agents from this screen.'}</div>${table(['Player','Pos','Age','OVR','Potential','AAV','Action'],ps.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(posText(p))}</td><td>${p.age??'--'}</td><td>${p.ovr??'--'}</td><td>${potentialValue(p)||p.potential||'--'}</td><td>${money(p.aav)}</td><td>${canSign?`<button class="btn" onclick="signFreeAgent(${p.id})">Sign</button>`:'--'}</td></tr>`))}`)}
 function waivers(){const controlled=numOrNull(db.settings?.controlledTeamId);if(controlled==null){shell('Waivers','Waive and claim players',`<div class="card"><div class="notice">Select a Controlled Team before using Waivers.</div><div class="toolbar" style="margin-top:12px"><button class="btn primary" onclick="go('controlledteam')">Set Controlled Team</button></div></div>`);return}db.waivers=Array.isArray(db.waivers)?db.waivers:[];const myWaivable=myPlayers().slice().sort((a,b)=>Number(b.ovr||0)-Number(a.ovr||0)).slice(0,200);const wire=db.waivers.map((w,i)=>{const p=db.players.find(x=>x.id==w.playerId);return {w,p,i}}).filter(x=>x.p).sort((a,b)=>Number((b.p?.ovr)||0)-Number((a.p?.ovr)||0));shell('Waivers','Waive and claim players',`<div class="grid">${metric('Open Waiver Claims',wire.length)}${metric('My Team',teamName(controlled))}${metric('My Active Players',myPlayers().length)}${metric('My Waivered Players',wire.filter(x=>x.w.fromTeamId===controlled).length)}</div><div class="section">Waive player from ${esc(teamName(controlled))}</div>${table(['Player','Pos','Age','OVR','Potential','Action'],myWaivable.map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(posText(p))}</td><td>${p.age??'--'}</td><td>${p.ovr??'--'}</td><td>${potentialValue(p)||p.potential||'--'}</td><td><button class="btn" onclick="waivePlayer(${p.id})">Waive</button></td></tr>`))}<div class="section">Waiver wire</div>${table(['Player','From Team','Pos','Age','OVR','Date','Action'],wire.map(x=>`<tr><td>${esc(x.p.name)}</td><td>${esc(teamName(x.w.fromTeamId))}</td><td>${esc(posText(x.p))}</td><td>${x.p.age??'--'}</td><td>${x.p.ovr??'--'}</td><td>${esc(x.w.date||'--')}</td><td>${x.w.fromTeamId===controlled?'<span class="mini">Waived by you</span>':`<button class="btn primary" onclick="claimWaiver(${x.p.id})">Claim</button>`}</td></tr>`))}`)}
 function picks(){shell('Draft Picks','Owned and future draft assets',`<div class="toolbar"><button class="btn primary" onclick="addPick()">+ Add Pick</button></div>${table(['Year','Owner','Original','Round'],db.draftPicks.slice().sort((a,b)=>a.year-b.year||a.round-b.round).map(p=>`<tr><td>${p.year}</td><td>${esc(teamName(p.teamId))}</td><td>${esc(teamName(p.originalTeamId))}</td><td>${p.round}</td></tr>`))}`)}
-function futurepicks(){picks()}
+function picks(){
+    const controlledTeamId = db.settings.controlledTeamId;
+    const ownedPicks = db.draftPicks
+        .filter(p => Number(p.teamId) === Number(controlledTeamId))
+        .slice()
+        .sort((a,b) => a.year - b.year || a.round - b.round);
+
+    shell(
+        'Draft Picks',
+        'Owned and future draft assets',
+        `<div class="toolbar">
+            <button class="btn primary" onclick="addPick()">+ Add Pick</button>
+        </div>
+        ${table(
+            ['Year','Owner','Original','Round'],
+            ownedPicks.map(p => `
+                <tr>
+                    <td>${p.year}</td>
+                    <td>${esc(teamName(p.teamId))}</td>
+                    <td>${esc(teamName(p.originalTeamId))}</td>
+                    <td>${p.round}</td>
+                </tr>
+            `).join('')
+        )}
+        ${ownedPicks.length === 0
+            ? '<div class="empty">No draft picks currently owned by this team.</div>'
+            : ''
+        }`
+    );
+}
 function rookieDraftYear(r){const y=Number(r?.fields?.[24]);if(Number.isFinite(y)&&y>1900)return y;const m=String(r?.raw||'').match(/,(19|20)\d{2},\d+,/);return m?Number(m[0].slice(1).split(',')[0]):null}
 function draftPicksSortedDesc(){return (db.draftPicks||[]).map(p=>({...p,year:Number(p.year),round:Number(p.round)})).filter(p=>Number.isFinite(p.year)&&Number.isFinite(p.round)&&p.round>0).sort((a,b)=>b.year-a.year||a.round-b.round)}
 function draftclasses(){const baseYear=Number(db.settings?.season||2026);const years=[baseYear+1,baseYear+2,baseYear+3,baseYear+4,baseYear+5,baseYear+6];const rookies=Array.isArray(db.rookies)?db.rookies:[];shell('Draft Classes','Future and historical class planning',`<div class="grid">${years.map(y=>metric(String(y),rookies.filter(r=>rookieDraftYear(r)===y).length)).join('')}</div><div class="notice" style="margin-top:12px">Draft classes can be supplemented manually through Add Player and Draft Board.</div>`)}
