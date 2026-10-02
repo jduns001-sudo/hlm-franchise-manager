@@ -49,9 +49,11 @@
         ? old.transactions
         : [],
 
-      draftPicks: Array.isArray(old.draftPicks)
-        ? old.draftPicks
-        : [],
+      draftPicks: Array.isArray(roster.draftPicks) && roster.draftPicks.length
+        ? roster.draftPicks
+        : Array.isArray(old.draftPicks)
+          ? old.draftPicks
+          : [],
 
       prospects: Array.isArray(old.prospects)
         ? old.prospects
