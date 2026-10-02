@@ -3,7 +3,7 @@
 
 (async function () {
   const KEY = "hlm_tracker_v3";
-  const IMPORT_FLAG = "hlm_roster_imported_2026";
+  const IMPORT_FLAG = "hlm_roster_imported_2026_v2";
 
   try {
     // If the roster has already been imported, go straight to the app.
@@ -49,8 +49,8 @@
         ? old.transactions
         : [],
 
-      draftPicks: Array.isArray(old.draftPicks)
-        ? old.draftPicks
+      draftPicks: Array.isArray(roster.draftPicks)
+        ? roster.draftPicks
         : [],
 
       prospects: Array.isArray(old.prospects)
