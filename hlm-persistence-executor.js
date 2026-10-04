@@ -1,7 +1,7 @@
 'use strict';
 
 const { validateAtomicPersistencePlan } = require('./hlm-atomic-persistence');
-const { validateGameState } = require('./hlm-game-state');
+const { validateGameStateEnvelope } = require('./hlm-game-state');
 
 function executeAtomicPersistence(plan, repository, slotId, metadata = {}) {
   const check = validateAtomicPersistencePlan(plan);
@@ -9,7 +9,7 @@ function executeAtomicPersistence(plan, repository, slotId, metadata = {}) {
     const e = new Error('Invalid atomic persistence plan');
     e.code = 'INVALID_PERSISTENCE_PLAN'; e.errors = check.errors; throw e;
   }
-  const stateCheck = validateGameState(plan.candidateState);
+  const stateCheck = validateGameStateEnvelope(plan.candidateState);
   if (!stateCheck.valid) {
     const e = new Error('Candidate GameState is invalid');
     e.code = 'INVALID_CANDIDATE_STATE'; e.errors = stateCheck.errors; throw e;
@@ -26,7 +26,7 @@ function executeAtomicPersistence(plan, repository, slotId, metadata = {}) {
     repository.save(slotId, plan.candidateState, { ...metadata, saveId: slotId }, { replace: existed });
     const written = repository.load(slotId);
     if (!written || !written.state) throw new Error('Post-write verification failed');
-    const verify = validateGameState(written.state);
+    const verify = validateGameStateEnvelope(written.state);
     if (!verify.valid) throw new Error('Post-write GameState validation failed');
     return { executed: true, verified: true, rolledBack: false, legacySourcePreserved: true, slotId };
   } catch (error) {
