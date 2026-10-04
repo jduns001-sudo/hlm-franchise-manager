@@ -18,11 +18,15 @@ assert.strictEqual(result.transformations.transactionsChanged, 1);
 assert(result.state.assets.contracts[0].contractId.startsWith('CON-'));
 assert(result.state.activity.transactions[0].transactionId.startsWith('TXN-'));
 assert.strictEqual(result.persistencePerformed, false);
-assert.strictEqual(result.readyForPersistencePlanning, false);
-assert(result.unresolved.some(x => x.code === 'DEFERRED_LEGACY_FIELDS'));
+assert.strictEqual(result.readyForPersistencePlanning, true);
+assert.strictEqual(result.unresolved.length, 0);
+assert.strictEqual(result.dataDiscarded, false);
+assert(result.transformations.preservedLegacyFields.includes('gmSettings'));
+assert.deepStrictEqual(result.state.extensions.legacy.preserved.gmSettings, legacy.gmSettings);
 assert.strictEqual(JSON.stringify(legacy), before);
 
 const picks = prepareLegacyMigration({ ...legacy, draftPicks: [{ year: 2027, round: 1, originalTeamId: 5 }] });
+assert.strictEqual(picks.readyForPersistencePlanning, false);
 assert(picks.unresolved.some(x => x.code === 'DRAFT_PICK_IDENTITY_UNRESOLVED'));
 
 console.log('Legacy migration orchestrator tests passed.');
