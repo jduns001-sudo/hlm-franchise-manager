@@ -1,6 +1,6 @@
 'use strict';
 
-const { createAtomicPersistencePlan } = require('./hlm-atomic-persistence');
+const { createAtomicPersistencePlan, authorizeAtomicPersistencePlan } = require('./hlm-atomic-persistence');
 const { executeBrowserPersistence, LEGACY_STORAGE_KEY } = require('./hlm-browser-persistence-integration');
 
 const MIGRATION_COMMAND = 'MIGRATE_LEGACY_FRONT_OFFICE';
@@ -23,7 +23,11 @@ function executeMigrationCommand(command, storage, options = {}) {
     const error = new Error('Legacy source is invalid JSON'); error.code = 'INVALID_LEGACY_SOURCE'; error.cause = cause; throw error;
   }
   const plan = createAtomicPersistencePlan(legacy, { ...command.metadata, saveId: command.slotId });
-  const result = executeBrowserPersistence(plan, storage, command.slotId, command.metadata);
+  const authorizedPlan = authorizeAtomicPersistencePlan(plan, {
+    explicitConfirmation: true,
+    replaceExisting: options.replaceExisting === true
+  });
+  const result = executeBrowserPersistence(authorizedPlan, storage, command.slotId, command.metadata);
   return { ...result, commandType: command.type };
 }
 
