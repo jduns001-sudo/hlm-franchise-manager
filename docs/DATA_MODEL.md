@@ -98,9 +98,12 @@ Each follows §1 rules. Define only the minimum now.
 | Free Agent | `-1` appears as a "no team" value (1 active Universe player, 5,127 roster rows); runtime FA state is derived from rules, not from this value alone. | Keep distinct. |
 | Unknown/Legacy | `100` (4,338 Universe players, all retired in the current data; 432 roster rows) — meaning not formally established. | Keep distinct. |
 
-- Keep `-1`, `0` and `100` distinct until their exact meanings are formally established. Do not renumber any current Team ID. Do not identify teams by abbreviation (39 abbreviations repeat).
-- Team table gaps: IDs 11, 27, 31, 32 and 33 are absent although other IDs ≤ 33 exist. ID 27 owns 80 Universe draft picks, so those owners cannot be resolved.
-- **Future option (not implemented):** a separate `Organization` entity (permanent `orgId`, name, level, league, parent) with `Team` as a season-specific entry of an organization. This may be cleaner than forcing every hockey organization into Team. Decision deferred.
+- Keep `-1`, `0` and `100` distinct until their exact meanings are formally established. Mission 2 confidence: `-1` = **INFERRED** no-team / Free-Agent-or-Other style marker; `0` = **INFERRED** unassigned/no-team style marker; `100` = **AMBIGUOUS** legacy/historical/unknown marker. None alone guarantees Free Agent eligibility.
+- Do not renumber any current Team ID. Do not identify teams by abbreviation (39 abbreviations repeat).
+- Mission 2 measured 416 distinct positive outside-table IDs among the 3,756 active players in this category. Their organization categories remain **UNKNOWN** from repository evidence; preserve them rather than converting them to Free Agents or inventing Team rows.
+- Team table gaps: IDs 11, 27, 31, 32 and 33 are absent although other IDs ≤ 33 exist. ID 27 owns 80 Universe draft picks, so those owners cannot be resolved. IDs 11/31/32/33 also remain **UNKNOWN**.
+- **Future option (not implemented):** a separate `Organization` entity (permanent `organizationId`, name, type, status, league/parent/historical links) with `Team` as a season-aware participation record. Decision deferred.
+- See `docs/TEAM_ORGANIZATION_IDENTITY.md` for the Mission 2 evidence and confidence dictionary.
 
 ## 6. DraftPick ID strategy review
 - **Correction to the Mission 1 draft:** the earlier text proposed `pick:<year>:<round>:<originalTeamId>`. `app.html` already derives and persists `pickId = DP-<league>-<year>-<originalTeamId>-<round>-<occurrence>` (`draftPickIdFor`, `normalizeDraftPicks`), and `draftPickOverrides` are keyed by it. **The existing `DP-` format is the canonical format.** Do not introduce a second one.
