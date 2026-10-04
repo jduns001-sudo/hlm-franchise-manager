@@ -15,7 +15,7 @@ assert.strictEqual(repo.has('slot-a'),true);
 
 const badRepo={
   data:null, save(k,v){this.data=v;}, load(){return '{"broken":true}';},
-  has(){return false;}, remove(){this.data=null;}
+  has(){return this.data!==null;}, remove(){this.data=null;}
 };
 assert.throws(()=>executeAtomicPersistence(plan,badRepo,'slot-b'), e=>e.persistenceRolledBack===true);
 assert.strictEqual(badRepo.data,null);
