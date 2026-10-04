@@ -5,6 +5,7 @@ const { validateLegacyMigration } = require('./hlm-legacy-migration-validation')
 const { migrateContractIdentities } = require('./hlm-contract-identity-migration');
 const { migrateTransactionIdentities } = require('./hlm-transaction-identity-migration');
 const { auditDraftPickIdentity } = require('./hlm-draft-pick-identity');
+const { migrateOperationalDraftPickIdentities } = require('./hlm-draft-pick-identity-migration');
 const { resolveDeferredLegacyFields } = require('./hlm-deferred-legacy-policy');
 
 function prepareLegacyMigration(legacy, meta = {}) {
@@ -21,7 +22,7 @@ function prepareLegacyMigration(legacy, meta = {}) {
   const draftPicks = auditDraftPickIdentity(state.assets.draftPicks);
   const unresolved = [];
 
-  if (!draftPicks.permanentIdentityReady && draftPicks.total > 0) {
+  if (draftPicks.duplicateExistingIds.length > 0 || draftPicks.withoutExistingId > 0) {
     unresolved.push({ code: 'DRAFT_PICK_IDENTITY_UNRESOLVED', count: draftPicks.total });
   }
 
