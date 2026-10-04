@@ -19,9 +19,31 @@ function createAtomicPersistencePlan(legacy, meta = {}) {
       rollbackOnFailure: true,
       deleteLegacyAfterSuccess: false
     },
+    authorization: null,
     executable: false,
     executed: false,
     rollbackPerformed: false
+  };
+}
+
+function authorizeAtomicPersistencePlan(plan, authorization = {}) {
+  const check = validateAtomicPersistencePlan(plan);
+  if (!check.valid) {
+    const e = new Error('Invalid atomic persistence plan');
+    e.code = 'INVALID_PERSISTENCE_PLAN'; e.errors = check.errors; throw e;
+  }
+  if (authorization.explicitConfirmation !== true) {
+    const e = new Error('Explicit persistence authorization is required');
+    e.code = 'PERSISTENCE_AUTHORIZATION_REQUIRED'; throw e;
+  }
+  return {
+    ...plan,
+    authorization: {
+      type: 'explicit-user-confirmation',
+      confirmed: true,
+      replaceExisting: authorization.replaceExisting === true
+    },
+    executable: true
   };
 }
 
@@ -39,4 +61,4 @@ function validateAtomicPersistencePlan(plan) {
   return { valid: errors.length === 0, errors };
 }
 
-module.exports = { createAtomicPersistencePlan, validateAtomicPersistencePlan };
+module.exports = { createAtomicPersistencePlan, authorizeAtomicPersistencePlan, validateAtomicPersistencePlan };
