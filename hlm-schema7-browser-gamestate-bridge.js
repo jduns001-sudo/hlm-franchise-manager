@@ -3,6 +3,7 @@
 const { createBrowserSaveAdapter, DEFAULT_STORAGE_KEY } = require('./hlm-browser-save-adapter');
 const { createSchema7IsolatedRepositoryBridge } = require('./hlm-schema7-isolated-repository-bridge');
 const { createSchema7GameStateExecutionPackage } = require('./hlm-schema7-gamestate-execution-package');
+const { serializeGameState, deserializeGameState } = require('./hlm-game-state-serialization');
 
 const LEGACY_LOCAL_STORAGE_KEY = 'hlm_tracker_v3';
 
@@ -18,7 +19,10 @@ function createSchema7BrowserGameStateBridge(storage, slotId, metadata = {}) {
     sourceAccess: false,
     async migrate(snapshot, authorization, options = {}) {
       const executionPackage = createSchema7GameStateExecutionPackage(snapshot, authorization, options);
-      const result = await bridge.execute(executionPackage);
+      const canonicalPackage = executionPackage.executable && executionPackage.candidate
+        ? Object.freeze({ ...executionPackage, candidate: deserializeGameState(serializeGameState(executionPackage.candidate)) })
+        : executionPackage;
+      const result = await bridge.execute(canonicalPackage);
       if (storage.getItem(LEGACY_LOCAL_STORAGE_KEY) !== legacyBefore) {
         throw new Error('Legacy Front Office localStorage changed during isolated migration');
       }
