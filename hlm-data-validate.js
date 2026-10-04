@@ -53,12 +53,12 @@ function validate(U, R) {
   counts.ovrDisagreementsUniverseVsRoster = ovrDisagree;
 
   const active = players.filter(p => !p.retired);
-  const byKind = { sentinel: {}, franchise: 0, otherOrg: 0 };
+  const byKind = { sentinel: {}, inTeamTable: 0, notInTeamTable: 0 };
   active.forEach(p => {
     const t = num(p.teamId);
     if (SENTINEL_TEAM_IDS.has(t)) byKind.sentinel[t] = (byKind.sentinel[t] || 0) + 1;
-    else if (teamIds.has(t)) byKind.franchise++;
-    else byKind.otherOrg++;
+    else if (teamIds.has(t)) byKind.inTeamTable++;
+    else byKind.notInTeamTable++;
   });
   counts.activePlayerTeamKinds = byKind;
 
@@ -67,18 +67,33 @@ function validate(U, R) {
   counts.duplicateTeamAbbreviations = [...abbr].filter(([, c]) => c > 1).length;
   if (counts.duplicateTeamAbbreviations) add('TEAM_ABBR_NOT_UNIQUE', 'info', 'never match teams by abbreviation');
 
-  const pickKey = p => [p.year ?? p.draftYear, p.round, p.originalTeamId ?? p.teamId].join(':');
-  const pk = new Map();
-  picks.forEach(p => pk.set(pickKey(p), (pk.get(pickKey(p)) || 0) + 1));
+  // Identity mirrors app.html draftPickIdFor(): league, year, original team, round (+ occurrence for repeats).
+  const pickKey = p => [p.league ?? 0, p.draftYear ?? p.year, p.originalTeamId ?? p.teamId, p.round].join(':');
+  const collisions = rows => { const m = new Map(); rows.forEach(p => m.set(pickKey(p), (m.get(pickKey(p)) || 0) + 1)); return [...m].filter(([, c]) => c > 1).length; };
+  const pk = new Map(); picks.forEach(p => pk.set(pickKey(p), (pk.get(pickKey(p)) || 0) + 1));
+  counts.rosterPickNaturalKeyCollisions = collisions(rosterPicks);
+  counts.picksMissingIdentityFields = picks.concat(rosterPicks).filter(p => num(p.year ?? p.draftYear) == null || num(p.round) == null || num(p.originalTeamId ?? p.teamId) == null).length;
+  counts.universePicksOriginalNotInTeamTable = picks.filter(p => !teamIds.has(num(p.originalTeamId))).length;
+  counts.rosterPicksOriginalNotInTeamTable = rosterPicks.filter(p => !teamIds.has(num(p.originalTeamId))).length;
+  counts.rosterPicksOwnerMissing = rosterPicks.filter(p => num(p.currentTeamId) == null).length;
   counts.universePicks = picks.length;
   counts.universePicksWithoutId = picks.filter(p => p.id == null).length;
-  counts.universePicksOwnerNotFranchise = picks.filter(p => !teamIds.has(num(p.teamId))).length;
+  counts.universePicksOwnerNotInTeamTable = picks.filter(p => !teamIds.has(num(p.teamId))).length;
   counts.universePickNaturalKeyCollisions = [...pk].filter(([, c]) => c > 1).length;
   counts.rosterPicks = rosterPicks.length;
   counts.rosterPicksWithoutId = rosterPicks.filter(p => p.id == null).length;
-  counts.rosterPickOwnerNotFranchise = rosterPicks.filter(p => !teamIds.has(num(p.currentTeamId ?? p.teamId))).length;
-  if (counts.universePicksWithoutId || counts.rosterPicksWithoutId) add('PICK_NO_PERMANENT_ID', 'info', 'DraftPick IDs not assigned yet');
+  counts.rosterPicksOwnerNotInTeamTable = rosterPicks.filter(p => !teamIds.has(num(p.currentTeamId ?? p.teamId))).length;
+  if (counts.universePicksWithoutId || counts.rosterPicksWithoutId) add('PICK_NO_PERMANENT_ID', 'info', 'source files carry no pickId; app.html derives runtime DP- ids');
+  if (counts.universePickNaturalKeyCollisions) add('PICK_IDENTITY_COLLISION', 'warning', `${counts.universePickNaturalKeyCollisions} Universe keys repeat; derived ids depend on file order (occurrence suffix)`);
+  if (counts.universePicksOwnerNotInTeamTable) add('PICK_OWNER_NOT_IN_TEAM_TABLE', 'warning', `${counts.universePicksOwnerNotInTeamTable} Universe picks`);
+  // Not checkable with current data: whether a team in the table is an NHL franchise, and whether a pick's recorded owner is correct.
 
+  const rosterInvalid = rosterRows.filter(r => !Number.isSafeInteger(num(r.id)) || num(r.id) <= 0).length;
+  counts.rosterRowsInvalidId = rosterInvalid;
+  if (rosterInvalid) add('INVALID_ROSTER_PLAYER_ID', 'error', rosterInvalid);
+  const sentinelInTable = [...SENTINEL_TEAM_IDS].filter(i => teamIds.has(i));
+  counts.sentinelIdsPresentInTeamTable = sentinelInTable.length;
+  if (sentinelInTable.length) add('SENTINEL_ID_IN_TEAM_TABLE', 'error', sentinelInTable.join(','));
   const invalid = players.filter(p => !Number.isSafeInteger(num(p.id)) || num(p.id) <= 0).length;
   counts.universePlayersInvalidId = invalid;
   if (invalid) add('INVALID_PLAYER_ID', 'error', invalid);
