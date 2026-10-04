@@ -13,9 +13,11 @@ function prepareLegacyMigration(legacy, meta = {}) {
   const preview = createLegacyMigrationPreview(legacy, meta);
   const contracts = migrateContractIdentities(preview.state.assets.contracts);
   const transactions = migrateTransactionIdentities(preview.state.activity.transactions);
+  const draftPickMigration = migrateOperationalDraftPickIdentities(preview.state.assets.draftPicks);
 
   preview.state.assets.contracts = contracts.contracts;
   preview.state.activity.transactions = transactions.transactions;
+  preview.state.assets.draftPicks = draftPickMigration.picks;
 
   const preservation = resolveDeferredLegacyFields(legacy, preview.state);
   const state = preservation.state;
@@ -32,6 +34,7 @@ function prepareLegacyMigration(legacy, meta = {}) {
     transformations: {
       contractsChanged: contracts.changed,
       transactionsChanged: transactions.changed,
+      draftPicksChanged: draftPickMigration.changed,
       preservedLegacyFields: preservation.preservedFields
     },
     unresolved,
