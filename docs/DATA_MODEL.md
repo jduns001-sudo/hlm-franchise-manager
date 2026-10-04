@@ -129,6 +129,53 @@ Conclusions:
 4. The 21 repeated Universe keys need a human decision (genuine duplicates, or distinct picks such as compensatory ones) before they can get distinct permanent IDs. The data does not say which.
 5. The validator already reports missing IDs, repeated identities and unresolvable owners; it cannot tell which duplicate is the real pick.
 
+## 6b. Contract permanent-ID policy
+**Current state (from `app.html`; nothing changed):**
+- Contracts live only in browser state as `db.contracts` (the roster file's `contracts` array is empty, and Universe has none). They are saved with the rest of state and survive reload.
+- **No Contract ID exists.** Records are plain objects: `playerId`, `aav`, `years`, `status`, `season`, `teamId`, `createdAt`, plus `freeAgentSigning`, `signedAt`, `withdrawnAt`, `updatedAt`, `decision`, `decisionReason`, `estimatedMarketAAV` as they apply.
+- **Identification is by array position.** Every action (`acceptContractOffer(i)`, `declineContractOffer(i)`, `withdrawFreeAgentOffer(i)`, `removeContract(i)`) takes the index in `db.contracts`. `removeContract` uses `splice`, so later contracts shift index. `processPendingFreeAgentOffers` also captures indexes.
+- Other lookups use mutable or non-unique values: `freeAgentContractInfo` filters by `playerId` and sorts by `season`, then `signedAt`/`createdAt`, then array index. `createdAt` is a timestamp, not an ID, and can tie.
+- **Several contracts/offers can exist for one Player ID.** Nothing prevents it (repeated offers, a Rejected then a new offer, an extension plus a signing). Today they are distinguishable only by position and `createdAt`.
+- **One structure, different `status` values.** Roster/extension offers and free-agent offers (`freeAgentSigning: true`) use the same fields. Statuses seen: Offer Pending, Accepted, Signed, Rejected, Declined, Withdrawn, Extension Offer, Active, Tracked. Rejected/withdrawn/declined records stay in the array unless `removeContract` deletes them outright.
+- Display looks the player up by `playerId` (safe), with a fallback to a stored `player` string for older manual entries (mutable, not an identity).
+- `teamId` on a contract is a Team ID, not an abbreviation. It is a snapshot of the offering team.
+- **Free-agent contracts created by the current system do not have suitable permanent IDs.** They are the same unidentified objects.
+- The contract record has no link to the transaction that logged it.
+
+**Phase 1 requirement for future Contract records:**
+1. Every contract/offer gets its own permanent `contractId` at creation (opaque, unique, stored in state). Never recycled.
+2. It survives save/reload because it is stored on the record.
+3. It never changes when the player changes teams, when status changes (Offer Pending → Signed), or when other records are removed.
+4. It does not depend on array position, player display name, team abbreviation, `createdAt` or any other mutable value.
+5. Several contracts/offers for one `playerId` have different `contractId`s.
+6. Historical contracts (Expired, Rejected, Withdrawn, Declined) stay independently identifiable. Removal should be a status change, not a deletion, so references stay valid.
+7. Actions and references (buttons, transactions, history) use `contractId`, never an index.
+8. References inside a contract use permanent IDs: `playerId`, `teamId`, and later `transactionId`.
+
+**Phase 1 technical debt:** all existing contract records lack `contractId` and are index-addressed. A later migration needs a one-time ID assignment that cannot reorder or drop records, and `removeContract` needs a replacement for hard deletion. Neither is done in Mission 1.
+
+## 6c. Transaction permanent-ID policy
+**Current state (from `app.html`; nothing changed):**
+- Transactions are stored in browser state as `db.transactions`, an array of plain objects, created by `logTransaction(type, player, details)` and the manual `addTransaction()` prompt. The roster file's `transactions` array is empty, so nothing is imported.
+- Format: `{date, createdAt, player, type, details}`. `date` is `toLocaleDateString()` (locale-dependent text), `createdAt` is an ISO timestamp, `player` is a display-name string, `details` is free text (for example the team name appears only inside the text).
+- **No Transaction ID exists**, and there is no `playerId` or `teamId` field.
+- The log is appended to and sorted by `createdAt` for display; no edit or remove action was found. Array position is the only identifier.
+- Records persist across reload, but nothing identifies one apart from position and timestamp.
+- Two transactions for the same player and type with the same details are distinguishable only by `createdAt` (millisecond resolution; can tie) and position. Name-based `player` text breaks if a player is renamed or two players share a name.
+- **Formats differ:** manual entries use user-typed type and player text; system entries use fixed types such as "Contract Signed", "Contract Declined", "Free Agency Signing" and waiver entries. The display code falls back to `date` when `createdAt` is missing, so older entries without it would sort unreliably (browser state not inspected).
+- Transactions are not linked to the contract or waiver record that caused them.
+
+**Phase 1 requirement for future Transaction records:**
+1. Every transaction gets its own permanent `transactionId` at creation, unique and never recycled.
+2. It survives save/reload because it is stored on the record.
+3. It does not depend on array position, display name, team abbreviation, timestamp or details text.
+4. Several transactions involving the same entities stay distinguishable by their own IDs.
+5. References use permanent IDs: `playerIds`, `teamIds`, and optional `contractId`, `pickId`. Names are derived for display only.
+6. `createdAt` is stored as an ISO value; `date` text is display only.
+7. Historical records are append-only and keep referencing permanent IDs, so renames or reorders do not break them.
+
+**Phase 1 technical debt:** all existing transactions lack `transactionId`, `playerId` and `teamId`, and refer to players by name. Linking old rows to players needs a later, careful migration (names are not unique). Not done in Mission 1.
+
 ## 7. Data authority map (current behavior)
 Load order: `hlm-universe.json` → `loadRosterOverlay()` merges roster ovr/potential/positions into Universe players → `initDB()` merges `PLAYER_FIXES`, then `playerOverrides` on top (`{...p, ...fix, ...override}`) → saved browser state.
 
