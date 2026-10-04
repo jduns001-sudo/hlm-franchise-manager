@@ -4,7 +4,8 @@ const { createLegacyMigrationPreview } = require('./hlm-legacy-migration');
 const { validateLegacyMigration } = require('./hlm-legacy-migration-validation');
 const { migrateContractIdentities } = require('./hlm-contract-identity-migration');
 const { migrateTransactionIdentities } = require('./hlm-transaction-identity-migration');
-const { auditDraftPickIdentity } = require('./hlm-draft-pick-identity');\nconst { migrateOperationalDraftPickIdentities } = require('./hlm-draft-pick-identity-migration');
+const { auditDraftPickIdentity } = require('./hlm-draft-pick-identity');
+const { migrateOperationalDraftPickIdentities } = require('./hlm-draft-pick-identity-migration');
 const { resolveDeferredLegacyFields } = require('./hlm-deferred-legacy-policy');
 
 function prepareLegacyMigration(legacy, meta = {}) {
