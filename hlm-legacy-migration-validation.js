@@ -24,8 +24,8 @@ function validateLegacyMigration(legacy, meta = {}) {
   const stateValidation = validateGameStateEnvelope(preview.state);
   const playerDuplicates = duplicateIds(preview.state.universe.players);
   const teamDuplicates = duplicateIds(preview.state.universe.teams);
-  const contractIdentity = auditRecordIdentities(preview.state.assets.contracts, 'contract');
-  const transactionIdentity = auditRecordIdentities(preview.state.activity.transactions, 'transaction');
+  const contractIdentity = auditRecordIdentities(preview.state.assets.contracts, 'contract', 'contractId');
+  const transactionIdentity = auditRecordIdentities(preview.state.activity.transactions, 'transaction', 'transactionId');
   const draftPickIdentity = auditDraftPickIdentity(preview.state.assets.draftPicks);
 
   const blockers = [];
@@ -35,8 +35,8 @@ function validateLegacyMigration(legacy, meta = {}) {
   if (playerDuplicates.length) blockers.push({ code: 'DUPLICATE_PLAYER_IDS', groups: playerDuplicates });
   if (teamDuplicates.length) blockers.push({ code: 'DUPLICATE_TEAM_IDS', groups: teamDuplicates });
 
-  if (contractIdentity.withoutPermanentId > 0) warnings.push({ code: 'CONTRACT_IDS_REQUIRE_MIGRATION', count: contractIdentity.withoutPermanentId });
-  if (transactionIdentity.withoutPermanentId > 0) warnings.push({ code: 'TRANSACTION_IDS_REQUIRE_MIGRATION', count: transactionIdentity.withoutPermanentId });
+  if (contractIdentity.migrationRequired) warnings.push({ code: 'CONTRACT_IDS_REQUIRE_MIGRATION', count: contractIdentity.missing.length + contractIdentity.invalid.length + contractIdentity.duplicates.length });
+  if (transactionIdentity.migrationRequired) warnings.push({ code: 'TRANSACTION_IDS_REQUIRE_MIGRATION', count: transactionIdentity.missing.length + transactionIdentity.invalid.length + transactionIdentity.duplicates.length });
   if (!draftPickIdentity.permanentIdentityReady && draftPickIdentity.total > 0) warnings.push({ code: 'DRAFT_PICK_IDS_REQUIRE_MIGRATION', count: draftPickIdentity.total });
   if (preview.plan.deferred.length) warnings.push({ code: 'LEGACY_FIELDS_DEFERRED', fields: preview.plan.deferred.slice() });
 
