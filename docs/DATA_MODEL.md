@@ -94,7 +94,7 @@ Each follows §1 rules. Define only the minimum now.
 | Franchise Team | A positive ID in the 277-row team table. The table does not say which rows are top-level franchises. | Flag explicitly with a level/league field; do not infer from the ID range. |
 | Historical Team | Not distinguished. | Use a separate ID or an `active` flag; never reuse an ID. |
 | Minor/Junior/Other Organization | Positive IDs, either in the table (244 rows have ID ≥ 101) or not in it (3,756 active players point at IDs like 3515531). | Resolve through an Organization record. |
-| Unassigned | `0` (127 active Universe players, mostly 17–18 years old) — exact meaning not formally established. | Keep distinct from the others. |
+| Unassigned | `0` (127 active Universe players, 125 of them born 2008 or later) — exact meaning not formally established. | Keep distinct from the others. |
 | Free Agent | `-1` appears as a "no team" value (1 active Universe player, 5,127 roster rows); runtime FA state is derived from rules, not from this value alone. | Keep distinct. |
 | Unknown/Legacy | `100` (4,338 Universe players, all retired in the current data; 432 roster rows) — meaning not formally established. | Keep distinct. |
 
@@ -123,7 +123,7 @@ Load order: `hlm-universe.json` → `loadRosterOverlay()` merges roster ovr/pote
 | Player type | Universe `type` | Roster `type` (not applied) | None | Not reconciled. |
 | Contract | `db.contracts` (browser state) | Universe `aav`; roster `aav` for display only | Contract edits / signings | Roster `contracts` array is empty; Universe `aav` is a season snapshot; no single source. |
 | Draft status | `db.draftPicks` status (derived from year vs season) and `db.prospects` | Universe `rookies` (raw rows), `draftYear` / `birthYear + 18` for eligibility | `draftPickOverrides`, `extraDraftPicks` | No Player-level draft field; rookies are raw strings. |
-| Retired status | Universe `retired` flag | `retiredIds` list (all consistent with the flag in current data) | None | Not changed at runtime. |
+| Retired status | Universe `retired` flag | `retiredIds` list (1,596 IDs, none of them active; a subset of the retired flag) | None | Not changed at runtime. |
 | Draft pick ownership | Roster `draftPicks` (when populated) | Universe `draftPicks` | `draftPickOverrides[pickId]` | Universe owner IDs missing from the team table (80); roster owner missing (3). |
 | Controlled team | `db.settings.controlledTeamId` (browser state) | None | User selection | None; there is no data-file authority. |
 | Lines | `db.lines` (browser state) | None | User edits | May reference players who later move teams. |
