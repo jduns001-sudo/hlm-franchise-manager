@@ -26,7 +26,9 @@ assert.deepStrictEqual(result.state.extensions.legacy.preserved.gmSettings, lega
 assert.strictEqual(JSON.stringify(legacy), before);
 
 const picks = prepareLegacyMigration({ ...legacy, draftPicks: [{ year: 2027, round: 1, originalTeamId: 5 }] });
-assert.strictEqual(picks.readyForPersistencePlanning, false);
-assert(picks.unresolved.some(x => x.code === 'DRAFT_PICK_IDENTITY_UNRESOLVED'));
+assert.strictEqual(picks.readyForPersistencePlanning, true);
+assert.strictEqual(picks.unresolved.length, 0);
+assert.strictEqual(picks.transformations.draftPicksChanged, 1);
+assert(picks.state.assets.draftPicks[0].pickId.startsWith('PICK-'));
 
 console.log('Legacy migration orchestrator tests passed.');
