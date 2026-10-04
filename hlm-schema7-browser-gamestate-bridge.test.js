@@ -25,8 +25,10 @@ function memoryStorage(initial = {}) {
   assert.strictEqual(storage.getItem(LEGACY_LOCAL_STORAGE_KEY), 'preserve-me');
   const raw = JSON.parse(storage.getItem(DEFAULT_STORAGE_KEY));
   assert(raw['migration-test']);
-  assert(raw['migration-test'].includes('schemaVersion'));
-  assert(raw['migration-test'].includes('frontOfficeSchema7'));
+  const savedEnvelope = JSON.parse(raw['migration-test']);
+  assert.strictEqual(savedEnvelope.format, 'HFM_SAVE');
+  assert(savedEnvelope.payload.includes('schemaVersion'));
+  assert(savedEnvelope.payload.includes('frontOfficeSchema7'));
   assert.strictEqual(bridge.sourceAccess, false);
   console.log('Schema 7 browser GameState bridge tests passed.');
 })().catch(error => { console.error(error); process.exit(1); });
