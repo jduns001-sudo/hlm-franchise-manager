@@ -1,0 +1,8 @@
+{
+  "name": "hockey-franchise-manager",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "test": "node hlm-canonical-data.test.js && node hlm-player-resolver.test.js && node hlm-canonical-player-snapshot.test.js && node hlm-team-reference-registry.test.js && node hlm-record-identity.test.js && node hlm-draft-pick-identity.test.js && node hlm-phase1-readiness.test.js && node hlm-game-state.test.js && node hlm-game-state-serialization.test.js && node hlm-save-envelope.test.js && node hlm-save-repository.test.js && node hlm-browser-save-adapter.test.js && node hlm-save-transfer.test.js"
+  }
+}
