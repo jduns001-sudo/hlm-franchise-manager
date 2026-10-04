@@ -3,6 +3,7 @@
 const { createBrowserSaveAdapter, DEFAULT_STORAGE_KEY } = require('./hlm-browser-save-adapter');
 const { createSchema7IsolatedRepositoryBridge } = require('./hlm-schema7-isolated-repository-bridge');
 const { createSchema7GameStateExecutionPackage } = require('./hlm-schema7-gamestate-execution-package');
+const { verifyGameStateRoundTrip } = require('./hlm-game-state-serialization');
 const { serializeGameState, deserializeGameState } = require('./hlm-game-state-serialization');
 
 const LEGACY_LOCAL_STORAGE_KEY = 'hlm_tracker_v3';
