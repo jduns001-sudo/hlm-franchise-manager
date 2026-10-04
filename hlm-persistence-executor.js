@@ -9,6 +9,10 @@ function executeAtomicPersistence(plan, repository, slotId, metadata = {}) {
     const e = new Error('Invalid atomic persistence plan');
     e.code = 'INVALID_PERSISTENCE_PLAN'; e.errors = check.errors; throw e;
   }
+  if (plan.executable !== true || !plan.authorization || plan.authorization.confirmed !== true) {
+    const e = new Error('Persistence plan is not authorized for execution');
+    e.code = 'PERSISTENCE_PLAN_NOT_AUTHORIZED'; throw e;
+  }
   const stateCheck = validateGameStateEnvelope(plan.candidateState);
   if (!stateCheck.valid) {
     const e = new Error('Candidate GameState is invalid');
@@ -20,6 +24,10 @@ function executeAtomicPersistence(plan, repository, slotId, metadata = {}) {
   if (!slotId) throw new TypeError('slotId is required');
 
   const existed = typeof repository.has === 'function' ? repository.has(slotId) : false;
+  if (existed && plan.authorization.replaceExisting !== true) {
+    const e = new Error('Target save slot already exists');
+    e.code = 'TARGET_SAVE_SLOT_EXISTS'; throw e;
+  }
   const previous = existed ? repository.load(slotId) : null;
 
   try {

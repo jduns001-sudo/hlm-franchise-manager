@@ -11,4 +11,7 @@ assert.strictEqual(denied.executed,false); assert.strictEqual(s.getItem(DEFAULT_
 const ok=executeMigrationCommand(cmd,s,{confirmed:true});
 assert.strictEqual(ok.executed,true); assert.strictEqual(ok.verified,true);
 assert.strictEqual(s.getItem(LEGACY_STORAGE_KEY),raw); assert(s.getItem(DEFAULT_STORAGE_KEY));
-console.log('Migration command boundary tests passed.');
+assert.throws(()=>executeMigrationCommand(cmd,s,{confirmed:true}), e=>e.code==='TARGET_SAVE_SLOT_EXISTS');
+const replaced=executeMigrationCommand(cmd,s,{confirmed:true,replaceExisting:true});
+assert.strictEqual(replaced.executed,true); assert.strictEqual(s.getItem(LEGACY_STORAGE_KEY),raw);
+console.log('Migration command authorization tests passed.');
