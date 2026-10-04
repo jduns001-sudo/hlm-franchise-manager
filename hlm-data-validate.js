@@ -62,10 +62,38 @@ function validate(U, R) {
   });
   counts.activePlayerTeamKinds = byKind;
 
-  const abbr = new Map();
-  teams.forEach(t => abbr.set(t.abbr, (abbr.get(t.abbr) || 0) + 1));
+  const abbr = new Map(), names = new Map();
+  teams.forEach(t => {
+    abbr.set(t.abbr, (abbr.get(t.abbr) || 0) + 1);
+    names.set(t.name, (names.get(t.name) || 0) + 1);
+  });
   counts.duplicateTeamAbbreviations = [...abbr].filter(([, c]) => c > 1).length;
+  counts.duplicateTeamNames = [...names].filter(([, c]) => c > 1).length;
+  const numericTeamIds = [...teamIds].filter(Number.isFinite).sort((a, b) => a - b);
+  counts.teamIdRange = numericTeamIds.length ? { min: numericTeamIds[0], max: numericTeamIds[numericTeamIds.length - 1] } : null;
+  counts.teamIdGaps = numericTeamIds.length ? numericTeamIds[numericTeamIds.length - 1] - numericTeamIds[0] + 1 - numericTeamIds.length : 0;
   if (counts.duplicateTeamAbbreviations) add('TEAM_ABBR_NOT_UNIQUE', 'info', 'never match teams by abbreviation');
+  if (counts.duplicateTeamNames) add('TEAM_NAME_NOT_UNIQUE', 'info', counts.duplicateTeamNames);
+
+  const outsideAssignments = new Map();
+  active.forEach(p => {
+    const t = num(p.teamId);
+    if (Number.isSafeInteger(t) && t > 0 && !teamIds.has(t)) outsideAssignments.set(t, (outsideAssignments.get(t) || 0) + 1);
+  });
+  counts.activePositiveOutsideTeamTable = {
+    players: [...outsideAssignments.values()].reduce((a, b) => a + b, 0),
+    distinctIds: outsideAssignments.size,
+    mostCommon: [...outsideAssignments].sort((a, b) => b[1] - a[1] || a[0] - b[0]).slice(0, 10).map(([teamId, players]) => ({ teamId, players }))
+  };
+  counts.sentinelUsage = {};
+  for (const id of SENTINEL_TEAM_IDS) {
+    counts.sentinelUsage[id] = {
+      universeActive: players.filter(p => !p.retired && num(p.teamId) === id).length,
+      universeRetired: players.filter(p => p.retired && num(p.teamId) === id).length,
+      rosterRows: rosterRows.filter(p => num(p.teamId) === id).length,
+      universeSeasonRows: (U.seasons || []).filter(x => num(x.teamId) === id).length
+    };
+  }
 
   // Identity mirrors app.html draftPickIdFor(): league, year, original team, round (+ occurrence for repeats).
   const pickKey = p => [p.league ?? 0, p.draftYear ?? p.year, p.originalTeamId ?? p.teamId, p.round].join(':');
@@ -85,7 +113,10 @@ function validate(U, R) {
   counts.rosterPicksOwnerNotInTeamTable = rosterPicks.filter(p => !teamIds.has(num(p.currentTeamId ?? p.teamId))).length;
   if (counts.universePicksWithoutId || counts.rosterPicksWithoutId) add('PICK_NO_PERMANENT_ID', 'info', 'source files carry no pickId; app.html derives runtime DP- ids');
   if (counts.universePickNaturalKeyCollisions) add('PICK_IDENTITY_COLLISION', 'warning', `${counts.universePickNaturalKeyCollisions} Universe keys repeat; derived ids depend on file order (occurrence suffix)`);
-  if (counts.universePicksOwnerNotInTeamTable) add('PICK_OWNER_NOT_IN_TEAM_TABLE', 'warning', `${counts.universePicksOwnerNotInTeamTable} Universe picks`);
+  counts.universePicksOwnedBy27 = picks.filter(p => num(p.teamId) === 27).length;
+  counts.unresolvedUniversePickOwnerIds = [...new Set(picks.map(p => num(p.teamId)).filter(id => id != null && !teamIds.has(id)))].sort((a, b) => a - b);
+  counts.unresolvedRosterPickOwnerIds = [...new Set(rosterPicks.map(p => num(p.currentTeamId ?? p.teamId)).filter(id => id != null && !teamIds.has(id)))].sort((a, b) => a - b);
+  if (counts.universePicksOwnerNotInTeamTable) add('PICK_OWNER_NOT_IN_TEAM_TABLE', 'warning', `${counts.universePicksOwnerNotInTeamTable} Universe picks; unresolved owner ids: ${counts.unresolvedUniversePickOwnerIds.join(',')}`);
   // Not checkable with current data: whether a team in the table is an NHL franchise, and whether a pick's recorded owner is correct.
 
   const rosterInvalid = rosterRows.filter(r => !Number.isSafeInteger(num(r.id)) || num(r.id) <= 0).length;
