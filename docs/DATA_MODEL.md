@@ -109,6 +109,26 @@ Each follows §1 rules. Define only the minimum now.
 - Recommendation for a later mission: write pickIds into the source data once, then freeze them. Original team must never change; trades change only `currentOwnerId`.
 - Also open: Universe owner `teamId` 27 (80 picks) and 3 roster picks with no `currentTeamId`.
 
+### 6a. Draft pick ID stability analysis (current behavior; nothing changed)
+Format: `DP-<league>-<year>-<originalTeamId>-<round>-<occurrence>`, where `occurrence` counts earlier rows with the same (league, year, originalTeamId, round) in the array being normalized. `normalizeDraftPicks` runs on `U.draftPicks.concat(db.extraDraftPicks)`. A row that already has a `pickId` keeps it. `draftPickOverrides` (saved in browser state) is keyed by `pickId`.
+
+| Scenario | Effect on IDs | Risk |
+|---|---|---|
+| Unique key (512 of 533 Universe keys) | `...-1`, stable regardless of order | Low |
+| Repeated key (21 Universe keys, each twice) | `-1` / `-2` assigned by file order | Reordering the two rows swaps their IDs; a saved override then lands on the wrong pick |
+| Roster picks (330; 0 repeated keys) | All `-1`, stable | Low |
+| Roster `draftPicks` populated | Replaces the whole Universe pick array (`U.draftPicks=roster.draftPicks`) | Only 23 of the 330 roster identities exist in the Universe, so overrides saved against Universe-derived IDs would stop matching if the source changed |
+| User-added picks (`extraDraftPicks`) | Appended after source picks | An added pick that repeats a source key gets the next occurrence number; if the source later gains a matching row, the occurrence numbers shift |
+| Original team, year, round or league corrected in source data | ID changes | Orphans any override or reference |
+| Owner changes (trade) | ID unchanged (owner is not in the ID) | None; correct |
+
+Conclusions:
+1. The `DP-` format is adequate while source files stay frozen. Its weakness is the occurrence suffix and the dependence on which file wins.
+2. A permanent ID must not be derived from array position. When pick IDs are made permanent, assign them once in source data, keep the old derived ID as an alias so saved `draftPickOverrides` still resolve, and never regenerate them.
+3. Which source is authoritative for picks (roster vs Universe) must be decided before IDs are frozen, because the two sources have different identity sets.
+4. The 21 repeated Universe keys need a human decision (genuine duplicates, or distinct picks such as compensatory ones) before they can get distinct permanent IDs. The data does not say which.
+5. The validator already reports missing IDs, repeated identities and unresolvable owners; it cannot tell which duplicate is the real pick.
+
 ## 7. Data authority map (current behavior)
 Load order: `hlm-universe.json` → `loadRosterOverlay()` merges roster ovr/potential/positions into Universe players → `initDB()` merges `PLAYER_FIXES`, then `playerOverrides` on top (`{...p, ...fix, ...override}`) → saved browser state.
 
