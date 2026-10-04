@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('assert');
+const { MIGRATION_EVENT_TYPES, migrationEventsForResult, migrationFailureEvent }=require('./hlm-migration-events');
+const cmd={slotId:'primary'};
+let events=migrationEventsForResult(cmd,{executed:false,reason:'EXPLICIT_CONFIRMATION_REQUIRED'});
+assert.deepStrictEqual(events.map(e=>e.type),[MIGRATION_EVENT_TYPES.REQUESTED,MIGRATION_EVENT_TYPES.BLOCKED]);
+assert.strictEqual(events[1].details.reason,'EXPLICIT_CONFIRMATION_REQUIRED');
+events=migrationEventsForResult(cmd,{executed:true,verified:true,legacySourcePreserved:true});
+assert.deepStrictEqual(events.map(e=>e.type),[MIGRATION_EVENT_TYPES.REQUESTED,MIGRATION_EVENT_TYPES.COMPLETED]);
+assert.strictEqual(events[1].details.verified,true);
+const failed=migrationFailureEvent(cmd,{code:'INVALID_LEGACY_SOURCE'});
+assert.strictEqual(failed.type,MIGRATION_EVENT_TYPES.FAILED);
+assert.strictEqual(failed.details.code,'INVALID_LEGACY_SOURCE');
+console.log('Migration event boundary tests passed.');
