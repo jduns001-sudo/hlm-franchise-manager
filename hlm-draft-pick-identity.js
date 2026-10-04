@@ -62,10 +62,10 @@ function draftPickReference(pick, sourceIndex) {
     sourceIndex,
     prototypeId: pick && (pick.pickId ?? pick.draftPickId ?? pick.id) || null,
     naturalKey: pickNaturalKey(pick),
-    originalTeamId: pick && (pick.originalTeamId ?? pick.originalOwnerTeamId) ?? null,
-    currentOwnerTeamId: pick && (pick.currentOwnerTeamId ?? pick.ownerTeamId) ?? null,
-    year: pick && (pick.year ?? pick.season) ?? null,
-    round: pick && pick.round ?? null
+    originalTeamId: pick ? (pick.originalTeamId ?? pick.originalOwnerTeamId ?? null) : null,
+    currentOwnerTeamId: pick ? (pick.currentOwnerTeamId ?? pick.ownerTeamId ?? null) : null,
+    year: pick ? (pick.year ?? pick.season ?? null) : null,
+    round: pick ? (pick.round ?? null) : null
   };
 }
 
