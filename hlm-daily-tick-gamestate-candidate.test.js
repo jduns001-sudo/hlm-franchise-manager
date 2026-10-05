@@ -10,7 +10,7 @@ const {executeIsolatedDailyTickCalendar}=require('./hlm-daily-tick-calendar-exec
 const {verifyDailyTickCalendarExecution}=require('./hlm-daily-tick-calendar-verification');
 const {createDailyTickGameStateCalendarCandidate}=require('./hlm-daily-tick-gamestate-candidate');
 
-const sourceState=createGameStateEnvelope({meta:{currentDate:'2027-04-17',controlledTeamId:'PIT'},players:{p1:{id:'p1',name:'Player One'}}});
+const sourceState=createGameStateEnvelope({meta:{currentDate:'2027-04-17',controlledTeamId:'PIT'},players:[{id:'p1',name:'Player One'}]});
 const calendar=createMasterCalendar({currentDate:'2027-04-17'});
 const timeline=createSeasonPhaseTimeline({windows:[
  {phaseId:'regular-season',startDate:'2026-10-06',endDate:'2027-04-17'},
@@ -26,7 +26,7 @@ assert.strictEqual(candidate.kind,'daily-tick-gamestate-calendar-candidate');ass
 assert.strictEqual(candidate.fromDate,'2027-04-17');assert.strictEqual(candidate.toDate,'2027-04-18');assert.strictEqual(candidate.days,1);
 assert.strictEqual(candidate.verification,verification);assert.strictEqual(candidate.calendarCandidate.verification,verification.advancementVerification);
 assert.strictEqual(candidate.state.meta.currentDate,'2027-04-18');assert.strictEqual(sourceState.meta.currentDate,'2027-04-17');
-assert.strictEqual(candidate.state.meta.controlledTeamId,'PIT');assert.deepStrictEqual(candidate.state.players,sourceState.players);
+assert.strictEqual(candidate.state.meta.controlledTeamId,'PIT');assert.deepStrictEqual(candidate.state.universe.players,sourceState.universe.players);
 assert.strictEqual(candidate.eventsProcessed,false);assert.strictEqual(candidate.gameSimulationPerformed,false);
 assert.strictEqual(candidate.universeSystemsProcessed,false);assert.strictEqual(candidate.persistencePerformed,false);
 assert.strictEqual(Object.isFrozen(candidate),true);
