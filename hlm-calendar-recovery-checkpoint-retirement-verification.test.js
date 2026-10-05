@@ -87,7 +87,7 @@ assert.strictEqual(store.getItem(repository.storageKey), before);
 
 assert.throws(
   () => verifyCalendarRecoveryCheckpointRetirement({
-    execution: { ...execution, authorization: { ...authorization } },
+    execution: { ...execution, authorization: { ...authorization, readiness: { ...readiness } } },
     repository
   }),
   error => error.code === 'CALENDAR_RECOVERY_CHECKPOINT_RETIREMENT_VERIFICATION_FAILED'
