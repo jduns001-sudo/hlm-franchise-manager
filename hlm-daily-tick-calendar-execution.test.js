@@ -27,6 +27,6 @@ assert.strictEqual(result.calendar.currentDate,'2027-04-18');assert.strictEqual(
 assert.strictEqual(result.dueEvents,plan.dueEvents);assert.strictEqual(result.phaseChanges,plan.phaseChanges);
 assert.strictEqual(result.plan,plan);assert.strictEqual(result.authorization,authorization);
 assert.strictEqual(result.advancementResult.dueEvents,plan.dueEvents);assert.strictEqual(Object.isFrozen(result),true);
-assert.throws(()=>executeIsolatedDailyTickCalendar({calendar,plan,authorization:{...authorization}}),e=>e.code==='DAILY_TICK_CALENDAR_EXECUTION_FAILED');
+assert.throws(()=>executeIsolatedDailyTickCalendar({calendar,plan,authorization:{...authorization,plan:{...plan}}}),e=>e.code==='DAILY_TICK_CALENDAR_EXECUTION_FAILED');
 assert.throws(()=>executeIsolatedDailyTickCalendar({calendar:createMasterCalendar({currentDate:'2027-04-16'}),plan,authorization}),e=>e.code==='DAILY_TICK_CALENDAR_EXECUTION_FAILED');
 console.log('Daily tick calendar execution tests passed.');
