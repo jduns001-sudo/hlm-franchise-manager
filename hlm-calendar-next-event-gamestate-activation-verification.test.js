@@ -49,7 +49,7 @@ assert.throws(() => verifyIsolatedNextEventGameStateCalendarActivation({
 }), e => e.code === 'NEXT_EVENT_GAMESTATE_CALENDAR_ACTIVATION_VERIFICATION_FAILED');
 
 assert.throws(() => verifyIsolatedNextEventGameStateCalendarActivation({
-  activation: { ...activation, authorization: { ...activation.authorization } }
+  activation: { ...activation, authorization: { ...activation.authorization, verification: { ...activation.verification } } }
 }), e => e.code === 'NEXT_EVENT_GAMESTATE_CALENDAR_ACTIVATION_VERIFICATION_FAILED');
 
 assert.throws(() => verifyIsolatedNextEventGameStateCalendarActivation({
