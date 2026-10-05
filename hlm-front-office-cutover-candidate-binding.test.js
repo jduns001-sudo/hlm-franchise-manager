@@ -45,9 +45,11 @@ assert.strictEqual(binding.frontOfficeActivationAllowed, false);
 assert.strictEqual(binding.liveFrontOfficeWiringPerformed, false);
 
 const runtime = createIsolatedGameStateRuntime();
-runtime.activate(state, {
+runtime.activate({
   kind: 'browser-gamestate-activation-authorization',
   authorized: true,
+  activationAllowed: true,
+  activationPerformed: false,
   slotId: 'slot-80',
   state
 });
@@ -65,9 +67,11 @@ const altered = createGameStateEnvelope({
   transactions: [{ id: 't1' }]
 });
 const alteredRuntime = createIsolatedGameStateRuntime();
-alteredRuntime.activate(altered, {
+alteredRuntime.activate({
   kind: 'browser-gamestate-activation-authorization',
   authorized: true,
+  activationAllowed: true,
+  activationPerformed: false,
   slotId: 'slot-80',
   state: altered
 });
