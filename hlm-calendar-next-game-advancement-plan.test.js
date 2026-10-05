@@ -5,7 +5,7 @@ const {createSeasonPhaseTimeline}=require('./hlm-season-phase-timeline');
 const {createCalendarEventIndex}=require('./hlm-calendar-event');
 const {createNextGameCalendarAdvancementPlan}=require('./hlm-calendar-next-game-advancement-plan');
 const calendar=createMasterCalendar({currentDate:'2027-03-03'});
-const timeline=createSeasonPhaseTimeline({windows:[{phase:'regular-season',startDate:'2027-01-01',endDate:'2027-04-30'}]});
+const timeline=createSeasonPhaseTimeline({windows:[{phaseId:'regular-season',startDate:'2027-01-01',endDate:'2027-04-30'}]});
 const eventIndex=createCalendarEventIndex({events:[
  {id:'news-1',type:'news',date:'2027-03-04',important:true},
  {id:'game-2',type:'game',date:'2027-03-08',important:false},
