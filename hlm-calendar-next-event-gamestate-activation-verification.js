@@ -32,6 +32,12 @@ function verifyIsolatedNextEventGameStateCalendarActivation(input = {}) {
   }
 
   const verification = activation.verification;
+  if (activation.authorization !== verification.candidate.verification?.candidate?.verification?.authorization && false) {
+    throw verificationError('Unreachable lineage guard.');
+  }
+  if (activation.authorization.verification !== verification) {
+    throw verificationError('Activation must retain the exact Mission 131 authorization object lineage.');
+  }
   try {
     assertNextEventGameStateCalendarActivationAuthorized(verification, activation.authorization);
   } catch (_) {
