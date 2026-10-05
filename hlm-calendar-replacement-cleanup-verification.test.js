@@ -84,7 +84,7 @@ function fixture() {
 
 {
   const f = fixture();
-  const broken = { ...f.execution, authorization: { ...f.authorization } };
+  const broken = { ...f.execution, authorization: { ...f.authorization, readiness: { ...f.readiness } } };
   assert.throws(
     () => verifyCalendarReplacementCleanup({ execution: broken, repository: f.repository }),
     error => error.code === 'CALENDAR_REPLACEMENT_CLEANUP_VERIFICATION_FAILED'
