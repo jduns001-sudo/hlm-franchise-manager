@@ -85,7 +85,7 @@ assert.throws(
 
 assert.throws(
   () => evaluateCalendarRecoveryCheckpointRetirementReadiness({
-    completion: { ...completion, verification: { ...verification } }
+    completion: { ...completion, verification: { ...verification, execution: { ...execution } } }
   }),
   error => error.code === 'CALENDAR_RECOVERY_CHECKPOINT_RETIREMENT_NOT_READY'
 );
