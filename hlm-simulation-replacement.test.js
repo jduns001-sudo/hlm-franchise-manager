@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('assert');const {createGameStateEnvelope}=require('./hlm-game-state');const {createBrowserSaveAdapter}=require('./hlm-browser-save-adapter');
+const {prepareSimulationReplacement,authorizeSimulationReplacement,executeSimulationReplacement,verifySimulationReplacement,completeSimulationReplacement}=require('./hlm-simulation-replacement');
+function storage(){const d=new Map();return {getItem:k=>d.has(k)?d.get(k):null,setItem:(k,v)=>d.set(k,String(v)),removeItem:k=>d.delete(k)};}
+function fixture(){const raw=storage(),repository=createBrowserSaveAdapter(raw),old=createGameStateEnvelope({meta:{currentDate:'2027-04-17'}}),candidate=createGameStateEnvelope({meta:{currentDate:'2027-04-20'}});
+ repository.save('franchise',old,{saveId:'franchise'});repository.save('simulation-staging',candidate,{saveId:'simulation-staging'});
+ const verification=Object.freeze({kind:'simulation-command-persistence-execution-verification',version:1,verified:true}),reload=Object.freeze({kind:'persisted-simulation-command-gamestate-reload-verification',version:1,verified:true,mode:'nextGame',days:3,slotId:'simulation-staging',fromDate:'2027-04-17',toDate:'2027-04-20',verification,state:candidate});
+ return {raw,repository,old,candidate,reload};}
+{const f=fixture(),r=prepareSimulationReplacement({reloadVerification:f.reload,repository:f.repository,storage:f.raw,targetSlotId:'franchise'}),a=authorizeSimulationReplacement({readiness:r,approved:true}),e=executeSimulationReplacement({readiness:r,authorization:a,repository:f.repository,storage:f.raw}),v=verifySimulationReplacement({execution:e,repository:f.repository}),c=completeSimulationReplacement({verification:v});
+ assert.strictEqual(c.complete,true);assert.strictEqual(c.cleanupPerformed,false);assert.strictEqual(c.checkpointPreserved,true);assert.strictEqual(c.stagingSlotPreserved,true);
+ assert.strictEqual(f.repository.load('franchise').state.meta.currentDate,'2027-04-20');assert.strictEqual(f.repository.has('simulation-staging'),true);for(const x of [r,a,e,v,c])assert.strictEqual(Object.isFrozen(x),true);}
+{const f=fixture(),r=prepareSimulationReplacement({reloadVerification:f.reload,repository:f.repository,storage:f.raw,targetSlotId:'franchise'});assert.throws(()=>authorizeSimulationReplacement({readiness:r,approved:false}),e=>e.code==='SIMULATION_REPLACEMENT_NOT_APPROVED');}
+console.log('Unified simulation replacement transaction tests passed.');
