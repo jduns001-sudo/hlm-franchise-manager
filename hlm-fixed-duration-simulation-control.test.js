@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('assert');const {createMasterCalendar}=require('./hlm-master-calendar');const {createSeasonPhaseTimeline}=require('./hlm-season-phase-timeline');const {createCalendarEvent,createCalendarEventIndex}=require('./hlm-calendar-event');
 const {FIXED_DURATION_SIMULATION_MODES,createFixedDurationSimulationPlan,createFixedDurationSimulationAuthorization,executeFixedDurationSimulationCalendar,verifyFixedDurationSimulationCalendar}=require('./hlm-fixed-duration-simulation-control');
-const timeline=createSeasonPhaseTimeline({seasonYear:2027,windows:[{id:'regular-season',name:'Regular Season',startDate:'2027-04-01',endDate:'2027-05-31'}]});
+const timeline=createSeasonPhaseTimeline({windows:[{phaseId:'regular-season',startDate:'2027-04-01',endDate:'2027-05-31'}]});
 const event=createCalendarEvent({id:'evt-1',type:'game',date:'2027-04-20',important:true});const eventIndex=createCalendarEventIndex([event]);
 for(const [mode,days] of Object.entries(FIXED_DURATION_SIMULATION_MODES)){
  const calendar=createMasterCalendar({currentDate:'2027-04-17'});const plan=createFixedDurationSimulationPlan({mode,calendar,timeline,eventIndex});
