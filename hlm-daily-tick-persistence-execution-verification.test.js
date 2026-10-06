@@ -33,5 +33,5 @@ assert.strictEqual(verification.execution,execution);assert.strictEqual(Object.i
 assert.strictEqual(repo.slots.get('daily-tick-isolated-1').state,pkg.candidateState);
 assert.throws(()=>verifyDailyTickPersistenceExecution({execution:{...execution,days:2}}),e=>e.code==='DAILY_TICK_PERSISTENCE_EXECUTION_VERIFICATION_FAILED');
 assert.throws(()=>verifyDailyTickPersistenceExecution({execution:{...execution,eventsProcessed:true}}),e=>e.code==='DAILY_TICK_PERSISTENCE_EXECUTION_VERIFICATION_FAILED');
-assert.throws(()=>verifyDailyTickPersistenceExecution({execution:{...execution,authorization:{...authorization}}}),e=>e.code==='DAILY_TICK_PERSISTENCE_EXECUTION_VERIFICATION_FAILED');
+assert.throws(()=>verifyDailyTickPersistenceExecution({execution:{...execution,authorization:{...authorization,package:{...pkg}}}}),e=>e.code==='DAILY_TICK_PERSISTENCE_EXECUTION_VERIFICATION_FAILED');
 console.log('Daily tick persistence execution verification tests passed.');
