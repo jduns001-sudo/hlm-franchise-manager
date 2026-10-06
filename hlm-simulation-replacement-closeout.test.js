@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('assert');const {DEFAULT_STORAGE_KEY,createBrowserSaveAdapter}=require('./hlm-browser-save-adapter');const {createGameStateEnvelope}=require('./hlm-game-state');
+const {prepareSimulationReplacementCloseout,authorizeSimulationReplacementCloseout,executeSimulationReplacementCloseout,verifySimulationReplacementCloseout,completeSimulationReplacementCloseout}=require('./hlm-simulation-replacement-closeout');
+function storage(){const d=new Map();return {getItem:k=>d.has(k)?d.get(k):null,setItem:(k,v)=>d.set(k,String(v)),removeItem:k=>d.delete(k)};}
+function fixture(){const repository=createBrowserSaveAdapter(storage()),state=createGameStateEnvelope({meta:{currentDate:'2027-04-20'}});repository.save('franchise',state,{saveId:'franchise'});repository.save('simulation-staging',state,{saveId:'simulation-staging'});
+ const checkpoint=Object.freeze({raw:'pre-replacement-audit'}),execution=Object.freeze({candidateState:state});
+ const completion=Object.freeze({kind:'simulation-command-replacement-transaction-completion',version:1,complete:true,durableVerificationComplete:true,cleanupPerformed:false,checkpointPreserved:true,stagingSlotPreserved:true,
+ candidateSlotId:'simulation-staging',targetSlotId:'franchise',storageKey:DEFAULT_STORAGE_KEY,mode:'nextGame',days:3,fromDate:'2027-04-17',toDate:'2027-04-20',verification:Object.freeze({}),execution,checkpoint,state});
+ return {repository,state,checkpoint,completion};}
+{const f=fixture(),r=prepareSimulationReplacementCloseout({completion:f.completion,repository:f.repository}),a=authorizeSimulationReplacementCloseout({readiness:r,approved:true}),e=executeSimulationReplacementCloseout({readiness:r,authorization:a,repository:f.repository}),v=verifySimulationReplacementCloseout({execution:e,repository:f.repository}),c=completeSimulationReplacementCloseout({verification:v});
+ assert.strictEqual(c.complete,true);assert.strictEqual(c.cleanupComplete,true);assert.strictEqual(c.checkpointRetirementComplete,true);assert.strictEqual(c.retiredCheckpoint,f.checkpoint);assert.strictEqual(f.repository.has('simulation-staging'),false);assert.strictEqual(f.repository.has('franchise'),true);
+ for(const x of [r,a,e,v,c])assert.strictEqual(Object.isFrozen(x),true);}
+{const f=fixture(),r=prepareSimulationReplacementCloseout({completion:f.completion,repository:f.repository});assert.throws(()=>authorizeSimulationReplacementCloseout({readiness:r,approved:false}),e=>e.code==='SIMULATION_REPLACEMENT_CLOSEOUT_NOT_APPROVED');assert.strictEqual(f.repository.has('simulation-staging'),true);}
+console.log('Unified simulation replacement closeout tests passed.');
