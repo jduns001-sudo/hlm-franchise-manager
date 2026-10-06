@@ -25,8 +25,6 @@ function fixture(){
  return {storage,repository,oldState,candidateState,checkpoint,readiness,authorization};
 }
 const {verifyExistingSlotDailyTickReplacement}=require('./hlm-daily-tick-replacement-verification');
-
-const {verifyExistingSlotDailyTickReplacement}=require('./hlm-daily-tick-replacement-verification');
 const {completeDailyTickReplacementTransaction}=require('./hlm-daily-tick-replacement-transaction-completion');
 
 {const f=fixture();const execution=executeExistingSlotDailyTickReplacement(f);
