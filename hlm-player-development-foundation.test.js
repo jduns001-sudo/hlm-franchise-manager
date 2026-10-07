@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, calculateOverallFromAttributes, resolveOverallRecalculationSnapshot, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
