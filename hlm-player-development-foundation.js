@@ -94,6 +94,42 @@ function classifyDevelopmentEvaluation(direction, factorSignal) {
   return Object.freeze({ direction, pace, score });
 }
 
+function resolveDevelopmentContext(player, factors) {
+  const context = {
+    environment: {
+      iceTime: factors.iceTime ?? null,
+      role: factors.role ?? null,
+      training: factors.training ?? null,
+      coaching: factors.coaching ?? null,
+      organization: factors.organization ?? null,
+      linemates: clone(player.linemates ?? null)
+    },
+    promotion: {
+      ability: normalizeAttributeRating(player.overall),
+      development: player.developmentStatus ?? null,
+      age: player.age ?? null,
+      performance: factors.performance ?? null,
+      league: player.league ?? null,
+      organizationalDepth: player.organizationalDepth ?? null,
+      contract: clone(player.contract ?? null),
+      morale: factors.morale ?? null
+    },
+    setbacks: {
+      injuries: clone(factors.injuries ?? []),
+      coachingFit: player.coachingFit ?? null,
+      limitedPlayingTime: player.limitedPlayingTime ?? null,
+      poorPerformance: player.poorPerformance ?? null,
+      confidence: factors.confidence ?? null,
+      personalityConflicts: clone(player.personalityConflicts ?? null)
+    }
+  };
+  return Object.freeze({
+    environment: Object.freeze(context.environment),
+    promotion: Object.freeze(context.promotion),
+    setbacks: Object.freeze(context.setbacks)
+  });
+}
+
 function normalizeAttributeRating(value) {
   if (value === null || value === undefined || value === '' || typeof value === 'boolean') return null;
   if (typeof value !== 'number' && typeof value !== 'string') return null;
@@ -186,6 +222,7 @@ function resolveDevelopmentInputs(state, playerId) {
 
   const developmentDirection = classifyDevelopmentDirection(developmentStage, player.retired === true);
   const attributes = clone(player.attributes || null);
+  const developmentContext = resolveDevelopmentContext(player, factors);
   const factorSignal = calculateDevelopmentFactorSignal(factors);
   const attributeDevelopmentDirections = clone(player.attributeDevelopmentDirections || null);
 
@@ -208,6 +245,7 @@ function resolveDevelopmentInputs(state, playerId) {
     factors,
     factorSignal,
     developmentEvaluation: classifyDevelopmentEvaluation(developmentDirection, factorSignal),
+    developmentContext,
     position: player.position ?? player.pos ?? null,
     retired: player.retired === true
   };
@@ -215,4 +253,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs };
