@@ -21,7 +21,7 @@ function findScheduledGame(state, gameId) {
   const games = state.activity && Array.isArray(state.activity.games) ? state.activity.games : [];
   const game = games.find(candidate => String(candidate.id) === String(gameId));
   if (!game) throw gameSimulationError('GAME_NOT_FOUND', 'Scheduled game not found.');
-  if (game.status !== undefined && game.status !== null && game.status !== 'Scheduled') throw gameSimulationError('GAME_NOT_SCHEDULED', 'Game must be Scheduled before simulation.');
+  if (game.status !== 'Scheduled') throw gameSimulationError('GAME_NOT_SCHEDULED', 'Game must be Scheduled before simulation.');
   return game;
 }
 
