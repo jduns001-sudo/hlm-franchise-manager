@@ -1,0 +1,6 @@
+'use strict';
+const assert=require('assert');const {createPlayerPerformance,createGameInjury,createGameOutputPackage}=require('./hlm-game-outputs');
+const perf=createPlayerPerformance({gameId:'g1',playerId:1,teamId:10,offensive:{goals:1},defensive:{blocks:2},specialTeams:{ppGoals:1},physical:{hits:3},faceoffs:{wins:5},role:{name:'top-six'}});
+const injury=createGameInjury({gameId:'g1',playerId:2,durability:75,fatigue:30,contact:true,injuryHistory:false,randomVariance:0.4});
+const output=createGameOutputPackage({gameId:'g1',standardStatistics:{homeGoals:3,awayGoals:2},advancedStatistics:{homeHighDangerChances:8},playerPerformances:[perf],playByPlay:[{sequence:1,type:'goal'}],injuries:[injury],postGameAnalysis:{summary:'candidate',reviewAreas:['penalty kill']},history:{gameRecord:{winnerTeamId:10},playerHistory:[{playerId:1,type:'goal'}],leagueHistory:[{type:'game-played'}]}});
+assert.strictEqual(output.playerPerformances[0].offensive.goals,1);assert.strictEqual(output.injuries[0].persistencePerformed,false);assert.strictEqual(output.playByPlay[0].type,'goal');assert.strictEqual(output.postGameAnalysis.reviewAreas[0],'penalty kill');assert.strictEqual(output.history.gameRecord.winnerTeamId,10);assert.strictEqual(output.persistencePerformed,false);console.log('Game output bundle tests passed.');
