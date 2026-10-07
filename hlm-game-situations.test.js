@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('assert');
+const {createSpecialTeamsProfile,createPenaltyProfile,createGameSituation,createMomentumState}=require('./hlm-game-situations');
+const st=createSpecialTeamsProfile({powerPlayPersonnel:[1,2,3,4,5],penaltyKillPersonnel:[6,7,8,9],powerPlayRating:82,penaltyKillRating:79});
+assert.strictEqual(st.powerPlay.personnel.length,5);assert.strictEqual(st.penaltyKill.personnel.length,4);
+const penalties=createPenaltyProfile({discipline:75,aggression:60,physicality:80,defensivePressure:77,officiatingTendency:50});
+assert.strictEqual(penalties.probabilityApplied,false);
+const situation=createGameSituation({homeScore:2,awayScore:3,period:3,secondsRemaining:120,homeGoaliePulled:true,shortenedBench:true});
+assert.strictEqual(situation.scoreState,'away-leading');assert.strictEqual(situation.lateGame,true);assert.strictEqual(situation.homeGoaliePulled,true);
+const ot=createGameSituation({homeScore:3,awayScore:3,period:4,overtime:true});assert.strictEqual(ot.overtime,true);
+const momentum=createMomentumState([{sequence:1,type:'shot'},{sequence:2,type:'save'},{sequence:3,type:'goal'}]);
+assert.deepStrictEqual(momentum.sourceEventTypes,['save','goal']);assert.strictEqual(momentum.value,null);assert.strictEqual(momentum.arbitraryMeter,false);
+console.log('Game situations bundle tests passed.');
