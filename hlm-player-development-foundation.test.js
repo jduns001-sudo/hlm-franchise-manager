@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -89,6 +89,17 @@ assert.deepStrictEqual(context.setbacks.injuries, []);
 assert.strictEqual(context.setbacks.coachingFit, 'good');
 assert.ok(Object.isFrozen(context));
 assert.ok(Object.isFrozen(context.environment));
+const lifecycle = resolveDevelopmentLifecycle({
+  position: 'G', age: 34, retired: false, contract: { years: 1 },
+  careerSatisfaction: 60, draftStatus: { year: 2012 }, promotions: ['NHL'],
+  breakouts: ['2020'], developmentSetbacks: ['injury'], awards: ['Vezina'], milestones: ['500 GP']
+}, 'decline', { pace: 'stalling', direction: 'decline', score: 35 }, { injuries: [{ type: 'knee' }] });
+assert.strictEqual(lifecycle.goalie.specializedDevelopment, true);
+assert.strictEqual(lifecycle.aging.attributeSpecificDeclineReady, true);
+assert.strictEqual(lifecycle.retirement.decliningAbility, true);
+assert.deepStrictEqual(lifecycle.history.promotions, ['NHL']);
+assert.deepStrictEqual(lifecycle.report, { status: 'stalling', direction: 'decline', score: 35 });
+assert.ok(Object.isFrozen(lifecycle));
 assert.strictEqual(normalizeAttributeRating(75), 75);
 assert.strictEqual(normalizeAttributeRating('71'), 71);
 assert.strictEqual(normalizeAttributeRating(null), null);
