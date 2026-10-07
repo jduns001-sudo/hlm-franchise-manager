@@ -11,7 +11,9 @@ function createCPUOrganizationIntelligence(state,teamId,options={}){
  const id=String(teamId??'').trim();if(!id)fail('CPU_ORGANIZATION_TEAM_REQUIRED','Permanent team ID required.');
  const before=JSON.stringify(state);
  const leadership=createOrganizationLeadershipSnapshot(state,id,options.leadership||{});
- const analysis=createFranchiseAIAnalysis(state,id,options.franchiseAnalysis||{});
+ const analysisBase=createFranchiseAIAnalysis(state,id,options.franchiseAnalysis||{});
+ const canonicalDraftPickCount=state.assets.draftPicks.filter(p=>String(p.currentOwnerId??p.ownerTeamId??p.teamId??'')===id).length;
+ const analysis=Object.freeze({...analysisBase,facts:Object.freeze({...analysisBase.facts,draftPickCount:canonicalDraftPickCount})});
  const competitiveState=options.competitiveState??null;
  const traits={};for(const key of GM_TRAITS)traits[key]=options.gmTraits?.[key]??null;
  const priorities=Object.freeze((Array.isArray(options.priorities)?options.priorities:[]).map(x=>Object.freeze({...x})));
