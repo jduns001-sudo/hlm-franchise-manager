@@ -263,7 +263,20 @@ function resolveOverallRecalculationInput(attributes) {
   });
 }
 
-function createDevelopmentGameStateTransaction(state, playerId, rules = DEFAULT_DEVELOPMENT_CHANGE_RULES) {
+function resolveOverallRecalculationStrategy(attributes, strategy = null) {
+  const input = resolveOverallRecalculationInput(attributes);
+  if (!input) return Object.freeze({ recalculable: false, reason: 'NO_NUMERIC_ATTRIBUTES', input: null, value: null });
+  if (typeof strategy !== 'function') {
+    return Object.freeze({ recalculable: false, reason: 'OVERALL_STRATEGY_REQUIRED', input, value: null });
+  }
+  const proposed = normalizeAttributeRating(strategy(input));
+  if (proposed === null) {
+    return Object.freeze({ recalculable: false, reason: 'INVALID_OVERALL_RESULT', input, value: null });
+  }
+  return Object.freeze({ recalculable: true, reason: null, input, value: proposed });
+}
+
+function createDevelopmentGameStateTransaction(state, playerId, rules = DEFAULT_DEVELOPMENT_CHANGE_RULES, overallStrategy = null) {
   const inputs = resolveDevelopmentInputs(state, playerId);
   const changes = applyDevelopmentChangePlan(inputs.attributeDevelopmentChangePlan, rules);
   if (!changes) return Object.freeze({ playerId: inputs.playerId, executable: false, changedAttributes: 0, changes: null, candidateState: null });
@@ -281,11 +294,15 @@ function createDevelopmentGameStateTransaction(state, playerId, rules = DEFAULT_
     changedAttributes += 1;
   }
 
+  const overallRecalculation = resolveOverallRecalculationStrategy(player.attributes, overallStrategy);
+  if (overallRecalculation.recalculable) player.ovr = overallRecalculation.value;
+
   return Object.freeze({
     playerId: inputs.playerId,
     executable: changedAttributes > 0,
     changedAttributes,
     changes,
+    overallRecalculation,
     candidateState: changedAttributes > 0 ? candidateState : null
   });
 }
@@ -384,4 +401,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, createDevelopmentGameStateTransaction, resolveOverallRecalculationInput, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, createDevelopmentGameStateTransaction, resolveOverallRecalculationStrategy, resolveOverallRecalculationInput, resolveDevelopmentInputs };
