@@ -107,7 +107,7 @@ function resolveDevelopmentContext(player, factors) {
     promotion: {
       ability: normalizeAttributeRating(player.overall),
       development: player.developmentStatus ?? null,
-      age: calculatedAge ?? null,
+      age: player.age ?? null,
       performance: factors.performance ?? null,
       league: player.league ?? null,
       organizationalDepth: player.organizationalDepth ?? null,
@@ -135,7 +135,7 @@ function resolveDevelopmentLifecycle(player, developmentStage, developmentEvalua
   const goalie = position === 'G' || position === 'GOALIE';
   const retirement = Object.freeze({
     retired: Boolean(player.retired),
-    age: player.age ?? null,
+    age: calculatedAge ?? null,
     decliningAbility: developmentStage === 'decline',
     injuries: clone(factors.injuries ?? []),
     contract: clone(player.contract ?? null),
