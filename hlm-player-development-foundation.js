@@ -94,6 +94,7 @@ function normalizeAttributeRating(value) {
 }
 
 function resolveAttributeDevelopmentDirection(attributeName, direction, attributeDirections = null) {
+  if (direction === null || direction === undefined) return null;
   if (typeof attributeName !== 'string' || attributeName.trim() === '') return direction ?? null;
   if (!attributeDirections || typeof attributeDirections !== 'object' || Array.isArray(attributeDirections)) return direction ?? null;
   const candidate = attributeDirections[attributeName];
