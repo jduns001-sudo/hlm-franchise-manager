@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const x=require('./hlm-cpu-decision-prioritization');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});const before=JSON.stringify(state);
+const evaluation={identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'},{id:'wait-option',problemId:'cap-pressure',type:'wait'}]};
+const r=x.createCPUDecisionPrioritization(state,'PIT',{evaluation,priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1},{id:'second',optionId:'wait-option',tier:'medium',order:2}]});
+assert.strictEqual(r.kind,'cpu-decision-prioritization');assert.strictEqual(r.validation.valid,true);assert.strictEqual(r.decisionStage.stage,'prioritize');assert.strictEqual(r.prioritization.rankingPerformed,true);assert.strictEqual(r.prioritization.selectionPerformed,false);assert.strictEqual(r.decisionStage.actPerformed,false);assert.strictEqual(r.authority.cpuDecisionExecutionEnabled,false);assert.strictEqual(r.persistencePerformed,false);assert.strictEqual(JSON.stringify(state),before);
+const unknown=x.createCPUDecisionPrioritization(state,'PIT',{evaluation,priorities:[{id:'bad',optionId:'missing',tier:'high',order:1}]});assert.strictEqual(unknown.validation.valid,false);assert.strictEqual(unknown.priorities[0].validity.option,false);
+const duplicateOrder=x.createCPUDecisionPrioritization(state,'PIT',{evaluation,priorities:[{id:'a',optionId:'trade-option',tier:'high',order:1},{id:'b',optionId:'wait-option',tier:'medium',order:1}]});assert.strictEqual(duplicateOrder.validation.valid,false);assert.deepStrictEqual([...duplicateOrder.validation.duplicateOrders],[1]);
+const duplicateId=x.createCPUDecisionPrioritization(state,'PIT',{evaluation,priorities:[{id:'same',optionId:'trade-option',tier:'high',order:1},{id:'same',optionId:'wait-option',tier:'medium',order:2}]});assert.strictEqual(duplicateId.validation.valid,false);assert.deepStrictEqual([...duplicateId.validation.duplicatePriorityIds],['same']);
+assert.throws(()=>x.createCPUDecisionPrioritization(state,'MISSING'),/Team not found/);
+console.log('Phase 9 CPU decision prioritization tests passed.');
