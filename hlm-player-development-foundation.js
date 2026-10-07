@@ -99,6 +99,18 @@ function resolveAttributeDevelopmentSnapshot(attributes, direction) {
   return Object.freeze(entries);
 }
 
+function resolveOverallRecalculationInput(attributes) {
+  if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) return null;
+  const numericAttributes = Object.entries(attributes)
+    .filter(([, value]) => value !== null && value !== undefined && value !== '' && typeof value !== 'boolean' && (typeof value === 'number' || typeof value === 'string') && Number.isFinite(Number(value)))
+    .map(([name, value]) => Object.freeze({ name, value: Number(value) }));
+  if (numericAttributes.length === 0) return null;
+  return Object.freeze({
+    attributes: Object.freeze(numericAttributes),
+    attributeCount: numericAttributes.length
+  });
+}
+
 function findPlayer(state, playerId) {
   if (!state || typeof state !== 'object' || !state.universe || !Array.isArray(state.universe.players)) {
     throw developmentError('INVALID_GAME_STATE', 'Unified GameState with universe.players is required.');
@@ -164,6 +176,7 @@ function resolveDevelopmentInputs(state, playerId) {
     developmentStage,
     developmentDirection,
     attributeDevelopment: resolveAttributeDevelopmentSnapshot(attributes, developmentDirection),
+    overallRecalculationInput: resolveOverallRecalculationInput(attributes),
     factors,
     factorSignal: calculateDevelopmentFactorSignal(factors),
     position: player.position ?? player.pos ?? null,
@@ -173,4 +186,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveAttributeDevelopmentSnapshot, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs };
