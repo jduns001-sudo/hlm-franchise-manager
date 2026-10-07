@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createCPUActionCandidate}=require('./hlm-cpu-action-candidate');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});const before=JSON.stringify(state);
+const prioritization={evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]};
+const r=createCPUActionCandidate(state,'PIT',{prioritization,priorityId:'first'});
+assert.strictEqual(r.kind,'cpu-action-candidate-package');assert.strictEqual(r.validation.valid,true);assert.strictEqual(r.action.optionId,'trade-option');assert.strictEqual(r.action.candidateOnly,true);assert.strictEqual(r.transaction.kind,'franchise-action-transaction');assert.strictEqual(r.verification.verified,true);assert.strictEqual(r.decisionStage.stage,'act');assert.strictEqual(r.decisionStage.actPerformed,false);assert.strictEqual(r.authority.cpuDecisionExecutionEnabled,false);assert.strictEqual(r.authority.humanAuthorizationRequired,true);assert.strictEqual(r.persistencePerformed,false);assert.strictEqual(JSON.stringify(state),before);
+const missing=createCPUActionCandidate(state,'PIT',{prioritization,priorityId:'missing'});assert.strictEqual(missing.validation.valid,false);assert.strictEqual(missing.transaction,null);assert.strictEqual(missing.verification,null);
+assert.throws(()=>createCPUActionCandidate(state,'MISSING'),/Team not found/);
+console.log('Phase 9 CPU action candidate tests passed.');
