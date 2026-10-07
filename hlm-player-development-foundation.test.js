@@ -76,6 +76,7 @@ assert.strictEqual(resolveAttributeDevelopmentSnapshot({}, 'growth'), null);
 assert.strictEqual(calculateOverallFromAttributes({ skating: 75, shooting: 71 }), 73);
 assert.strictEqual(calculateOverallFromAttributes({ skating: '75', shooting: 71, note: 'raw' }), 73);
 assert.strictEqual(calculateOverallFromAttributes(null), null);
+assert.strictEqual(calculateOverallFromAttributes({ skating: null, shooting: '', strength: false }), null);
 assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, 72), {
   currentOverall: 72, calculatedOverall: 73, difference: 1, method: 'equal-weight-placeholder'
 });
@@ -83,6 +84,7 @@ assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooti
   currentOverall: null, calculatedOverall: 73, difference: null, method: 'equal-weight-placeholder'
 });
 assert.strictEqual(resolveOverallRecalculationSnapshot({}, 72), null);
+assert.strictEqual(resolveOverallRecalculationInput({ skating: null, shooting: '', strength: false }), null);
 assert.deepStrictEqual(resolveOverallRecalculationInput({ skating: 75, shooting: '71', note: 'raw' }), {
   attributes: [{ name: 'skating', value: 75 }, { name: 'shooting', value: 71 }],
   attributeCount: 2
