@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, createDevelopmentGameStateTransaction, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, createDevelopmentGameStateTransaction, resolveOverallRecalculationStrategy, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -252,12 +252,26 @@ assert.deepStrictEqual(sparseInputs.factors, {
   morale: null, organization: null
 });
 
+const noOverallStrategy = resolveOverallRecalculationStrategy({ skating: 75, shooting: 71 });
+assert.strictEqual(noOverallStrategy.recalculable, false);
+assert.strictEqual(noOverallStrategy.reason, 'OVERALL_STRATEGY_REQUIRED');
+assert.strictEqual(noOverallStrategy.value, null);
+const explicitOverall = resolveOverallRecalculationStrategy({ skating: 75, shooting: 71 }, input =>
+  Math.round(input.attributes.reduce((sum, attribute) => sum + attribute.value, 0) / input.attributeCount)
+);
+assert.strictEqual(explicitOverall.recalculable, true);
+assert.strictEqual(explicitOverall.value, 73);
+
 const transactionState = JSON.parse(JSON.stringify(state));
 const originalTransactionState = JSON.parse(JSON.stringify(transactionState));
-const transaction = createDevelopmentGameStateTransaction(transactionState, 101);
+const transaction = createDevelopmentGameStateTransaction(transactionState, 101, DEFAULT_DEVELOPMENT_CHANGE_RULES, input =>
+  Math.round(input.attributes.reduce((sum, attribute) => sum + attribute.value, 0) / input.attributeCount)
+);
 assert.strictEqual(transaction.executable, true);
 assert.ok(transaction.changedAttributes > 0);
 assert.strictEqual(transaction.candidateState.universe.players[0].attributes.skating, 77);
+assert.strictEqual(transaction.overallRecalculation.recalculable, true);
+assert.strictEqual(transaction.candidateState.universe.players[0].ovr, 75);
 assert.deepStrictEqual(transactionState, originalTransactionState);
 assert.notStrictEqual(transaction.candidateState, transactionState);
 const emptyTransaction = createDevelopmentGameStateTransaction({
