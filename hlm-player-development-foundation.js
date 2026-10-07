@@ -212,6 +212,44 @@ function resolveAttributeDevelopmentChangePlan(attributeDevelopment, development
   return Object.freeze(entries);
 }
 
+const DEFAULT_DEVELOPMENT_CHANGE_RULES = Object.freeze({
+  growth: Object.freeze({ accelerating: 2, normal: 1, stalling: 0 }),
+  stable: Object.freeze({ accelerating: 0, normal: 0, stalling: 0 }),
+  decline: Object.freeze({ accelerating: -1, normal: -1, stalling: -2 }),
+  minimumRating: 0,
+  maximumRating: 100
+});
+
+function resolveDevelopmentChangeAmount(direction, pace, rules = DEFAULT_DEVELOPMENT_CHANGE_RULES) {
+  if (!DEVELOPMENT_DIRECTIONS.includes(direction)) return null;
+  const paceRules = rules && rules[direction];
+  if (!paceRules || !Object.prototype.hasOwnProperty.call(paceRules, pace)) return null;
+  const amount = Number(paceRules[pace]);
+  return Number.isFinite(amount) ? amount : null;
+}
+
+function applyDevelopmentChangePlan(changePlan, rules = DEFAULT_DEVELOPMENT_CHANGE_RULES) {
+  if (!Array.isArray(changePlan) || changePlan.length === 0) return null;
+  const minimum = Number.isFinite(Number(rules.minimumRating)) ? Number(rules.minimumRating) : 0;
+  const maximum = Number.isFinite(Number(rules.maximumRating)) ? Number(rules.maximumRating) : 100;
+  return Object.freeze(changePlan.map(attribute => {
+    const amount = resolveDevelopmentChangeAmount(attribute.direction, attribute.pace, rules);
+    const currentValue = normalizeAttributeRating(attribute.currentValue);
+    const nextValue = amount === null || currentValue === null
+      ? currentValue
+      : Math.max(minimum, Math.min(maximum, currentValue + amount));
+    return Object.freeze({
+      name: attribute.name,
+      currentValue,
+      direction: attribute.direction,
+      pace: attribute.pace,
+      changeAmount: amount,
+      nextValue,
+      changed: amount !== null && currentValue !== null && nextValue !== currentValue
+    });
+  }));
+}
+
 function resolveOverallRecalculationInput(attributes) {
   if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) return null;
   const numericAttributes = Object.entries(attributes)
@@ -300,6 +338,12 @@ function resolveDevelopmentInputs(state, playerId) {
       resolveAttributeDevelopmentSnapshot(attributes, developmentDirection, attributeDevelopmentDirections),
       developmentEvaluation
     ),
+    developmentChangePreview: applyDevelopmentChangePlan(
+      resolveAttributeDevelopmentChangePlan(
+        resolveAttributeDevelopmentSnapshot(attributes, developmentDirection, attributeDevelopmentDirections),
+        developmentEvaluation
+      )
+    ),
     overallRecalculationInput: resolveOverallRecalculationInput(attributes),
     factors,
     factorSignal,
@@ -313,4 +357,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveOverallRecalculationInput, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, resolveOverallRecalculationInput, resolveDevelopmentInputs };

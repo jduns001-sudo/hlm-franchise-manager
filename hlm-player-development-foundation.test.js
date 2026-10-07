@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -113,6 +113,18 @@ assert.deepStrictEqual(changePlan.map(x => [x.name, x.direction, x.pace, x.facto
 ]);
 assert.ok(Object.isFrozen(changePlan));
 assert.strictEqual(resolveAttributeDevelopmentChangePlan(null, null), null);
+assert.strictEqual(resolveDevelopmentChangeAmount('growth', 'accelerating'), 2);
+assert.strictEqual(resolveDevelopmentChangeAmount('growth', 'normal'), 1);
+assert.strictEqual(resolveDevelopmentChangeAmount('growth', 'stalling'), 0);
+assert.strictEqual(resolveDevelopmentChangeAmount('stable', 'normal'), 0);
+assert.strictEqual(resolveDevelopmentChangeAmount('decline', 'stalling'), -2);
+const appliedChanges = applyDevelopmentChangePlan(changePlan);
+assert.deepStrictEqual(appliedChanges.map(x => [x.name, x.changeAmount, x.nextValue, x.changed]), [
+  ['skating', 2, 72, true],
+  ['defense', 0, 68, false],
+  ['strength', -1, 64, true]
+]);
+assert.strictEqual(DEFAULT_DEVELOPMENT_CHANGE_RULES.maximumRating, 100);
 assert.strictEqual(normalizeAttributeRating(75), 75);
 assert.strictEqual(normalizeAttributeRating('71'), 71);
 assert.strictEqual(normalizeAttributeRating(null), null);
