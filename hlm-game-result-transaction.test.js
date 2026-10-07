@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {executeDeterministicGameLoop}=require('./hlm-deterministic-game-loop');
+const {buildGameResultCandidate,verifyGameResultCandidate}=require('./hlm-game-result-transaction');
+const state=createGameStateEnvelope({games:[{id:'g1',homeTeamId:'H',awayTeamId:'A',date:'2026-10-07',status:'Scheduled'}]});
+const before=JSON.stringify(state);
+const loop=executeDeterministicGameLoop(state,'g1',{deterministicSeed:'result-seed',eventCount:4,resolveEvent:x=>({outcome:x.index===0||x.index===2?'goal':'save'})});
+const tx=buildGameResultCandidate(state,loop);const check=verifyGameResultCandidate(state,tx);
+assert.strictEqual(JSON.stringify(state),before);
+assert.strictEqual(tx.candidateState.activity.games[0].status,'Played');
+assert.strictEqual(tx.score.homeGoals+tx.score.awayGoals,2);
+assert.strictEqual(tx.output.playByPlay.length,20);
+assert.strictEqual(check.valid,true);assert.strictEqual(tx.persistencePerformed,false);
+console.log('Game result transaction tests passed.');
