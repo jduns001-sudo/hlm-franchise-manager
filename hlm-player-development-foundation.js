@@ -266,7 +266,7 @@ function resolveOverallRecalculationInput(attributes) {
 function createDevelopmentGameStateTransaction(state, playerId, rules = DEFAULT_DEVELOPMENT_CHANGE_RULES) {
   const inputs = resolveDevelopmentInputs(state, playerId);
   const changes = applyDevelopmentChangePlan(inputs.attributeDevelopmentChangePlan, rules);
-  if (!changes) return Object.freeze({ playerId: inputs.playerId, executable: false, changes: null, candidateState: null });
+  if (!changes) return Object.freeze({ playerId: inputs.playerId, executable: false, changedAttributes: 0, changes: null, candidateState: null });
 
   const candidateState = clone(state);
   const player = findPlayer(candidateState, playerId);
