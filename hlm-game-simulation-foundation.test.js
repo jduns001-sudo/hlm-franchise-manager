@@ -16,3 +16,9 @@ assert.strictEqual(input.systems.possession,false);assert.strictEqual(input.outp
 assert.strictEqual(JSON.stringify(state),before);
 assert.throws(()=>createGameSimulationInput(state,'missing'),error=>error.code==='GAME_NOT_FOUND');
 console.log('Game simulation foundation tests passed.');
+
+const canonicalState=createGameStateEnvelope({games:[{id:'canonical-game',homeTeamId:'A',awayTeamId:'B',date:'2026-10-07',status:'Scheduled'}]});
+assert.strictEqual(createGameSimulationInput(canonicalState,'canonical-game').gameId,'canonical-game');
+assert.throws(()=>createGameSimulationInput(canonicalState,'canonical-game',{mode:'arcade'}),e=>e.code==='INVALID_GAME_SIMULATION_MODE');
+const playedState=createGameStateEnvelope({games:[{id:'played-game',homeTeamId:'A',awayTeamId:'B',date:'2026-10-07',status:'Played'}]});
+assert.throws(()=>createGameSimulationInput(playedState,'played-game'),e=>e.code==='GAME_NOT_SCHEDULED');
