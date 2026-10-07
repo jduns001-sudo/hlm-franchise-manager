@@ -66,6 +66,25 @@ function classifyDevelopmentDirection(stage, retired = false) {
   return null;
 }
 
+function normalizeDevelopmentFactor(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return Math.max(0, Math.min(100, number));
+}
+
+function calculateDevelopmentFactorSignal(factors) {
+  if (!factors || typeof factors !== 'object') return null;
+  const keys = ['workEthic', 'coachability', 'discipline', 'confidence', 'consistency', 'adaptability', 'morale'];
+  const values = keys.map(key => normalizeDevelopmentFactor(factors[key])).filter(value => value !== null);
+  if (values.length === 0) return null;
+  const score = values.reduce((sum, value) => sum + value, 0) / values.length;
+  return Object.freeze({
+    score: Number(score.toFixed(2)),
+    sampleSize: values.length,
+    availableFactors: Object.freeze(keys.filter(key => normalizeDevelopmentFactor(factors[key]) !== null))
+  });
+}
+
 function findPlayer(state, playerId) {
   if (!state || typeof state !== 'object' || !state.universe || !Array.isArray(state.universe.players)) {
     throw developmentError('INVALID_GAME_STATE', 'Unified GameState with universe.players is required.');
@@ -94,6 +113,26 @@ function resolveDevelopmentInputs(state, playerId) {
 
   const developmentStage = classifyDevelopmentStage(age, developmentCurve);
 
+  const factors = Object.freeze({
+    workEthic: player.workEthic ?? (player.developmentTraits && player.developmentTraits.workEthic) ?? null,
+    coachability: player.coachability ?? (player.developmentTraits && player.developmentTraits.coachability) ?? null,
+    discipline: player.discipline ?? (player.developmentTraits && player.developmentTraits.discipline) ?? null,
+    confidence: player.confidence ?? null,
+    consistency: player.consistency ?? (player.developmentTraits && player.developmentTraits.consistency) ?? null,
+    adaptability: player.adaptability ?? (player.developmentTraits && player.developmentTraits.adaptability) ?? null,
+    iceTime: player.iceTime ?? null,
+    role: player.role ?? null,
+    training: clone(player.training || null),
+    coaching: clone(player.coaching || null),
+    performance: clone(player.performance || null),
+    health: clone(player.health || null),
+    injuries: clone((state.activity && Array.isArray(state.activity.injuries))
+      ? state.activity.injuries.filter(injury => Number(injury && injury.playerId) === Number(player.id))
+      : []),
+    morale: player.morale ?? null,
+    organization: clone(player.organization || null)
+  });
+
   const snapshot = {
     playerId: Number(player.id),
     currentDate,
@@ -107,25 +146,8 @@ function resolveDevelopmentInputs(state, playerId) {
     developmentCurve,
     developmentStage,
     developmentDirection: classifyDevelopmentDirection(developmentStage, player.retired === true),
-    factors: Object.freeze({
-      workEthic: player.workEthic ?? (player.developmentTraits && player.developmentTraits.workEthic) ?? null,
-      coachability: player.coachability ?? (player.developmentTraits && player.developmentTraits.coachability) ?? null,
-      discipline: player.discipline ?? (player.developmentTraits && player.developmentTraits.discipline) ?? null,
-      confidence: player.confidence ?? null,
-      consistency: player.consistency ?? (player.developmentTraits && player.developmentTraits.consistency) ?? null,
-      adaptability: player.adaptability ?? (player.developmentTraits && player.developmentTraits.adaptability) ?? null,
-      iceTime: player.iceTime ?? null,
-      role: player.role ?? null,
-      training: clone(player.training || null),
-      coaching: clone(player.coaching || null),
-      performance: clone(player.performance || null),
-      health: clone(player.health || null),
-      injuries: clone((state.activity && Array.isArray(state.activity.injuries))
-        ? state.activity.injuries.filter(injury => Number(injury && injury.playerId) === Number(player.id))
-        : []),
-      morale: player.morale ?? null,
-      organization: clone(player.organization || null)
-    }),
+    factors,
+    factorSignal: calculateDevelopmentFactorSignal(factors),
     position: player.position ?? player.pos ?? null,
     retired: player.retired === true
   };
@@ -133,4 +155,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveDevelopmentInputs };
