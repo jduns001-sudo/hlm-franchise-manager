@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('assert');const {createGameStateEnvelope}=require('./hlm-game-state');const {createRosterOperationCandidate}=require('./hlm-roster-operations-candidates');
+const state=createGameStateEnvelope({teams:[{id:'PIT'}],players:[{id:1,teamId:'PIT'}]});const before=JSON.stringify(state);
+const call=createRosterOperationCandidate(state,{type:'call-up',playerId:1,teamId:'PIT',assignmentType:'emergency',leagueRules:{approved:true}});
+assert.strictEqual(call.readiness.ready,true);assert.strictEqual(call.transactionPerformed,false);
+const waiver=createRosterOperationCandidate(state,{type:'waiver-placement',playerId:1,teamId:'PIT',leagueRules:{approved:true},waiverEligibility:true,waiverPriority:['A'],claims:['B'],waiverHistory:['prior']});
+assert.strictEqual(waiver.waiverData.eligibility,true);assert.deepStrictEqual(waiver.waiverData.claims,['B']);
+const noRules=createRosterOperationCandidate(state,{type:'demotion',playerId:1,teamId:'PIT',assignmentType:'standard'});
+assert.deepStrictEqual(noRules.readiness.blockers,['LEAGUE_RULES_REQUIRED']);
+const buyout=createRosterOperationCandidate(state,{type:'buyout',playerId:1,teamId:'PIT',leagueRules:{approved:true}});
+assert.strictEqual(buyout.readiness.ready,false);assert.ok(buyout.readiness.blockers.includes('FINANCIAL_CONSEQUENCES_REQUIRED'));
+const readyBuyout=createRosterOperationCandidate(state,{type:'buyout',playerId:1,teamId:'PIT',leagueRules:{approved:true},financialConsequences:{calculatedExternally:true}});
+assert.strictEqual(readyBuyout.readiness.ready,true);assert.strictEqual(JSON.stringify(state),before);
+console.log('Roster operations candidate foundation tests passed.');
