@@ -1,7 +1,8 @@
 'use strict';
 const {createCPUActionCandidate}=require('./hlm-cpu-action-candidate');
 const OBSERVATION_OUTCOMES=Object.freeze(['positive','neutral','negative','pending']);
-function list(v){return Array.isArray(v)?v:[];}\nfunction snapshot(v){if(v===null||typeof v!=='object')return v;if(Array.isArray(v))return Object.freeze(v.map(snapshot));const out={};for(const [k,value] of Object.entries(v))out[k]=snapshot(value);return Object.freeze(out);}
+function list(v){return Array.isArray(v)?v:[];}
+function snapshot(v){if(v===null||typeof v!=='object')return v;if(Array.isArray(v))return Object.freeze(v.map(snapshot));const out={};for(const [k,value] of Object.entries(v))out[k]=snapshot(value);return Object.freeze(out);}
 function createCPUResultObservation(state,teamId,options={}){
  const actionPackage=createCPUActionCandidate(state,teamId,options.action||{});
  const actionValid=actionPackage.validation.valid===true;
