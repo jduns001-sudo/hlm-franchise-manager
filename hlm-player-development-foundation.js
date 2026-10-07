@@ -111,30 +111,6 @@ function resolveOverallRecalculationInput(attributes) {
   });
 }
 
-function calculateOverallFromAttributes(attributes) {
-  if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) return null;
-  const values = Object.values(attributes)
-    .filter(value => value !== null && value !== undefined && value !== '' && typeof value !== 'boolean' && (typeof value === 'number' || typeof value === 'string'))
-    .map(value => Number(value))
-    .filter(value => Number.isFinite(value));
-  if (values.length === 0) return null;
-  return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(2));
-}
-
-function resolveOverallRecalculationSnapshot(attributes, currentOverall) {
-  const calculatedOverall = calculateOverallFromAttributes(attributes);
-  if (calculatedOverall === null) return null;
-  const current = currentOverall !== null && currentOverall !== undefined && currentOverall !== '' && typeof currentOverall !== 'boolean' && Number.isFinite(Number(currentOverall))
-    ? Number(currentOverall)
-    : null;
-  return Object.freeze({
-    currentOverall: current,
-    calculatedOverall,
-    difference: current === null ? null : Number((calculatedOverall - current).toFixed(2)),
-    method: 'equal-weight-placeholder'
-  });
-}
-
 function findPlayer(state, playerId) {
   if (!state || typeof state !== 'object' || !state.universe || !Array.isArray(state.universe.players)) {
     throw developmentError('INVALID_GAME_STATE', 'Unified GameState with universe.players is required.');
@@ -192,7 +168,6 @@ function resolveDevelopmentInputs(state, playerId) {
     age,
     birthYear: Number.isSafeInteger(Number(player.birthYear)) ? Number(player.birthYear) : null,
     overall: Number.isFinite(Number(player.ovr)) ? Number(player.ovr) : null,
-    overallRecalculation: resolveOverallRecalculationSnapshot(attributes, player.ovr),
     attributes,
     potential: player.potential ?? null,
     potentialLevel: player.potentialLevel ?? player.potentialChance ?? player.chanceToReachPotential ?? null,
@@ -211,4 +186,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, calculateOverallFromAttributes, resolveOverallRecalculationSnapshot, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs };
