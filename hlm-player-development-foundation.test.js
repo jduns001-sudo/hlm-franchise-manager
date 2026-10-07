@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -58,6 +58,15 @@ assert.strictEqual(classifyDevelopmentDirection('prime'), 'stable');
 assert.strictEqual(classifyDevelopmentDirection('decline'), 'decline');
 assert.strictEqual(classifyDevelopmentDirection(null), null);
 assert.strictEqual(classifyDevelopmentDirection('development', true), null);
+assert.strictEqual(normalizeDevelopmentFactor(120), 100);
+assert.strictEqual(normalizeDevelopmentFactor(-5), 0);
+assert.strictEqual(normalizeDevelopmentFactor('80'), 80);
+assert.strictEqual(normalizeDevelopmentFactor(null), 0);
+assert.strictEqual(normalizeDevelopmentFactor(undefined), null);
+assert.deepStrictEqual(calculateDevelopmentFactorSignal({ workEthic: 80, coachability: 70, morale: 90 }), {
+  score: 80, sampleSize: 3, availableFactors: ['workEthic', 'coachability', 'morale']
+});
+assert.strictEqual(calculateDevelopmentFactorSignal({}), null);
 
 const first = resolveDevelopmentInputs(state, 101);
 const second = resolveDevelopmentInputs(state, 101);
@@ -80,6 +89,13 @@ assert.deepStrictEqual(first.factors, {
   injuries: [{ id: 'inj-1', playerId: 101, status: 'day-to-day' }], morale: 78,
   organization: { quality: 81 }
 });
+assert.deepStrictEqual(first.factorSignal, {
+  score: 76.71,
+  sampleSize: 7,
+  availableFactors: ['workEthic', 'coachability', 'discipline', 'confidence', 'consistency', 'adaptability', 'morale']
+});
+assert.strictEqual(Object.isFrozen(first.factorSignal), true);
+assert.strictEqual(Object.isFrozen(first.factorSignal.availableFactors), true);
 assert.strictEqual(Object.isFrozen(first.factors), true);
 assert.strictEqual(Object.isFrozen(first), true);
 assert.strictEqual(JSON.stringify(state), before, 'development input resolution must not mutate GameState');
@@ -106,6 +122,7 @@ assert.strictEqual(sparseInputs.attributes, null);
 assert.strictEqual(sparseInputs.developmentCurve, null);
 assert.strictEqual(sparseInputs.developmentStage, null);
 assert.strictEqual(sparseInputs.developmentDirection, null);
+assert.strictEqual(sparseInputs.factorSignal, null);
 assert.deepStrictEqual(sparseInputs.factors, {
   workEthic: null, coachability: null, discipline: null, confidence: null, consistency: null, adaptability: null,
   iceTime: null, role: null, training: null, coaching: null, performance: null, health: null, injuries: [],
