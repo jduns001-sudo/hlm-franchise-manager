@@ -83,6 +83,12 @@ assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooti
 assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, null), {
   currentOverall: null, calculatedOverall: 73, difference: null, method: 'equal-weight-placeholder'
 });
+assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, ''), {
+  currentOverall: null, calculatedOverall: 73, difference: null, method: 'equal-weight-placeholder'
+});
+assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, false), {
+  currentOverall: null, calculatedOverall: 73, difference: null, method: 'equal-weight-placeholder'
+});
 assert.strictEqual(resolveOverallRecalculationSnapshot({}, 72), null);
 assert.strictEqual(resolveOverallRecalculationInput({ skating: null, shooting: '', strength: false }), null);
 assert.deepStrictEqual(resolveOverallRecalculationInput({ skating: 75, shooting: '71', note: 'raw' }), {
