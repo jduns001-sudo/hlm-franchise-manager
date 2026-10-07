@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -101,6 +101,18 @@ assert.strictEqual(lifecycle.retirement.age, 34);
 assert.deepStrictEqual(lifecycle.history.promotions, ['NHL']);
 assert.deepStrictEqual(lifecycle.report, { status: 'stalling', direction: 'decline', score: 35 });
 assert.ok(Object.isFrozen(lifecycle));
+const changePlan = resolveAttributeDevelopmentChangePlan([
+  Object.freeze({ name: 'skating', currentValue: 70, developmentDirection: 'growth' }),
+  Object.freeze({ name: 'defense', currentValue: 68, developmentDirection: 'stable' }),
+  Object.freeze({ name: 'strength', currentValue: 65, developmentDirection: 'decline' })
+], Object.freeze({ direction: 'growth', pace: 'accelerating', score: 82 }));
+assert.deepStrictEqual(changePlan.map(x => [x.name, x.direction, x.pace, x.factorScore, x.changePending]), [
+  ['skating', 'growth', 'accelerating', 82, true],
+  ['defense', 'stable', 'accelerating', 82, false],
+  ['strength', 'decline', 'accelerating', 82, true]
+]);
+assert.ok(Object.isFrozen(changePlan));
+assert.strictEqual(resolveAttributeDevelopmentChangePlan(null, null), null);
 assert.strictEqual(normalizeAttributeRating(75), 75);
 assert.strictEqual(normalizeAttributeRating('71'), 71);
 assert.strictEqual(normalizeAttributeRating(null), null);
