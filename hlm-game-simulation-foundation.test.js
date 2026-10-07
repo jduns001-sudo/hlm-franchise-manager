@@ -2,8 +2,7 @@
 const assert=require('assert');
 const {createGameStateEnvelope}=require('./hlm-game-state');
 const {GAME_SIMULATION_MODES,GAME_SIMULATION_LAYERS,createGameSimulationInput}=require('./hlm-game-simulation-foundation');
-const state=createGameStateEnvelope({meta:{currentDate:'2027-10-01'}});
-state.universe.games=[{id:'g1',seasonId:2027,homeTeamId:1,awayTeamId:2,date:'2027-10-01',status:'Scheduled'}];
+const state=createGameStateEnvelope({meta:{currentDate:'2027-10-01'},games:[{id:'g1',seasonId:2027,homeTeamId:1,awayTeamId:2,date:'2027-10-01',status:'Scheduled'}]});
 const before=JSON.stringify(state);
 const input=createGameSimulationInput(state,'g1',{mode:'full-summary',deterministicSeed:'season-2027-g1'});
 assert.deepStrictEqual(GAME_SIMULATION_MODES,['quick-result','full-summary','full-game']);
@@ -16,3 +15,12 @@ assert.strictEqual(input.systems.possession,false);assert.strictEqual(input.outp
 assert.strictEqual(JSON.stringify(state),before);
 assert.throws(()=>createGameSimulationInput(state,'missing'),error=>error.code==='GAME_NOT_FOUND');
 console.log('Game simulation foundation tests passed.');
+
+const canonicalState=createGameStateEnvelope({games:[{id:'canonical-game',homeTeamId:'A',awayTeamId:'B',date:'2026-10-07',status:'Scheduled'}]});
+assert.strictEqual(createGameSimulationInput(canonicalState,'canonical-game').gameId,'canonical-game');
+assert.throws(()=>createGameSimulationInput(canonicalState,'canonical-game',{mode:'arcade'}),e=>e.code==='INVALID_GAME_SIMULATION_MODE');
+const playedState=createGameStateEnvelope({games:[{id:'played-game',homeTeamId:'A',awayTeamId:'B',date:'2026-10-07',status:'Played'}]});
+assert.throws(()=>createGameSimulationInput(playedState,'played-game'),e=>e.code==='GAME_NOT_SCHEDULED');
+
+const missingStatusState=createGameStateEnvelope({games:[{id:'missing-status',homeTeamId:'A',awayTeamId:'B',date:'2026-10-07'}]});
+assert.throws(()=>createGameSimulationInput(missingStatusState,'missing-status'),e=>e.code==='GAME_NOT_SCHEDULED');
