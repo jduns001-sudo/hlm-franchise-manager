@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { calculateAge, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, calculateAge, normalizeDevelopmentCurve, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -37,6 +37,12 @@ const state = createGameStateEnvelope({
 const before = JSON.stringify(state);
 
 assert.strictEqual(calculateAge(2005, '2026-10-06'), 21);
+assert.deepStrictEqual(DEVELOPMENT_CURVES, ['early-bloomer', 'normal', 'late-bloomer', 'bust', 'elite']);
+assert.strictEqual(normalizeDevelopmentCurve('Early Bloomer'), 'early-bloomer');
+assert.strictEqual(normalizeDevelopmentCurve('late_bloomer'), 'late-bloomer');
+assert.strictEqual(normalizeDevelopmentCurve('ELITE'), 'elite');
+assert.strictEqual(normalizeDevelopmentCurve('unknown'), null);
+assert.strictEqual(normalizeDevelopmentCurve(null), null);
 
 const first = resolveDevelopmentInputs(state, 101);
 const second = resolveDevelopmentInputs(state, 101);
@@ -49,6 +55,7 @@ assert.strictEqual(first.potential, 'Elite');
 assert.strictEqual(first.potentialLevel, 'High');
 assert.deepStrictEqual(first.attributes, { skating: 75, shooting: 71 });
 assert.deepStrictEqual(first.developmentTraits, { curve: 'normal', workEthic: 80, coachability: 77, discipline: 74, consistency: 76, adaptability: 79 });
+assert.strictEqual(first.developmentCurve, 'normal');
 assert.deepStrictEqual(first.factors, {
   workEthic: 80, coachability: 77, discipline: 74, confidence: 73, consistency: 76, adaptability: 79,
   iceTime: 16.5, role: 'Top-Six', training: { focus: 'skating' }, coaching: { development: 82 },
@@ -79,6 +86,7 @@ assert.strictEqual(sparseInputs.age, null);
 assert.strictEqual(sparseInputs.overall, null);
 assert.strictEqual(sparseInputs.potential, null);
 assert.strictEqual(sparseInputs.attributes, null);
+assert.strictEqual(sparseInputs.developmentCurve, null);
 assert.deepStrictEqual(sparseInputs.factors, {
   workEthic: null, coachability: null, discipline: null, confidence: null, consistency: null, adaptability: null,
   iceTime: null, role: null, training: null, coaching: null, performance: null, health: null, injuries: [],
