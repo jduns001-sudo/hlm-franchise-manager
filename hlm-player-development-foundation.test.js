@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, calculateAge, normalizeDevelopmentCurve, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -43,6 +43,15 @@ assert.strictEqual(normalizeDevelopmentCurve('late_bloomer'), 'late-bloomer');
 assert.strictEqual(normalizeDevelopmentCurve('ELITE'), 'elite');
 assert.strictEqual(normalizeDevelopmentCurve('unknown'), null);
 assert.strictEqual(normalizeDevelopmentCurve(null), null);
+assert.deepStrictEqual(DEVELOPMENT_STAGES, ['development', 'prime', 'decline']);
+assert.strictEqual(classifyDevelopmentStage(22, 'normal'), 'development');
+assert.strictEqual(classifyDevelopmentStage(25, 'normal'), 'prime');
+assert.strictEqual(classifyDevelopmentStage(31, 'normal'), 'decline');
+assert.strictEqual(classifyDevelopmentStage(23, 'early-bloomer'), 'prime');
+assert.strictEqual(classifyDevelopmentStage(25, 'late-bloomer'), 'development');
+assert.strictEqual(classifyDevelopmentStage(null, 'normal'), null);
+assert.strictEqual(classifyDevelopmentStage(undefined, 'normal'), null);
+assert.strictEqual(classifyDevelopmentStage('', 'normal'), null);
 
 const first = resolveDevelopmentInputs(state, 101);
 const second = resolveDevelopmentInputs(state, 101);
@@ -56,6 +65,7 @@ assert.strictEqual(first.potentialLevel, 'High');
 assert.deepStrictEqual(first.attributes, { skating: 75, shooting: 71 });
 assert.deepStrictEqual(first.developmentTraits, { curve: 'normal', workEthic: 80, coachability: 77, discipline: 74, consistency: 76, adaptability: 79 });
 assert.strictEqual(first.developmentCurve, 'normal');
+assert.strictEqual(first.developmentStage, 'development');
 assert.deepStrictEqual(first.factors, {
   workEthic: 80, coachability: 77, discipline: 74, confidence: 73, consistency: 76, adaptability: 79,
   iceTime: 16.5, role: 'Top-Six', training: { focus: 'skating' }, coaching: { development: 82 },
@@ -87,6 +97,7 @@ assert.strictEqual(sparseInputs.overall, null);
 assert.strictEqual(sparseInputs.potential, null);
 assert.strictEqual(sparseInputs.attributes, null);
 assert.strictEqual(sparseInputs.developmentCurve, null);
+assert.strictEqual(sparseInputs.developmentStage, null);
 assert.deepStrictEqual(sparseInputs.factors, {
   workEthic: null, coachability: null, discipline: null, confidence: null, consistency: null, adaptability: null,
   iceTime: null, role: null, training: null, coaching: null, performance: null, health: null, injuries: [],

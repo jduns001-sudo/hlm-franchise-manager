@@ -37,6 +37,25 @@ function normalizeDevelopmentCurve(value) {
   return DEVELOPMENT_CURVES.includes(normalized) ? normalized : null;
 }
 
+const DEVELOPMENT_STAGES = Object.freeze(['development', 'prime', 'decline']);
+
+function classifyDevelopmentStage(age, curve) {
+  if (age === null || age === undefined || age === '') return null;
+  if (!Number.isFinite(Number(age)) || Number(age) < 0) return null;
+  const normalizedCurve = normalizeDevelopmentCurve(curve) || 'normal';
+  const years = Number(age);
+  const thresholds = {
+    'early-bloomer': { prime: 23, decline: 29 },
+    normal: { prime: 25, decline: 31 },
+    'late-bloomer': { prime: 27, decline: 33 },
+    bust: { prime: 24, decline: 29 },
+    elite: { prime: 24, decline: 32 }
+  }[normalizedCurve];
+  if (years < thresholds.prime) return 'development';
+  if (years < thresholds.decline) return 'prime';
+  return 'decline';
+}
+
 function findPlayer(state, playerId) {
   if (!state || typeof state !== 'object' || !state.universe || !Array.isArray(state.universe.players)) {
     throw developmentError('INVALID_GAME_STATE', 'Unified GameState with universe.players is required.');
@@ -60,17 +79,21 @@ function resolveDevelopmentInputs(state, playerId) {
     throw developmentError('INVALID_DEVELOPMENT_DATE', 'GameState meta.currentDate must be a valid YYYY-MM-DD date.');
   }
 
+  const developmentCurve = normalizeDevelopmentCurve(player.developmentCurve ?? (player.developmentTraits && player.developmentTraits.curve));
+  const age = calculateAge(player.birthYear, currentDate);
+
   const snapshot = {
     playerId: Number(player.id),
     currentDate,
-    age: calculateAge(player.birthYear, currentDate),
+    age,
     birthYear: Number.isSafeInteger(Number(player.birthYear)) ? Number(player.birthYear) : null,
     overall: Number.isFinite(Number(player.ovr)) ? Number(player.ovr) : null,
     attributes: clone(player.attributes || null),
     potential: player.potential ?? null,
     potentialLevel: player.potentialLevel ?? player.potentialChance ?? player.chanceToReachPotential ?? null,
     developmentTraits: clone(player.developmentTraits || null),
-    developmentCurve: normalizeDevelopmentCurve(player.developmentCurve ?? (player.developmentTraits && player.developmentTraits.curve)),
+    developmentCurve,
+    developmentStage: classifyDevelopmentStage(age, developmentCurve),
     factors: Object.freeze({
       workEthic: player.workEthic ?? (player.developmentTraits && player.developmentTraits.workEthic) ?? null,
       coachability: player.coachability ?? (player.developmentTraits && player.developmentTraits.coachability) ?? null,
@@ -97,4 +120,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, calculateAge, normalizeDevelopmentCurve, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, resolveDevelopmentInputs };
