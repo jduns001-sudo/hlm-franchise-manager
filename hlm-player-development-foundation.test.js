@@ -61,7 +61,7 @@ assert.strictEqual(classifyDevelopmentDirection('development', true), null);
 assert.strictEqual(normalizeDevelopmentFactor(120), 100);
 assert.strictEqual(normalizeDevelopmentFactor(-5), 0);
 assert.strictEqual(normalizeDevelopmentFactor('80'), 80);
-assert.strictEqual(normalizeDevelopmentFactor(null), 0);
+assert.strictEqual(normalizeDevelopmentFactor(null), null);
 assert.strictEqual(normalizeDevelopmentFactor(undefined), null);
 assert.deepStrictEqual(calculateDevelopmentFactorSignal({ workEthic: 80, coachability: 70, morale: 90 }), {
   score: 80, sampleSize: 3, availableFactors: ['workEthic', 'coachability', 'morale']
