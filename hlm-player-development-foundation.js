@@ -102,7 +102,7 @@ function resolveAttributeDevelopmentSnapshot(attributes, direction) {
 function resolveOverallRecalculationInput(attributes) {
   if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) return null;
   const numericAttributes = Object.entries(attributes)
-    .filter(([, value]) => Number.isFinite(Number(value)))
+    .filter(([, value]) => value !== null && value !== undefined && value !== '' && typeof value !== 'boolean' && (typeof value === 'number' || typeof value === 'string') && Number.isFinite(Number(value)))
     .map(([name, value]) => Object.freeze({ name, value: Number(value) }));
   if (numericAttributes.length === 0) return null;
   return Object.freeze({
@@ -114,6 +114,7 @@ function resolveOverallRecalculationInput(attributes) {
 function calculateOverallFromAttributes(attributes) {
   if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) return null;
   const values = Object.values(attributes)
+    .filter(value => value !== null && value !== undefined && value !== '' && typeof value !== 'boolean' && (typeof value === 'number' || typeof value === 'string'))
     .map(value => Number(value))
     .filter(value => Number.isFinite(value));
   if (values.length === 0) return null;
