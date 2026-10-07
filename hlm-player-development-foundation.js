@@ -256,10 +256,10 @@ function resolveDevelopmentInputs(state, playerId) {
 
   const developmentDirection = classifyDevelopmentDirection(developmentStage, player.retired === true);
   const attributes = clone(player.attributes || null);
+  const factorSignal = calculateDevelopmentFactorSignal(factors);
   const developmentContext = resolveDevelopmentContext(player, factors);
   const developmentEvaluation = classifyDevelopmentEvaluation(developmentDirection, factorSignal);
   const developmentLifecycle = resolveDevelopmentLifecycle(player, developmentStage, developmentEvaluation, factors);
-  const factorSignal = calculateDevelopmentFactorSignal(factors);
   const attributeDevelopmentDirections = clone(player.attributeDevelopmentDirections || null);
 
   const snapshot = {
