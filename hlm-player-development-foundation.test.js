@@ -81,6 +81,7 @@ assert.strictEqual(resolveAttributeDevelopmentDirection('skating', 'growth', { s
 assert.strictEqual(resolveAttributeDevelopmentDirection('shooting', 'growth', { skating: 'decline' }), 'growth');
 assert.strictEqual(resolveAttributeDevelopmentDirection('skating', 'growth', { skating: 'unknown' }), 'growth');
 assert.strictEqual(resolveAttributeDevelopmentDirection('', 'growth', { skating: 'decline' }), 'growth');
+assert.strictEqual(resolveAttributeDevelopmentDirection('skating', null, { skating: 'growth' }), null);
 assert.deepStrictEqual(resolveAttributeDevelopmentSnapshot({ skating: 75, shooting: '71', note: 'raw' }, 'growth'), [
   { name: 'skating', currentValue: 75, developmentDirection: 'growth' },
   { name: 'shooting', currentValue: 71, developmentDirection: 'growth' }
@@ -151,6 +152,15 @@ assert.strictEqual(Object.isFrozen(first.factorSignal.availableFactors), true);
 assert.strictEqual(Object.isFrozen(first.factors), true);
 assert.strictEqual(Object.isFrozen(first), true);
 assert.strictEqual(JSON.stringify(state), before, 'development input resolution must not mutate GameState');
+
+const retiredPlayer = { ...player, id: 103, retired: true, attributeDevelopmentDirections: { skating: 'growth' } };
+const retiredState = createGameStateEnvelope({ meta: { currentDate: '2026-10-06' }, players: [retiredPlayer] });
+const retiredInputs = resolveDevelopmentInputs(retiredState, 103);
+assert.strictEqual(retiredInputs.developmentDirection, null);
+assert.deepStrictEqual(retiredInputs.attributeDevelopment, [
+  { name: 'skating', currentValue: 75, developmentDirection: null },
+  { name: 'shooting', currentValue: 71, developmentDirection: null }
+]);
 
 assert.throws(() => resolveDevelopmentInputs(state, 0), e => e.code === 'INVALID_PLAYER_ID');
 assert.throws(() => resolveDevelopmentInputs(state, 999), e => e.code === 'PLAYER_NOT_FOUND');
