@@ -5,7 +5,8 @@ const OPTION_TYPES=Object.freeze(['roster','lines','contracts','trades','draft',
 function list(v){return Array.isArray(v)?v:[];}
 function createCPUOptionEvaluation(state,teamId,options={}){
  const identification=createCPUProblemIdentification(state,teamId,options.identification||{});
- const duplicateProblemIds=new Set(identification.validation.duplicateProblemIds);\n const knownProblems=new Set(identification.problems.filter(p=>p.valid.category&&p.valid.severity&&!duplicateProblemIds.has(p.id)).map(p=>p.id));
+ const duplicateProblemIds=new Set(identification.validation.duplicateProblemIds);
+ const knownProblems=new Set(identification.problems.filter(p=>p.valid.category&&p.valid.severity&&!duplicateProblemIds.has(p.id)).map(p=>p.id));
  const candidates=Object.freeze(list(options.options).map((o,index)=>{
   const suppliedId=o?.id==null?'':String(o.id).trim();const id=suppliedId||('option-'+(index+1));
   const problemId=o?.problemId==null?'':String(o.problemId).trim();
