@@ -21,3 +21,6 @@ assert.strictEqual(createGameSimulationInput(canonicalState,'canonical-game').ga
 assert.throws(()=>createGameSimulationInput(canonicalState,'canonical-game',{mode:'arcade'}),e=>e.code==='INVALID_GAME_SIMULATION_MODE');
 const playedState=createGameStateEnvelope({games:[{id:'played-game',homeTeamId:'A',awayTeamId:'B',date:'2026-10-07',status:'Played'}]});
 assert.throws(()=>createGameSimulationInput(playedState,'played-game'),e=>e.code==='GAME_NOT_SCHEDULED');
+
+const missingStatusState=createGameStateEnvelope({games:[{id:'missing-status',homeTeamId:'A',awayTeamId:'B',date:'2026-10-07'}]});
+assert.throws(()=>createGameSimulationInput(missingStatusState,'missing-status'),e=>e.code==='GAME_NOT_SCHEDULED');
