@@ -1,0 +1,5 @@
+'use strict';const assert=require('assert');const {createGameStateEnvelope}=require('./hlm-game-state');const {runPhase7IntegrationGate}=require('./hlm-phase7-integration-gate');
+const state=createGameStateEnvelope({teams:[{id:'PIT'},{id:'BUF'}],players:[{id:'p1',teamId:'PIT'}]});const before=JSON.stringify(state);
+const out=runPhase7IntegrationGate(state,{teamIds:['PIT','BUF'],playerId:'p1',execution:{teamIds:['PIT','BUF'],legs:[{fromTeamId:'PIT',toTeamId:'BUF',assets:[{type:'player',id:'p1',ownerTeamId:'PIT'}]}],playerProtectionVerified:true,leagueRulesVerified:true,capRulesVerified:true,humanGMApproved:true}});
+assert.strictEqual(out.passed,true);assert.strictEqual(out.checks.humanGMFinalAuthority,true);assert.strictEqual(out.checks.sourceGameStateProtected,true);assert.strictEqual(out.scope.fullFinalFeatureImplementation,false);assert.strictEqual(out.scope.liveTradePersistenceActivated,false);assert.strictEqual(JSON.stringify(state),before);
+console.log('Phase 7 integration gate tests passed.');
