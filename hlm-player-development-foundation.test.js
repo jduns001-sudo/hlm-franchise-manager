@@ -50,6 +50,8 @@ assert.strictEqual(classifyDevelopmentStage(31, 'normal'), 'decline');
 assert.strictEqual(classifyDevelopmentStage(23, 'early-bloomer'), 'prime');
 assert.strictEqual(classifyDevelopmentStage(25, 'late-bloomer'), 'development');
 assert.strictEqual(classifyDevelopmentStage(null, 'normal'), null);
+assert.strictEqual(classifyDevelopmentStage(undefined, 'normal'), null);
+assert.strictEqual(classifyDevelopmentStage('', 'normal'), null);
 
 const first = resolveDevelopmentInputs(state, 101);
 const second = resolveDevelopmentInputs(state, 101);
