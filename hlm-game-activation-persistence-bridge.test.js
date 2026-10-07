@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('assert');const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createDailyGameSimulationCandidate,verifyDailyGameSimulationCandidate}=require('./hlm-game-timeline-integration');
+const {createGameSimulationActivation,createGamePersistenceBridge}=require('./hlm-game-activation-persistence-bridge');
+const state=createGameStateEnvelope({games:[{id:'g1',homeTeamId:'H',awayTeamId:'A',date:'2026-10-07',status:'Scheduled'}]});
+const candidate=createDailyGameSimulationCandidate(state,'2026-10-07',{games:{g1:{deterministicSeed:'bridge-seed',eventCount:2,resolveEvent:x=>({outcome:x.index===0?'goal':'save'})}}});
+const verification=verifyDailyGameSimulationCandidate(state,candidate);const activation=createGameSimulationActivation({candidate,verification});const bridge=createGamePersistenceBridge({activation});
+assert.strictEqual(activation.state.activity.games[0].status,'Played');assert.strictEqual(activation.persistencePerformed,false);assert.strictEqual(bridge.ready,true);
+assert.strictEqual(bridge.requirements.useExistingPersistencePipeline,true);assert.strictEqual(bridge.requirements.verifyAfterWriteRequired,true);assert.strictEqual(bridge.persistencePerformed,false);
+assert.throws(()=>createGameSimulationActivation({candidate,verification:{...verification,valid:false}}),e=>e.code==='INVALID_GAME_SIMULATION_VERIFICATION');
+console.log('Game activation persistence bridge tests passed.');
