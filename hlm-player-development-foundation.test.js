@@ -73,6 +73,16 @@ assert.deepStrictEqual(resolveAttributeDevelopmentSnapshot({ skating: 75, shooti
 ]);
 assert.strictEqual(resolveAttributeDevelopmentSnapshot(null, 'growth'), null);
 assert.strictEqual(resolveAttributeDevelopmentSnapshot({}, 'growth'), null);
+assert.strictEqual(calculateOverallFromAttributes({ skating: 75, shooting: 71 }), 73);
+assert.strictEqual(calculateOverallFromAttributes({ skating: '75', shooting: 71, note: 'raw' }), 73);
+assert.strictEqual(calculateOverallFromAttributes(null), null);
+assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, 72), {
+  currentOverall: 72, calculatedOverall: 73, difference: 1, method: 'equal-weight-placeholder'
+});
+assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, null), {
+  currentOverall: null, calculatedOverall: 73, difference: null, method: 'equal-weight-placeholder'
+});
+assert.strictEqual(resolveOverallRecalculationSnapshot({}, 72), null);
 assert.deepStrictEqual(resolveOverallRecalculationInput({ skating: 75, shooting: '71', note: 'raw' }), {
   attributes: [{ name: 'skating', value: 75 }, { name: 'shooting', value: 71 }],
   attributeCount: 2
@@ -87,6 +97,10 @@ assert.strictEqual(first.playerId, 101);
 assert.strictEqual(first.currentDate, '2026-10-06');
 assert.strictEqual(first.age, 21);
 assert.strictEqual(first.overall, 72);
+assert.deepStrictEqual(first.overallRecalculation, {
+  currentOverall: 72, calculatedOverall: 73, difference: 1, method: 'equal-weight-placeholder'
+});
+assert.strictEqual(Object.isFrozen(first.overallRecalculation), true);
 assert.strictEqual(first.potential, 'Elite');
 assert.strictEqual(first.potentialLevel, 'High');
 assert.deepStrictEqual(first.attributes, { skating: 75, shooting: 71 });
@@ -141,6 +155,7 @@ const sparse = createGameStateEnvelope({
 const sparseInputs = resolveDevelopmentInputs(sparse, 102);
 assert.strictEqual(sparseInputs.age, null);
 assert.strictEqual(sparseInputs.overall, null);
+assert.strictEqual(sparseInputs.overallRecalculation, null);
 assert.strictEqual(sparseInputs.potential, null);
 assert.strictEqual(sparseInputs.attributes, null);
 assert.strictEqual(sparseInputs.developmentCurve, null);
