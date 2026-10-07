@@ -1,0 +1,10 @@
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const EVALUATION_CHANNELS=Object.freeze(['interview','combine','medical']);
+function valid(state){if(!validateGameStateEnvelope(state).valid){const e=new Error('Valid GameState required.');e.code='INVALID_DRAFT_STATE';throw e;}}
+function base(state,input,kind){valid(state);if(!input.prospectId){const e=new Error('Prospect ID required.');e.code='PROSPECT_ID_REQUIRED';throw e;}return {kind,version:1,prospectId:input.prospectId,teamId:input.teamId??null,evaluatorId:input.evaluatorId??null};}
+function createProspectInterview(state,input={}){return Object.freeze({...base(state,input,'prospect-interview'),personalityInformation:Object.freeze({...input.personalityInformation}),notes:input.notes??null,personalityTruthExposed:false,conclusionGenerated:false,persistencePerformed:false});}
+function createCombineEvaluation(state,input={}){return Object.freeze({...base(state,input,'combine-evaluation'),athleticMeasurements:Object.freeze({...input.athleticMeasurements}),hockeyEvaluationReplaced:false,conclusionGenerated:false,persistencePerformed:false});}
+function createMedicalEvaluation(state,input={}){return Object.freeze({...base(state,input,'medical-evaluation'),injuryHistory:Object.freeze([...(input.injuryHistory||[])]),durabilityInformation:input.durabilityInformation??null,medicalConcerns:Object.freeze([...(input.medicalConcerns||[])]),medicalRiskCalculated:false,persistencePerformed:false});}
+function createProspectEvaluationBundle(state,input={}){valid(state);return Object.freeze({kind:'prospect-evaluation-bundle',version:1,prospectId:input.prospectId??null,interviews:Object.freeze([...(input.interviews||[])]),combine:Object.freeze([...(input.combine||[])]),medical:Object.freeze([...(input.medical||[])]),channels:EVALUATION_CHANNELS,scoutingCertaintyGuaranteed:false,automaticDraftRankChange:false});}
+module.exports={EVALUATION_CHANNELS,createProspectInterview,createCombineEvaluation,createMedicalEvaluation,createProspectEvaluationBundle};
