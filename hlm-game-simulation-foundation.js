@@ -18,16 +18,17 @@ const GAME_SIMULATION_LAYERS = Object.freeze(['pre-game', 'game', 'post-game']);
 
 function findScheduledGame(state, gameId) {
   if (!validateGameStateEnvelope(state).valid) throw gameSimulationError('INVALID_GAME_SIMULATION_STATE', 'A valid GameState envelope is required.');
-  const games = state.calendar && Array.isArray(state.calendar.games) ? state.calendar.games :
-    state.universe && Array.isArray(state.universe.games) ? state.universe.games : [];
+  const games = state.activity && Array.isArray(state.activity.games) ? state.activity.games : [];
   const game = games.find(candidate => String(candidate.id) === String(gameId));
   if (!game) throw gameSimulationError('GAME_NOT_FOUND', 'Scheduled game not found.');
+  if (game.status !== undefined && game.status !== null && game.status !== 'Scheduled') throw gameSimulationError('GAME_NOT_SCHEDULED', 'Game must be Scheduled before simulation.');
   return game;
 }
 
 function createGameSimulationInput(state, gameId, options = {}) {
   const game = findScheduledGame(state, gameId);
-  const mode = GAME_SIMULATION_MODES.includes(options.mode) ? options.mode : 'quick-result';
+  const mode = options.mode === undefined ? 'quick-result' : options.mode;
+  if (!GAME_SIMULATION_MODES.includes(mode)) throw gameSimulationError('INVALID_GAME_SIMULATION_MODE', 'Unsupported game simulation mode.');
   const homeTeamId = game.homeTeamId ?? game.homeTeam ?? null;
   const awayTeamId = game.awayTeamId ?? game.awayTeam ?? null;
   if (homeTeamId === null || awayTeamId === null || String(homeTeamId) === String(awayTeamId))
