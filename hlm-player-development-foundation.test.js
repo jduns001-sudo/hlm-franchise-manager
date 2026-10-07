@@ -254,10 +254,10 @@ assert.deepStrictEqual(sparseInputs.factors, {
 
 const transactionState = JSON.parse(JSON.stringify(state));
 const originalTransactionState = JSON.parse(JSON.stringify(transactionState));
-const transaction = createDevelopmentGameStateTransaction(transactionState, 7);
+const transaction = createDevelopmentGameStateTransaction(transactionState, 101);
 assert.strictEqual(transaction.executable, true);
 assert.ok(transaction.changedAttributes > 0);
-assert.strictEqual(transaction.candidateState.universe.players[0].attributes.skating, 72);
+assert.strictEqual(transaction.candidateState.universe.players[0].attributes.skating, 77);
 assert.deepStrictEqual(transactionState, originalTransactionState);
 assert.notStrictEqual(transaction.candidateState, transactionState);
 assert.strictEqual(createDevelopmentGameStateTransaction({
