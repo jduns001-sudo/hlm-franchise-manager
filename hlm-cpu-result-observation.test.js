@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createCPUResultObservation}=require('./hlm-cpu-result-observation');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});const before=JSON.stringify(state);
+const action={prioritization:{evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]},priorityId:'first'};
+const r=createCPUResultObservation(state,'PIT',{action,observations:[{id:'result-1',optionId:'trade-option',outcome:'pending',evidence:'awaiting-authorized-execution'}]});
+assert.strictEqual(r.validation.valid,true);assert.strictEqual(r.decisionStage.stage,'observe-results');assert.strictEqual(r.decisionStage.actPerformed,false);assert.strictEqual(r.decisionStage.observeResultsPerformed,true);assert.strictEqual(r.observation.outcomeSimulationPerformed,false);assert.strictEqual(r.observation.beliefUpdatePerformed,false);assert.strictEqual(r.persistencePerformed,false);assert.strictEqual(JSON.stringify(state),before);
+const wrong=createCPUResultObservation(state,'PIT',{action,observations:[{id:'bad',optionId:'other',outcome:'positive'}]});assert.strictEqual(wrong.validation.valid,false);
+const invalidOutcome=createCPUResultObservation(state,'PIT',{action,observations:[{id:'bad2',optionId:'trade-option',outcome:'great'}]});assert.strictEqual(invalidOutcome.validation.valid,false);
+const duplicate=createCPUResultObservation(state,'PIT',{action,observations:[{id:'same',optionId:'trade-option',outcome:'neutral'},{id:'same',optionId:'trade-option',outcome:'neutral'}]});assert.strictEqual(duplicate.validation.valid,false);assert.deepStrictEqual([...duplicate.validation.duplicateObservationIds],['same']);
+const evidence={metrics:{capDelta:2},tags:['verified']};
+const snap=createCPUResultObservation(state,'PIT',{action,observations:[{id:'snap',optionId:'trade-option',outcome:'positive',evidence}]});
+evidence.metrics.capDelta=99;evidence.tags.push('mutated');
+assert.strictEqual(snap.observations[0].evidence.metrics.capDelta,2);assert.deepStrictEqual([...snap.observations[0].evidence.tags],['verified']);
+assert.strictEqual(Object.isFrozen(snap.observations[0].evidence),true);assert.strictEqual(Object.isFrozen(snap.observations[0].evidence.metrics),true);
+console.log('Phase 9 CPU result observation tests passed.');
