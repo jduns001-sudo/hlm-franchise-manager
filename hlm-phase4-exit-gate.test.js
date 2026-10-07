@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('assert');
+const {evaluatePhase4ExitGate}=require('./hlm-phase4-exit-gate');
+const automatedKeys=['developmentInputs','factorModel','developmentCurves','developmentStages','developmentDirections','factorSignal','attributeSnapshot','overallRecalculationBoundary','attributeNormalization','attributeSpecificDirection','developmentEvaluation','developmentContext','lifecycleHistoryReporting','developmentChangePlan','developmentChangeRules','developmentGameStateTransaction','overallStrategyBoundary','timelineReadiness','scheduledEvaluationPackage','candidateVerification','potentialRevisionBoundary','goalieDevelopmentBoundary','decisionReadiness','historyEventBoundary','sourceStateImmutability','deterministicEvaluation'];
+const physicalKeys=['frontOfficeLoads','controlledTeamWorks','rosterWorks','linesWork','contractsWork','prospectsWork','draftPicksWork','saveReloadWorks','noNewConsoleErrors','githubPagesFunctional'];
+const automated=Object.fromEntries(automatedKeys.map(key=>[key,true]));
+const physical=Object.fromEntries(physicalKeys.map(key=>[key,true]));
+const pass=evaluatePhase4ExitGate({automated,physical});
+assert.strictEqual(pass.ready,true);assert.strictEqual(pass.phase5MayBegin,true);assert.strictEqual(pass.nextPhase,5);assert.strictEqual(pass.nextPhaseName,'Game simulation engine');assert.deepStrictEqual(pass.blockers,[]);
+const fail=evaluatePhase4ExitGate({automated,physical:{...physical,githubPagesFunctional:false}});
+assert.strictEqual(fail.ready,false);assert.strictEqual(fail.phase5MayBegin,false);assert(fail.blockers.includes('PHYSICAL_CHECK_REQUIRED:githubPagesFunctional'));
+const missing=evaluatePhase4ExitGate({automated});
+assert.strictEqual(missing.automatedChecksPassed,true);assert.strictEqual(missing.physicalChecksPassed,false);
+console.log('Phase 4 exit gate tests passed.');
