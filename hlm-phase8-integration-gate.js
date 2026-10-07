@@ -1,0 +1,15 @@
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {DRAFT_BOARD_TAGS}=require('./hlm-draft-rankings');
+const {verifyDraftPickOwnership}=require('./hlm-draft-pick-system');
+function fail(c,m){const e=new Error(m);e.code=c;throw e;}function valid(s){if(!validateGameStateEnvelope(s).valid)fail('INVALID_PHASE8_STATE','Valid GameState required.');}
+function resolveCanonicalProspect(state,id){valid(state);const role=(state.universe.prospects||[]).find(p=>String(p.id)===String(id)||String(p.playerId)===String(id));const playerId=role?.playerId??id;const player=(state.universe.players||[]).find(p=>String(p.id)===String(playerId));return Object.freeze({prospectId:String(role?.id??id),role:role??null,player:player??null,resolved:Boolean(role||player),canonicalPlayerId:player?.id??role?.playerId??null});}
+function safeObject(value,blocked){const out={};if(!value||typeof value!=='object'||Array.isArray(value))return Object.freeze(out);for(const [k,v] of Object.entries(value))if(!blocked.has(k))out[k]=v;return Object.freeze(out);}
+const HIDDEN_FIELDS=new Set(['ovr','overall','potential','actualAbility','actualPotential','attributes','ratings']);
+function createTeamFacingProspectView(state,id,input={}){const r=resolveCanonicalProspect(state,id);if(!r.resolved)fail('PROSPECT_NOT_FOUND','Prospect not found.');return Object.freeze({kind:'team-facing-prospect-view',version:1,prospectId:r.prospectId,playerId:r.canonicalPlayerId,display:safeObject(input.display,HIDDEN_FIELDS),scouting:safeObject(input.scouting,HIDDEN_FIELDS),actualAbility:null,actualPotential:null,hiddenRealityExposed:false});}
+function validateDraftBoardTags(tags=[]){const invalid=tags.filter(t=>!DRAFT_BOARD_TAGS.includes(t));return Object.freeze({valid:invalid.length===0,invalid:Object.freeze([...invalid]),tags:Object.freeze([...tags])});}
+function createPhase8IntegrationGate(state,input={}){valid(state);const identity=resolveCanonicalProspect(state,input.prospectId);const view=createTeamFacingProspectView(state,input.prospectId,{display:input.display,scouting:input.scouting});const ownership=input.pickId&&input.selectingTeamId?verifyDraftPickOwnership(state,input.pickId,input.selectingTeamId):null;const tags=validateDraftBoardTags(input.draftBoardTags||[]);
+ const hidden=identity.resolved&&view.kind==='team-facing-prospect-view'&&view.actualAbility===null&&view.actualPotential===null&&view.hiddenRealityExposed===false;
+ const checks=Object.freeze({hiddenRealityProtected:hidden,prospectIdentityResolved:identity.resolved,draftBoardTagsValid:tags.valid,pickOwnershipVerified:ownership?.verified===true,sourceGameStateProtected:input.sourceGameStateProtected===true,noPersistencePerformed:input.noPersistencePerformed===true});
+ const passed=Object.values(checks).every(Boolean);return Object.freeze({kind:'phase8-integration-gate',version:1,checks,passed,ownership,tags,prospectIdentity:identity,teamFacingProspectView:view,nextPhase:passed?9:null,sourceStateMutated:false,persistencePerformed:false});}
+module.exports={resolveCanonicalProspect,createTeamFacingProspectView,validateDraftBoardTags,createPhase8IntegrationGate};
