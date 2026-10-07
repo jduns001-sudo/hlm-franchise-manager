@@ -260,6 +260,15 @@ assert.ok(transaction.changedAttributes > 0);
 assert.strictEqual(transaction.candidateState.universe.players[0].attributes.skating, 77);
 assert.deepStrictEqual(transactionState, originalTransactionState);
 assert.notStrictEqual(transaction.candidateState, transactionState);
+const emptyTransaction = createDevelopmentGameStateTransaction({
+  meta: { currentDate: '2027-07-01' },
+  universe: { players: [{ id: 9, birthYear: 2000, attributes: {} }] },
+  activity: { injuries: [] }
+}, 9);
+assert.strictEqual(emptyTransaction.executable, false);
+assert.strictEqual(emptyTransaction.changedAttributes, 0);
+assert.strictEqual(emptyTransaction.changes, null);
+
 assert.strictEqual(createDevelopmentGameStateTransaction({
   meta: { currentDate: '2027-07-01' },
   universe: { players: [{ id: 8, birthYear: 2000, attributes: { skating: 70 }, retired: true }] },
