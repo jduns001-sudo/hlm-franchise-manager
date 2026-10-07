@@ -9,4 +9,9 @@ assert.strictEqual(r.validation.valid,true);assert.strictEqual(r.decisionStage.s
 const wrong=createCPUResultObservation(state,'PIT',{action,observations:[{id:'bad',optionId:'other',outcome:'positive'}]});assert.strictEqual(wrong.validation.valid,false);
 const invalidOutcome=createCPUResultObservation(state,'PIT',{action,observations:[{id:'bad2',optionId:'trade-option',outcome:'great'}]});assert.strictEqual(invalidOutcome.validation.valid,false);
 const duplicate=createCPUResultObservation(state,'PIT',{action,observations:[{id:'same',optionId:'trade-option',outcome:'neutral'},{id:'same',optionId:'trade-option',outcome:'neutral'}]});assert.strictEqual(duplicate.validation.valid,false);assert.deepStrictEqual([...duplicate.validation.duplicateObservationIds],['same']);
+const evidence={metrics:{capDelta:2},tags:['verified']};
+const snap=createCPUResultObservation(state,'PIT',{action,observations:[{id:'snap',optionId:'trade-option',outcome:'positive',evidence}]});
+evidence.metrics.capDelta=99;evidence.tags.push('mutated');
+assert.strictEqual(snap.observations[0].evidence.metrics.capDelta,2);assert.deepStrictEqual([...snap.observations[0].evidence.tags],['verified']);
+assert.strictEqual(Object.isFrozen(snap.observations[0].evidence),true);assert.strictEqual(Object.isFrozen(snap.observations[0].evidence.metrics),true);
 console.log('Phase 9 CPU result observation tests passed.');
