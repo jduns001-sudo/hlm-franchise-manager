@@ -2,7 +2,7 @@
 const {validateGameStateEnvelope}=require('./hlm-game-state');
 const {createOrganizationLeadershipSnapshot}=require('./hlm-organization-leadership-foundation');
 const {createFranchiseAIAnalysis}=require('./hlm-franchise-ai-analysis-foundation');
-const COMPETITIVE_STATES=Object.freeze(['Contender','Playoff','Bubble','Transition','Rebuild']);
+const COMPETITIVE_STATES=Object.freeze(['Contender','Playoff','Bubble','Rebuilding','Aggressive Rebuild','Transition','Stagnant','Emerging']);
 const DECISION_AREAS=Object.freeze(['roster','lines','contracts','trades','draft','free-agency','prospects','cap']);
 const GM_TRAITS=Object.freeze(['riskTolerance','tradeAggression','draftPreference','freeAgencyPreference','prospectPatience','veteranPreference','analyticsUsage','adaptability']);
 function fail(code,message){const e=new Error(message);e.code=code;throw e;}

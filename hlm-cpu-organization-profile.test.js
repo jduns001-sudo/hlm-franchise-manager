@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const x=require('./hlm-cpu-organization-profile');
+const intelligence=require('./hlm-cpu-organization-intelligence');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[{pickId:'p1',currentOwnerId:'PIT'}]});const before=JSON.stringify(state);
+const p=x.createCPUOrganizationProfile(state,'PIT',{competitiveState:'Emerging',leadership:{philosophy:'Youth'},spendingPhilosophy:'Selective',draftStrategy:'Best Player Available',prospectPreference:'High Upside',veteranPreference:'Low',developmentPhilosophy:'Patient',ownerInfluence:'Moderate',marketContext:'Traditional Hockey Market',gmTraits:{riskTolerance:'medium',analyticsUsage:'high',tradeAggression:'medium',patience:'high'}});
+assert.strictEqual(p.kind,'cpu-organization-profile');assert.strictEqual(p.teamId,'PIT');assert.strictEqual(p.philosophy,'Youth');assert.strictEqual(p.competitive.valid,true);assert.ok(p.competitive.allowed.includes('Aggressive Rebuild'));assert.strictEqual(p.competitive.allowed,intelligence.COMPETITIVE_STATES);const underlying=intelligence.createCPUOrganizationIntelligence(state,'PIT',{competitiveState:'Emerging'});assert.strictEqual(underlying.identity.competitiveStateValid,true);assert.strictEqual(p.profile.developmentPhilosophy,'Patient');assert.strictEqual(p.gm.analyticsUsage,'high');assert.strictEqual(p.context.analysis.facts.draftPickCount,1);assert.strictEqual(p.authority.cpuDecisionExecutionEnabled,false);assert.strictEqual(p.sourceStateMutated,false);assert.strictEqual(p.persistencePerformed,false);assert.strictEqual(JSON.stringify(state),before);
+const invalid=x.createCPUOrganizationProfile(state,'PIT',{competitiveState:'Dynasty Forever'});assert.strictEqual(invalid.competitive.valid,false);
+assert.throws(()=>x.createCPUOrganizationProfile(state,'MISSING'),/Team not found/);
+console.log('Phase 9 CPU organization profile tests passed.');
