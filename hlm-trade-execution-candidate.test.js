@@ -1,0 +1,6 @@
+'use strict';const assert=require('assert');const {createGameStateEnvelope}=require('./hlm-game-state');const {createTradeExecutionCandidate}=require('./hlm-trade-execution-candidate');
+const state=createGameStateEnvelope({teams:[{id:'PIT'},{id:'BUF'}],players:[{id:'p1',teamId:'PIT'}],draftPicks:[{pickId:'d1',ownerTeamId:'BUF'}]});const before=JSON.stringify(state);
+const input={teamIds:['PIT','BUF'],legs:[{fromTeamId:'PIT',toTeamId:'BUF',assets:[{type:'player',id:'p1',ownerTeamId:'PIT'}]},{fromTeamId:'BUF',toTeamId:'PIT',assets:[{type:'draft-pick',id:'d1',ownerTeamId:'BUF'}]}],playerProtectionVerified:true,leagueRulesVerified:true,capRulesVerified:true,humanGMApproved:true};
+const out=createTradeExecutionCandidate(state,input);assert.strictEqual(out.candidateState.universe.players.find(p=>p.id==='p1').teamId,'BUF');assert.strictEqual(out.candidateState.assets.draftPicks.find(p=>p.pickId==='d1').ownerTeamId,'PIT');
+assert.strictEqual(out.verification.sourceGameStateProtected,true);assert.strictEqual(out.liveGameStateMutated,false);assert.strictEqual(out.persistencePerformed,false);assert.strictEqual(JSON.stringify(state),before);
+console.log('Trade execution candidate tests passed.');
