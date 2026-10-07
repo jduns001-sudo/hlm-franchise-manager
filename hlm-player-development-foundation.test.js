@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, calculateOverallFromAttributes, resolveOverallRecalculationSnapshot, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -73,23 +73,6 @@ assert.deepStrictEqual(resolveAttributeDevelopmentSnapshot({ skating: 75, shooti
 ]);
 assert.strictEqual(resolveAttributeDevelopmentSnapshot(null, 'growth'), null);
 assert.strictEqual(resolveAttributeDevelopmentSnapshot({}, 'growth'), null);
-assert.strictEqual(calculateOverallFromAttributes({ skating: 75, shooting: 71 }), 73);
-assert.strictEqual(calculateOverallFromAttributes({ skating: '75', shooting: 71, note: 'raw' }), 73);
-assert.strictEqual(calculateOverallFromAttributes(null), null);
-assert.strictEqual(calculateOverallFromAttributes({ skating: null, shooting: '', strength: false }), null);
-assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, 72), {
-  currentOverall: 72, calculatedOverall: 73, difference: 1, method: 'equal-weight-placeholder'
-});
-assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, null), {
-  currentOverall: null, calculatedOverall: 73, difference: null, method: 'equal-weight-placeholder'
-});
-assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, ''), {
-  currentOverall: null, calculatedOverall: 73, difference: null, method: 'equal-weight-placeholder'
-});
-assert.deepStrictEqual(resolveOverallRecalculationSnapshot({ skating: 75, shooting: 71 }, false), {
-  currentOverall: null, calculatedOverall: 73, difference: null, method: 'equal-weight-placeholder'
-});
-assert.strictEqual(resolveOverallRecalculationSnapshot({}, 72), null);
 assert.strictEqual(resolveOverallRecalculationInput({ skating: null, shooting: '', strength: false }), null);
 assert.deepStrictEqual(resolveOverallRecalculationInput({ skating: 75, shooting: '71', note: 'raw' }), {
   attributes: [{ name: 'skating', value: 75 }, { name: 'shooting', value: 71 }],
@@ -105,10 +88,6 @@ assert.strictEqual(first.playerId, 101);
 assert.strictEqual(first.currentDate, '2026-10-06');
 assert.strictEqual(first.age, 21);
 assert.strictEqual(first.overall, 72);
-assert.deepStrictEqual(first.overallRecalculation, {
-  currentOverall: 72, calculatedOverall: 73, difference: 1, method: 'equal-weight-placeholder'
-});
-assert.strictEqual(Object.isFrozen(first.overallRecalculation), true);
 assert.strictEqual(first.potential, 'Elite');
 assert.strictEqual(first.potentialLevel, 'High');
 assert.deepStrictEqual(first.attributes, { skating: 75, shooting: 71 });
@@ -163,7 +142,6 @@ const sparse = createGameStateEnvelope({
 const sparseInputs = resolveDevelopmentInputs(sparse, 102);
 assert.strictEqual(sparseInputs.age, null);
 assert.strictEqual(sparseInputs.overall, null);
-assert.strictEqual(sparseInputs.overallRecalculation, null);
 assert.strictEqual(sparseInputs.potential, null);
 assert.strictEqual(sparseInputs.attributes, null);
 assert.strictEqual(sparseInputs.developmentCurve, null);
