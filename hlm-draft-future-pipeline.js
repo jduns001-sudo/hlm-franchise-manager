@@ -1,0 +1,10 @@
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const SURPRISE_TYPES=Object.freeze(['riser','faller','sleeper','bust','overlooked']);
+const STORY_TYPES=Object.freeze(['late-growth','injury','position-change','international-breakout','other']);
+function fail(c,m){const e=new Error(m);e.code=c;throw e;}function valid(s){if(!validateGameStateEnvelope(s).valid)fail('INVALID_DRAFT_STATE','Valid GameState required.');}
+function createDraftSurprise(state,input={}){valid(state);if(!input.prospectId||!SURPRISE_TYPES.includes(input.type))fail('DRAFT_SURPRISE_REQUIRED','Prospect and supported surprise type required.');return Object.freeze({kind:'draft-surprise',version:1,prospectId:String(input.prospectId),type:input.type,evidence:input.evidence??null,generated:false,persistencePerformed:false});}
+function createDraftRetrospective(state,input={}){valid(state);if(!input.prospectId)fail('PROSPECT_ID_REQUIRED','Prospect required.');return Object.freeze({kind:'draft-retrospective',version:1,prospectId:String(input.prospectId),draftContext:input.draftContext??null,careerOutcome:input.careerOutcome??null,evaluation:null,automaticGrade:false,persistencePerformed:false});}
+function createFutureProspectPipeline(state,input={}){valid(state);return Object.freeze({kind:'future-prospect-pipeline',version:1,draftYear:input.draftYear??null,prospectIds:Object.freeze([...(input.prospectIds||[])].map(String)),developmentBeforeEligibility:true,scoutingInformationMayEvolve:true,generationPerformed:false,persistencePerformed:false});}
+function createProspectStory(state,input={}){valid(state);if(!input.prospectId||!STORY_TYPES.includes(input.type))fail('PROSPECT_STORY_REQUIRED','Prospect and supported story type required.');return Object.freeze({kind:'prospect-story',version:1,prospectId:String(input.prospectId),type:input.type,details:input.details??null,trajectoryCalculated:false,persistencePerformed:false});}
+module.exports={SURPRISE_TYPES,STORY_TYPES,createDraftSurprise,createDraftRetrospective,createFutureProspectPipeline,createProspectStory};
