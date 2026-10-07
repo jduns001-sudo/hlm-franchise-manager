@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const x=require('./hlm-cpu-problem-identification');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[{pickId:'p1',currentOwnerId:'PIT'}]});const before=JSON.stringify(state);
+const r=x.createCPUProblemIdentification(state,'PIT',{assessment:{profile:{competitiveState:'Emerging'},context:{teamNeeds:[{area:'center'}]}},problems:[{id:'need-c',category:'teamNeeds',severity:'high',summary:'Center depth needed',evidence:[{source:'assessment'}]}]});
+assert.strictEqual(r.kind,'cpu-problem-identification');assert.strictEqual(r.teamId,'PIT');assert.strictEqual(r.decisionStage.stage,'identify-problems');assert.strictEqual(r.decisionStage.assessmentPerformed,true);assert.strictEqual(r.decisionStage.evaluateOptionsPerformed,false);assert.strictEqual(r.problems[0].valid.category,true);assert.strictEqual(r.problems[0].valid.severity,true);assert.strictEqual(r.validation.valid,true);assert.strictEqual(r.authority.cpuDecisionExecutionEnabled,false);assert.strictEqual(r.sourceStateMutated,false);assert.strictEqual(r.persistencePerformed,false);assert.strictEqual(JSON.stringify(state),before);
+const bad=x.createCPUProblemIdentification(state,'PIT',{problems:[{id:'bad',category:'magic',severity:'extreme'}]});assert.strictEqual(bad.validation.valid,false);assert.deepStrictEqual([...bad.validation.invalidProblemIds],['bad']);
+const dup=x.createCPUProblemIdentification(state,'PIT',{problems:[{id:'same',category:'cap',severity:'high'},{id:'same',category:'contracts',severity:'medium'}]});assert.strictEqual(dup.validation.valid,false);assert.deepStrictEqual([...dup.validation.duplicateProblemIds],['same']);assert.deepStrictEqual([...dup.validation.invalidProblemIds],['same','same']);
+const blank=x.createCPUProblemIdentification(state,'PIT',{problems:[{id:'   ',category:'cap',severity:'high'}]});assert.strictEqual(blank.validation.valid,true);assert.strictEqual(blank.problems[0].id,'problem-1');
+assert.throws(()=>x.createCPUProblemIdentification(state,'MISSING'),/Team not found/);
+console.log('Phase 9 CPU problem identification tests passed.');
