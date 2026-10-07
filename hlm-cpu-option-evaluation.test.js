@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const x=require('./hlm-cpu-option-evaluation');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});const before=JSON.stringify(state);
+const base={identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'explore-trade',problemId:'cap-pressure',type:'trades',summary:'Explore a trade'}]};
+const r=x.createCPUOptionEvaluation(state,'PIT',base);
+assert.strictEqual(r.kind,'cpu-option-evaluation');assert.strictEqual(r.validation.valid,true);assert.strictEqual(r.decisionStage.stage,'evaluate-options');
+assert.strictEqual(r.evaluation.rankingPerformed,false);assert.strictEqual(r.decisionStage.prioritizePerformed,false);assert.strictEqual(r.decisionStage.actPerformed,false);
+assert.strictEqual(r.authority.cpuDecisionExecutionEnabled,false);assert.strictEqual(r.sourceStateMutated,false);assert.strictEqual(r.persistencePerformed,false);assert.strictEqual(JSON.stringify(state),before);
+const unknown=x.createCPUOptionEvaluation(state,'PIT',{identification:base.identification,options:[{id:'bad',problemId:'missing',type:'trades'}]});assert.strictEqual(unknown.validation.valid,false);
+const invalidProblem=x.createCPUOptionEvaluation(state,'PIT',{identification:{problems:[{id:'bad-problem',category:'magic',severity:'high'}]},options:[{id:'bad-ref',problemId:'bad-problem',type:'trades'}]});assert.strictEqual(invalidProblem.validation.valid,false);assert.strictEqual(invalidProblem.options[0].validity.problem,false);assert.deepStrictEqual([...invalidProblem.validation.invalidOptionIds],['bad-ref']);
+const dup=x.createCPUOptionEvaluation(state,'PIT',{identification:base.identification,options:[{id:'same',problemId:'cap-pressure',type:'trades'},{id:'same',problemId:'cap-pressure',type:'cap'}]});assert.strictEqual(dup.validation.valid,false);assert.deepStrictEqual([...dup.validation.duplicateOptionIds],['same']);
+const blank=x.createCPUOptionEvaluation(state,'PIT',{identification:base.identification,options:[{id:'   ',problemId:'cap-pressure',type:'wait'}]});assert.strictEqual(blank.validation.valid,true);assert.strictEqual(blank.options[0].id,'option-1');
+assert.throws(()=>x.createCPUOptionEvaluation(state,'MISSING'),/Team not found/);
+console.log('Phase 9 CPU option evaluation tests passed.');
