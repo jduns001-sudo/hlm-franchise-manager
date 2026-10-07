@@ -40,6 +40,7 @@ function normalizeDevelopmentCurve(value) {
 const DEVELOPMENT_STAGES = Object.freeze(['development', 'prime', 'decline']);
 
 function classifyDevelopmentStage(age, curve) {
+  if (age === null || age === undefined || age === '') return null;
   if (!Number.isFinite(Number(age)) || Number(age) < 0) return null;
   const normalizedCurve = normalizeDevelopmentCurve(curve) || 'normal';
   const years = Number(age);
