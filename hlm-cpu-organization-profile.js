@@ -1,6 +1,5 @@
 'use strict';
-const {createCPUOrganizationIntelligence}=require('./hlm-cpu-organization-intelligence');
-const COMPETITIVE_STATES=Object.freeze(['Contender','Playoff','Bubble','Rebuilding','Aggressive Rebuild','Transition','Stagnant','Emerging']);
+const {COMPETITIVE_STATES,createCPUOrganizationIntelligence}=require('./hlm-cpu-organization-intelligence');
 const PROFILE_FIELDS=Object.freeze(['spendingPhilosophy','draftStrategy','prospectPreference','veteranPreference','developmentPhilosophy','ownerInfluence','marketContext']);
 const GM_TENDENCIES=Object.freeze(['riskTolerance','analyticsUsage','tradeAggression','patience']);
 function value(options,key){return options[key]??null;}
