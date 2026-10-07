@@ -13,7 +13,17 @@ const player = {
   potential: 'Elite',
   potentialLevel: 'High',
   attributes: { skating: 75, shooting: 71 },
-  developmentTraits: { curve: 'normal', workEthic: 80 },
+  developmentTraits: { curve: 'normal', workEthic: 80, coachability: 77, discipline: 74, consistency: 76, adaptability: 79 },
+  confidence: 73,
+  iceTime: 16.5,
+  role: 'Top-Six',
+  training: { focus: 'skating' },
+  coaching: { development: 82 },
+  performance: { gamesPlayed: 12 },
+  health: { status: 'healthy' },
+  injuries: [],
+  morale: 78,
+  organization: { quality: 81 },
   retired: false
 };
 const state = createGameStateEnvelope({
@@ -34,7 +44,14 @@ assert.strictEqual(first.overall, 72);
 assert.strictEqual(first.potential, 'Elite');
 assert.strictEqual(first.potentialLevel, 'High');
 assert.deepStrictEqual(first.attributes, { skating: 75, shooting: 71 });
-assert.deepStrictEqual(first.developmentTraits, { curve: 'normal', workEthic: 80 });
+assert.deepStrictEqual(first.developmentTraits, { curve: 'normal', workEthic: 80, coachability: 77, discipline: 74, consistency: 76, adaptability: 79 });
+assert.deepStrictEqual(first.factors, {
+  workEthic: 80, coachability: 77, discipline: 74, confidence: 73, consistency: 76, adaptability: 79,
+  iceTime: 16.5, role: 'Top-Six', training: { focus: 'skating' }, coaching: { development: 82 },
+  performance: { gamesPlayed: 12 }, health: { status: 'healthy' }, injuries: [], morale: 78,
+  organization: { quality: 81 }
+});
+assert.strictEqual(Object.isFrozen(first.factors), true);
 assert.strictEqual(Object.isFrozen(first), true);
 assert.strictEqual(JSON.stringify(state), before, 'development input resolution must not mutate GameState');
 
@@ -57,5 +74,10 @@ assert.strictEqual(sparseInputs.age, null);
 assert.strictEqual(sparseInputs.overall, null);
 assert.strictEqual(sparseInputs.potential, null);
 assert.strictEqual(sparseInputs.attributes, null);
+assert.deepStrictEqual(sparseInputs.factors, {
+  workEthic: null, coachability: null, discipline: null, confidence: null, consistency: null, adaptability: null,
+  iceTime: null, role: null, training: null, coaching: null, performance: null, health: null, injuries: null,
+  morale: null, organization: null
+});
 
 console.log('Player development foundation tests passed.');
