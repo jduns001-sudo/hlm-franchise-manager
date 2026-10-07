@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, normalizeAttributeRating, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -76,9 +76,19 @@ assert.strictEqual(normalizeAttributeRating(false), null);
 assert.strictEqual(normalizeAttributeRating(true), null);
 assert.strictEqual(normalizeAttributeRating('raw'), null);
 assert.strictEqual(normalizeAttributeRating({ value: 75 }), null);
+assert.strictEqual(resolveAttributeDevelopmentDirection('skating', 'growth'), 'growth');
+assert.strictEqual(resolveAttributeDevelopmentDirection('skating', 'growth', { skating: 'stable' }), 'stable');
+assert.strictEqual(resolveAttributeDevelopmentDirection('shooting', 'growth', { skating: 'decline' }), 'growth');
+assert.strictEqual(resolveAttributeDevelopmentDirection('skating', 'growth', { skating: 'unknown' }), 'growth');
+assert.strictEqual(resolveAttributeDevelopmentDirection('', 'growth', { skating: 'decline' }), 'growth');
+assert.strictEqual(resolveAttributeDevelopmentDirection('skating', null, { skating: 'growth' }), null);
 assert.deepStrictEqual(resolveAttributeDevelopmentSnapshot({ skating: 75, shooting: '71', note: 'raw' }, 'growth'), [
   { name: 'skating', currentValue: 75, developmentDirection: 'growth' },
   { name: 'shooting', currentValue: 71, developmentDirection: 'growth' }
+]);
+assert.deepStrictEqual(resolveAttributeDevelopmentSnapshot({ skating: 75, shooting: 71 }, 'growth', { skating: 'stable', shooting: 'decline' }), [
+  { name: 'skating', currentValue: 75, developmentDirection: 'stable' },
+  { name: 'shooting', currentValue: 71, developmentDirection: 'decline' }
 ]);
 assert.strictEqual(resolveAttributeDevelopmentSnapshot(null, 'growth'), null);
 assert.strictEqual(resolveAttributeDevelopmentSnapshot({}, 'growth'), null);
@@ -143,6 +153,15 @@ assert.strictEqual(Object.isFrozen(first.factors), true);
 assert.strictEqual(Object.isFrozen(first), true);
 assert.strictEqual(JSON.stringify(state), before, 'development input resolution must not mutate GameState');
 
+const retiredPlayer = { ...player, id: 103, retired: true, attributeDevelopmentDirections: { skating: 'growth' } };
+const retiredState = createGameStateEnvelope({ meta: { currentDate: '2026-10-06' }, players: [retiredPlayer] });
+const retiredInputs = resolveDevelopmentInputs(retiredState, 103);
+assert.strictEqual(retiredInputs.developmentDirection, null);
+assert.deepStrictEqual(retiredInputs.attributeDevelopment, [
+  { name: 'skating', currentValue: 75, developmentDirection: null },
+  { name: 'shooting', currentValue: 71, developmentDirection: null }
+]);
+
 assert.throws(() => resolveDevelopmentInputs(state, 0), e => e.code === 'INVALID_PLAYER_ID');
 assert.throws(() => resolveDevelopmentInputs(state, 999), e => e.code === 'PLAYER_NOT_FOUND');
 assert.throws(() => resolveDevelopmentInputs({}, 101), e => e.code === 'INVALID_GAME_STATE');
@@ -166,6 +185,7 @@ assert.strictEqual(sparseInputs.developmentCurve, null);
 assert.strictEqual(sparseInputs.developmentStage, null);
 assert.strictEqual(sparseInputs.developmentDirection, null);
 assert.strictEqual(sparseInputs.factorSignal, null);
+assert.strictEqual(sparseInputs.attributeDevelopmentDirections, null);
 assert.strictEqual(sparseInputs.attributeDevelopment, null);
 assert.strictEqual(sparseInputs.overallRecalculationInput, null);
 assert.deepStrictEqual(sparseInputs.factors, {
