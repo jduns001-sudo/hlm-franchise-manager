@@ -56,6 +56,16 @@ function classifyDevelopmentStage(age, curve) {
   return 'decline';
 }
 
+const DEVELOPMENT_DIRECTIONS = Object.freeze(['growth', 'stable', 'decline']);
+
+function classifyDevelopmentDirection(stage, retired = false) {
+  if (retired === true) return null;
+  if (stage === 'development') return 'growth';
+  if (stage === 'prime') return 'stable';
+  if (stage === 'decline') return 'decline';
+  return null;
+}
+
 function findPlayer(state, playerId) {
   if (!state || typeof state !== 'object' || !state.universe || !Array.isArray(state.universe.players)) {
     throw developmentError('INVALID_GAME_STATE', 'Unified GameState with universe.players is required.');
@@ -82,6 +92,8 @@ function resolveDevelopmentInputs(state, playerId) {
   const developmentCurve = normalizeDevelopmentCurve(player.developmentCurve ?? (player.developmentTraits && player.developmentTraits.curve));
   const age = calculateAge(player.birthYear, currentDate);
 
+  const developmentStage = classifyDevelopmentStage(age, developmentCurve);
+
   const snapshot = {
     playerId: Number(player.id),
     currentDate,
@@ -93,7 +105,8 @@ function resolveDevelopmentInputs(state, playerId) {
     potentialLevel: player.potentialLevel ?? player.potentialChance ?? player.chanceToReachPotential ?? null,
     developmentTraits: clone(player.developmentTraits || null),
     developmentCurve,
-    developmentStage: classifyDevelopmentStage(age, developmentCurve),
+    developmentStage,
+    developmentDirection: classifyDevelopmentDirection(developmentStage, player.retired === true),
     factors: Object.freeze({
       workEthic: player.workEthic ?? (player.developmentTraits && player.developmentTraits.workEthic) ?? null,
       coachability: player.coachability ?? (player.developmentTraits && player.developmentTraits.coachability) ?? null,
@@ -120,4 +133,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, resolveDevelopmentInputs };
