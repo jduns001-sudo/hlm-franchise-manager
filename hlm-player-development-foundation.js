@@ -62,6 +62,25 @@ function resolveDevelopmentInputs(state, playerId) {
     potential: player.potential ?? null,
     potentialLevel: player.potentialLevel ?? player.potentialChance ?? player.chanceToReachPotential ?? null,
     developmentTraits: clone(player.developmentTraits || null),
+    factors: Object.freeze({
+      workEthic: player.workEthic ?? (player.developmentTraits && player.developmentTraits.workEthic) ?? null,
+      coachability: player.coachability ?? (player.developmentTraits && player.developmentTraits.coachability) ?? null,
+      discipline: player.discipline ?? (player.developmentTraits && player.developmentTraits.discipline) ?? null,
+      confidence: player.confidence ?? null,
+      consistency: player.consistency ?? (player.developmentTraits && player.developmentTraits.consistency) ?? null,
+      adaptability: player.adaptability ?? (player.developmentTraits && player.developmentTraits.adaptability) ?? null,
+      iceTime: player.iceTime ?? null,
+      role: player.role ?? null,
+      training: clone(player.training || null),
+      coaching: clone(player.coaching || null),
+      performance: clone(player.performance || null),
+      health: clone(player.health || null),
+      injuries: clone((state.activity && Array.isArray(state.activity.injuries))
+        ? state.activity.injuries.filter(injury => Number(injury && injury.playerId) === Number(player.id))
+        : []),
+      morale: player.morale ?? null,
+      organization: clone(player.organization || null)
+    }),
     position: player.position ?? player.pos ?? null,
     retired: player.retired === true
   };
