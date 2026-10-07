@@ -7,7 +7,8 @@ function createCPUProblemIdentification(state,teamId,options={}){
  const assessment=createCPUOrganizationalAssessment(state,teamId,options.assessment||{});
  const problems=Object.freeze(list(options.problems).map((p,index)=>{
   const category=p?.category??null,severity=p?.severity??null;
-  return Object.freeze({id:String(p?.id??('problem-'+(index+1))),category,severity,summary:p?.summary??null,evidence:Object.freeze(list(p?.evidence).map(x=>Object.freeze({...x}))),
+  const suppliedId=p?.id==null?'':String(p.id).trim();const id=suppliedId||('problem-'+(index+1));
+  return Object.freeze({id,category,severity,summary:p?.summary??null,evidence:Object.freeze(list(p?.evidence).map(x=>Object.freeze({...x}))),
    valid:Object.freeze({category:PROBLEM_CATEGORIES.includes(category),severity:severity===null||PROBLEM_SEVERITIES.includes(severity)})});
  }));
  const ids=problems.map(p=>p.id);const duplicateIds=new Set(ids.filter((id,i)=>!id||ids.indexOf(id)!==i));
