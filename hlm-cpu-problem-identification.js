@@ -10,10 +10,11 @@ function createCPUProblemIdentification(state,teamId,options={}){
   return Object.freeze({id:String(p?.id??('problem-'+(index+1))),category,severity,summary:p?.summary??null,evidence:Object.freeze(list(p?.evidence).map(x=>Object.freeze({...x}))),
    valid:Object.freeze({category:PROBLEM_CATEGORIES.includes(category),severity:severity===null||PROBLEM_SEVERITIES.includes(severity)})});
  }));
- const valid=problems.every(p=>p.valid.category&&p.valid.severity);
+ const ids=problems.map(p=>p.id);const duplicateIds=new Set(ids.filter((id,i)=>!id||ids.indexOf(id)!==i));
+ const valid=problems.every(p=>p.valid.category&&p.valid.severity&&!duplicateIds.has(p.id));
  return Object.freeze({kind:'cpu-problem-identification',version:1,teamId:assessment.teamId,assessment,
   categories:PROBLEM_CATEGORIES,severities:PROBLEM_SEVERITIES,problems,
-  validation:Object.freeze({valid,invalidProblemIds:Object.freeze(problems.filter(p=>!p.valid.category||!p.valid.severity).map(p=>p.id))}),
+  validation:Object.freeze({valid,invalidProblemIds:Object.freeze(problems.filter(p=>!p.valid.category||!p.valid.severity||duplicateIds.has(p.id)).map(p=>p.id)),duplicateProblemIds:Object.freeze([...duplicateIds])}),
   decisionStage:Object.freeze({stage:'identify-problems',assessmentPerformed:true,problemIdentificationPerformed:true,evaluateOptionsPerformed:false,prioritizePerformed:false,actPerformed:false}),
   authority:Object.freeze({...assessment.authority,cpuDecisionExecutionEnabled:false,automaticTransactions:false,automaticRosterChanges:false,automaticContractActions:false,automaticDraftActions:false}),
   sourceStateMutated:assessment.sourceStateMutated,persistencePerformed:false});
