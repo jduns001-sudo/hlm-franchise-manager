@@ -1,7 +1,7 @@
 'use strict';
 const {createCPUActionCandidate}=require('./hlm-cpu-action-candidate');
 const OBSERVATION_OUTCOMES=Object.freeze(['positive','neutral','negative','pending']);
-function list(v){return Array.isArray(v)?v:[];}
+function list(v){return Array.isArray(v)?v:[];}\nfunction snapshot(v){if(v===null||typeof v!=='object')return v;if(Array.isArray(v))return Object.freeze(v.map(snapshot));const out={};for(const [k,value] of Object.entries(v))out[k]=snapshot(value);return Object.freeze(out);}
 function createCPUResultObservation(state,teamId,options={}){
  const actionPackage=createCPUActionCandidate(state,teamId,options.action||{});
  const actionValid=actionPackage.validation.valid===true;
@@ -9,7 +9,7 @@ function createCPUResultObservation(state,teamId,options={}){
   const suppliedId=o?.id==null?'':String(o.id).trim();const id=suppliedId||('observation-'+(index+1));
   const optionId=o?.optionId==null?'':String(o.optionId).trim();
   const outcome=o?.outcome??null;
-  return Object.freeze({id,optionId,outcome,evidence:o?.evidence??null,
+  return Object.freeze({id,optionId,outcome,evidence:snapshot(o?.evidence??null),
    validity:Object.freeze({action:actionValid&&optionId===actionPackage.action.optionId,outcome:OBSERVATION_OUTCOMES.includes(outcome)})});
  }));
  const ids=observations.map(x=>x.id);const duplicateIds=new Set(ids.filter((id,i)=>ids.indexOf(id)!==i));
