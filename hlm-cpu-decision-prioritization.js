@@ -4,8 +4,8 @@ const PRIORITY_TIERS=Object.freeze(['low','medium','high','critical']);
 function list(v){return Array.isArray(v)?v:[];}
 function createCPUDecisionPrioritization(state,teamId,options={}){
  const evaluation=createCPUOptionEvaluation(state,teamId,options.evaluation||{});
- const duplicateOptionIds=new Set(evaluation.validation.duplicateOptionIds);
- const knownOptions=new Set(evaluation.options.filter(o=>o.validity.problem&&o.validity.type&&o.validity.area&&!duplicateOptionIds.has(o.id)).map(o=>o.id));
+ const invalidEvaluationOptionIds=new Set(evaluation.validation.duplicateOptionIds);
+ const knownOptions=new Set(evaluation.options.filter(o=>o.validity.problem&&o.validity.type&&o.validity.area&&!invalidEvaluationOptionIds.has(o.id)).map(o=>o.id));
  const priorities=Object.freeze(list(options.priorities).map((p,index)=>{
   const suppliedId=p?.id==null?'':String(p.id).trim();const id=suppliedId||('priority-'+(index+1));
   const optionId=p?.optionId==null?'':String(p.optionId).trim();
