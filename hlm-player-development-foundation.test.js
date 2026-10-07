@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, normalizeAttributeRating, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -76,9 +76,18 @@ assert.strictEqual(normalizeAttributeRating(false), null);
 assert.strictEqual(normalizeAttributeRating(true), null);
 assert.strictEqual(normalizeAttributeRating('raw'), null);
 assert.strictEqual(normalizeAttributeRating({ value: 75 }), null);
+assert.strictEqual(resolveAttributeDevelopmentDirection('skating', 'growth'), 'growth');
+assert.strictEqual(resolveAttributeDevelopmentDirection('skating', 'growth', { skating: 'stable' }), 'stable');
+assert.strictEqual(resolveAttributeDevelopmentDirection('shooting', 'growth', { skating: 'decline' }), 'growth');
+assert.strictEqual(resolveAttributeDevelopmentDirection('skating', 'growth', { skating: 'unknown' }), 'growth');
+assert.strictEqual(resolveAttributeDevelopmentDirection('', 'growth', { skating: 'decline' }), 'growth');
 assert.deepStrictEqual(resolveAttributeDevelopmentSnapshot({ skating: 75, shooting: '71', note: 'raw' }, 'growth'), [
   { name: 'skating', currentValue: 75, developmentDirection: 'growth' },
   { name: 'shooting', currentValue: 71, developmentDirection: 'growth' }
+]);
+assert.deepStrictEqual(resolveAttributeDevelopmentSnapshot({ skating: 75, shooting: 71 }, 'growth', { skating: 'stable', shooting: 'decline' }), [
+  { name: 'skating', currentValue: 75, developmentDirection: 'stable' },
+  { name: 'shooting', currentValue: 71, developmentDirection: 'decline' }
 ]);
 assert.strictEqual(resolveAttributeDevelopmentSnapshot(null, 'growth'), null);
 assert.strictEqual(resolveAttributeDevelopmentSnapshot({}, 'growth'), null);
@@ -166,6 +175,7 @@ assert.strictEqual(sparseInputs.developmentCurve, null);
 assert.strictEqual(sparseInputs.developmentStage, null);
 assert.strictEqual(sparseInputs.developmentDirection, null);
 assert.strictEqual(sparseInputs.factorSignal, null);
+assert.strictEqual(sparseInputs.attributeDevelopmentDirections, null);
 assert.strictEqual(sparseInputs.attributeDevelopment, null);
 assert.strictEqual(sparseInputs.overallRecalculationInput, null);
 assert.deepStrictEqual(sparseInputs.factors, {
