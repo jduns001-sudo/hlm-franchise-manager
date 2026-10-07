@@ -75,7 +75,9 @@ function resolveDevelopmentInputs(state, playerId) {
       coaching: clone(player.coaching || null),
       performance: clone(player.performance || null),
       health: clone(player.health || null),
-      injuries: clone(player.injuries || null),
+      injuries: clone((state.activity && Array.isArray(state.activity.injuries))
+        ? state.activity.injuries.filter(injury => Number(injury && injury.playerId) === Number(player.id))
+        : []),
       morale: player.morale ?? null,
       organization: clone(player.organization || null)
     }),
