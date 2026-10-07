@@ -86,6 +86,14 @@ function calculateDevelopmentFactorSignal(factors) {
   });
 }
 
+function classifyDevelopmentEvaluation(direction, factorSignal) {
+  if (!DEVELOPMENT_DIRECTIONS.includes(direction)) return null;
+  const score = factorSignal && normalizeDevelopmentFactor(factorSignal.score);
+  if (score === null) return Object.freeze({ direction, pace: 'normal', score: null });
+  const pace = score >= 70 ? 'accelerating' : score < 40 ? 'stalling' : 'normal';
+  return Object.freeze({ direction, pace, score });
+}
+
 function normalizeAttributeRating(value) {
   if (value === null || value === undefined || value === '' || typeof value === 'boolean') return null;
   if (typeof value !== 'number' && typeof value !== 'string') return null;
@@ -178,6 +186,7 @@ function resolveDevelopmentInputs(state, playerId) {
 
   const developmentDirection = classifyDevelopmentDirection(developmentStage, player.retired === true);
   const attributes = clone(player.attributes || null);
+  const factorSignal = calculateDevelopmentFactorSignal(factors);
   const attributeDevelopmentDirections = clone(player.attributeDevelopmentDirections || null);
 
   const snapshot = {
@@ -197,7 +206,8 @@ function resolveDevelopmentInputs(state, playerId) {
     attributeDevelopment: resolveAttributeDevelopmentSnapshot(attributes, developmentDirection, attributeDevelopmentDirections),
     overallRecalculationInput: resolveOverallRecalculationInput(attributes),
     factors,
-    factorSignal: calculateDevelopmentFactorSignal(factors),
+    factorSignal,
+    developmentEvaluation: classifyDevelopmentEvaluation(developmentDirection, factorSignal),
     position: player.position ?? player.pos ?? null,
     retired: player.retired === true
   };
@@ -205,4 +215,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs };
