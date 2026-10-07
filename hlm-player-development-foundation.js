@@ -67,6 +67,7 @@ function classifyDevelopmentDirection(stage, retired = false) {
 }
 
 function normalizeDevelopmentFactor(value) {
+  if (value === null || value === undefined || value === '') return null;
   const number = Number(value);
   if (!Number.isFinite(number)) return null;
   return Math.max(0, Math.min(100, number));
