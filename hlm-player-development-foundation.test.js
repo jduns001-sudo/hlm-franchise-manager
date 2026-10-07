@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -72,6 +72,23 @@ assert.deepStrictEqual(classifyDevelopmentEvaluation('growth', { score: 55 }), {
 assert.deepStrictEqual(classifyDevelopmentEvaluation('growth', { score: 25 }), { direction: 'growth', pace: 'stalling', score: 25 });
 assert.deepStrictEqual(classifyDevelopmentEvaluation('stable', null), { direction: 'stable', pace: 'normal', score: null });
 assert.strictEqual(classifyDevelopmentEvaluation(null, { score: 90 }), null);
+const context = resolveDevelopmentContext({
+  overall: 72, linemates: ['A'], developmentStatus: 'progressing', league: 'AHL',
+  organizationalDepth: 2, contract: { years: 2 }, coachingFit: 'good',
+  limitedPlayingTime: false, poorPerformance: false, personalityConflicts: []
+}, {
+  iceTime: 18, role: 'top-six', training: 'skating', coaching: 'development',
+  organization: 80, performance: 75, morale: 70, confidence: 65, injuries: []
+});
+assert.strictEqual(context.environment.role, 'top-six');
+assert.strictEqual(context.environment.training, 'skating');
+assert.strictEqual(context.promotion.ability, 72);
+assert.strictEqual(context.promotion.league, 'AHL');
+assert.deepStrictEqual(context.promotion.contract, { years: 2 });
+assert.deepStrictEqual(context.setbacks.injuries, []);
+assert.strictEqual(context.setbacks.coachingFit, 'good');
+assert.ok(Object.isFrozen(context));
+assert.ok(Object.isFrozen(context.environment));
 assert.strictEqual(normalizeAttributeRating(75), 75);
 assert.strictEqual(normalizeAttributeRating('71'), 71);
 assert.strictEqual(normalizeAttributeRating(null), null);
