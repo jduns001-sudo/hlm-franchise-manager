@@ -130,6 +130,40 @@ function resolveDevelopmentContext(player, factors) {
   });
 }
 
+function resolveDevelopmentLifecycle(player, developmentStage, developmentEvaluation, factors, calculatedAge = null) {
+  const position = String(player.position ?? '').trim().toUpperCase();
+  const goalie = position === 'G' || position === 'GOALIE';
+  const retirement = Object.freeze({
+    retired: Boolean(player.retired),
+    age: calculatedAge ?? null,
+    decliningAbility: developmentStage === 'decline',
+    injuries: clone(factors.injuries ?? []),
+    contract: clone(player.contract ?? null),
+    careerSatisfaction: player.careerSatisfaction ?? null,
+    personalDecision: player.personalDecision ?? null
+  });
+  const history = Object.freeze({
+    draftStatus: clone(player.draftStatus ?? null),
+    promotions: clone(player.promotions ?? []),
+    breakouts: clone(player.breakouts ?? []),
+    setbacks: clone(player.developmentSetbacks ?? []),
+    awards: clone(player.awards ?? []),
+    milestones: clone(player.milestones ?? [])
+  });
+  const report = developmentEvaluation ? Object.freeze({
+    status: developmentEvaluation.pace,
+    direction: developmentEvaluation.direction,
+    score: developmentEvaluation.score
+  }) : null;
+  return Object.freeze({
+    aging: Object.freeze({ stage: developmentStage ?? null, attributeSpecificDeclineReady: developmentStage === 'decline' }),
+    goalie: Object.freeze({ specializedDevelopment: goalie }),
+    retirement,
+    history,
+    report
+  });
+}
+
 function normalizeAttributeRating(value) {
   if (value === null || value === undefined || value === '' || typeof value === 'boolean') return null;
   if (typeof value !== 'number' && typeof value !== 'string') return null;
@@ -222,8 +256,10 @@ function resolveDevelopmentInputs(state, playerId) {
 
   const developmentDirection = classifyDevelopmentDirection(developmentStage, player.retired === true);
   const attributes = clone(player.attributes || null);
-  const developmentContext = resolveDevelopmentContext(player, factors);
   const factorSignal = calculateDevelopmentFactorSignal(factors);
+  const developmentContext = resolveDevelopmentContext(player, factors);
+  const developmentEvaluation = classifyDevelopmentEvaluation(developmentDirection, factorSignal);
+  const developmentLifecycle = resolveDevelopmentLifecycle(player, developmentStage, developmentEvaluation, factors, age);
   const attributeDevelopmentDirections = clone(player.attributeDevelopmentDirections || null);
 
   const snapshot = {
@@ -244,7 +280,8 @@ function resolveDevelopmentInputs(state, playerId) {
     overallRecalculationInput: resolveOverallRecalculationInput(attributes),
     factors,
     factorSignal,
-    developmentEvaluation: classifyDevelopmentEvaluation(developmentDirection, factorSignal),
+    developmentEvaluation,
+    developmentLifecycle,
     developmentContext,
     position: player.position ?? player.pos ?? null,
     retired: player.retired === true
@@ -253,4 +290,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs };
