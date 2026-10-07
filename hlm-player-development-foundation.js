@@ -29,6 +29,14 @@ function calculateAge(birthYear, currentDate) {
   return currentYear - year;
 }
 
+const DEVELOPMENT_CURVES = Object.freeze(['early-bloomer', 'normal', 'late-bloomer', 'bust', 'elite']);
+
+function normalizeDevelopmentCurve(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const normalized = String(value).trim().toLowerCase().replace(/[ _]+/g, '-');
+  return DEVELOPMENT_CURVES.includes(normalized) ? normalized : null;
+}
+
 function findPlayer(state, playerId) {
   if (!state || typeof state !== 'object' || !state.universe || !Array.isArray(state.universe.players)) {
     throw developmentError('INVALID_GAME_STATE', 'Unified GameState with universe.players is required.');
@@ -62,6 +70,7 @@ function resolveDevelopmentInputs(state, playerId) {
     potential: player.potential ?? null,
     potentialLevel: player.potentialLevel ?? player.potentialChance ?? player.chanceToReachPotential ?? null,
     developmentTraits: clone(player.developmentTraits || null),
+    developmentCurve: normalizeDevelopmentCurve(player.developmentCurve ?? (player.developmentTraits && player.developmentTraits.curve)),
     factors: Object.freeze({
       workEthic: player.workEthic ?? (player.developmentTraits && player.developmentTraits.workEthic) ?? null,
       coachability: player.coachability ?? (player.developmentTraits && player.developmentTraits.coachability) ?? null,
@@ -88,4 +97,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { calculateAge, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, calculateAge, normalizeDevelopmentCurve, resolveDevelopmentInputs };
