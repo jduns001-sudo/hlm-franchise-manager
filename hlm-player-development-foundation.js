@@ -86,6 +86,19 @@ function calculateDevelopmentFactorSignal(factors) {
   });
 }
 
+function resolveAttributeDevelopmentSnapshot(attributes, direction) {
+  if (!attributes || typeof attributes !== 'object' || Array.isArray(attributes)) return null;
+  const entries = Object.entries(attributes)
+    .filter(([, value]) => Number.isFinite(Number(value)))
+    .map(([name, value]) => Object.freeze({
+      name,
+      currentValue: Number(value),
+      developmentDirection: direction ?? null
+    }));
+  if (entries.length === 0) return null;
+  return Object.freeze(entries);
+}
+
 function findPlayer(state, playerId) {
   if (!state || typeof state !== 'object' || !state.universe || !Array.isArray(state.universe.players)) {
     throw developmentError('INVALID_GAME_STATE', 'Unified GameState with universe.players is required.');
@@ -134,19 +147,23 @@ function resolveDevelopmentInputs(state, playerId) {
     organization: clone(player.organization || null)
   });
 
+  const developmentDirection = classifyDevelopmentDirection(developmentStage, player.retired === true);
+  const attributes = clone(player.attributes || null);
+
   const snapshot = {
     playerId: Number(player.id),
     currentDate,
     age,
     birthYear: Number.isSafeInteger(Number(player.birthYear)) ? Number(player.birthYear) : null,
     overall: Number.isFinite(Number(player.ovr)) ? Number(player.ovr) : null,
-    attributes: clone(player.attributes || null),
+    attributes,
     potential: player.potential ?? null,
     potentialLevel: player.potentialLevel ?? player.potentialChance ?? player.chanceToReachPotential ?? null,
     developmentTraits: clone(player.developmentTraits || null),
     developmentCurve,
     developmentStage,
-    developmentDirection: classifyDevelopmentDirection(developmentStage, player.retired === true),
+    developmentDirection,
+    attributeDevelopment: resolveAttributeDevelopmentSnapshot(attributes, developmentDirection),
     factors,
     factorSignal: calculateDevelopmentFactorSignal(factors),
     position: player.position ?? player.pos ?? null,
@@ -156,4 +173,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, resolveAttributeDevelopmentSnapshot, resolveDevelopmentInputs };
