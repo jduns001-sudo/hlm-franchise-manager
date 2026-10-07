@@ -7,10 +7,12 @@ function createRosterStatusSnapshot(state,teamId,options={}){
  const id=String(teamId??'').trim();if(!id)throw err('ROSTER_STATUS_TEAM_REQUIRED','Permanent team ID required.');
  if(!state.universe.teams.some(t=>String(t.id)===id))throw err('ROSTER_STATUS_TEAM_NOT_FOUND','Team not found.');
  const scratches=new Set((options.scratchedPlayerIds||[]).map(String));
- const minor=new Set((options.minorPlayerIds||[]).map(String));const prospects=new Set((options.prospectPlayerIds||[]).map(String));
+ const minor=new Set((options.minorPlayerIds||[]).map(String));
+ const prospects=new Set((options.prospectPlayerIds||[]).map(String));
  const suspended=new Set((options.suspendedPlayerIds||[]).map(String));
- const injured=new Set(state.activity.injuries.map(i=>String(i.playerId)));
- const players=state.universe.players.filter(p=>String(p.teamId)===id&&p.retired!==true);
+ const injured=new Set(state.activity.injuries.filter(i=>String(i.status??'Active').toLowerCase()==='active').map(i=>String(i.playerId)));
+ const organizationalIds=new Set([...minor,...prospects]);
+ const players=state.universe.players.filter(p=>p.retired!==true&&(String(p.teamId)===id||organizationalIds.has(String(p.id))));
  const entries=players.map(player=>{const pid=String(player.id);let status='active';
   if(injured.has(pid))status='injured';else if(suspended.has(pid))status='suspended';else if(scratches.has(pid))status='scratched';else if(minor.has(pid))status='minor';else if(prospects.has(pid))status='prospect';
   return Object.freeze({player:Object.freeze({...player}),status,availableForActiveLineup:status==='active'});});
