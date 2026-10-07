@@ -263,6 +263,33 @@ function resolveOverallRecalculationInput(attributes) {
   });
 }
 
+function createDevelopmentGameStateTransaction(state, playerId, rules = DEFAULT_DEVELOPMENT_CHANGE_RULES) {
+  const inputs = resolveDevelopmentInputs(state, playerId);
+  const changes = applyDevelopmentChangePlan(inputs.attributeDevelopmentChangePlan, rules);
+  if (!changes) return Object.freeze({ playerId: inputs.playerId, executable: false, changedAttributes: 0, changes: null, candidateState: null });
+
+  const candidateState = clone(state);
+  const player = findPlayer(candidateState, playerId);
+  if (!player.attributes || typeof player.attributes !== 'object' || Array.isArray(player.attributes)) {
+    return Object.freeze({ playerId: inputs.playerId, executable: false, changes, candidateState: null });
+  }
+
+  let changedAttributes = 0;
+  for (const change of changes) {
+    if (!change.changed) continue;
+    player.attributes[change.name] = change.nextValue;
+    changedAttributes += 1;
+  }
+
+  return Object.freeze({
+    playerId: inputs.playerId,
+    executable: changedAttributes > 0,
+    changedAttributes,
+    changes,
+    candidateState: changedAttributes > 0 ? candidateState : null
+  });
+}
+
 function findPlayer(state, playerId) {
   if (!state || typeof state !== 'object' || !state.universe || !Array.isArray(state.universe.players)) {
     throw developmentError('INVALID_GAME_STATE', 'Unified GameState with universe.players is required.');
@@ -357,4 +384,4 @@ function resolveDevelopmentInputs(state, playerId) {
   return Object.freeze(snapshot);
 }
 
-module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, resolveOverallRecalculationInput, resolveDevelopmentInputs };
+module.exports = { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, createDevelopmentGameStateTransaction, resolveOverallRecalculationInput, resolveDevelopmentInputs };

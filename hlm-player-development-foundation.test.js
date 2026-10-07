@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, DEFAULT_DEVELOPMENT_CHANGE_RULES, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, resolveDevelopmentContext, resolveDevelopmentLifecycle, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveAttributeDevelopmentChangePlan, resolveDevelopmentChangeAmount, applyDevelopmentChangePlan, createDevelopmentGameStateTransaction, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -251,5 +251,28 @@ assert.deepStrictEqual(sparseInputs.factors, {
   iceTime: null, role: null, training: null, coaching: null, performance: null, health: null, injuries: [],
   morale: null, organization: null
 });
+
+const transactionState = JSON.parse(JSON.stringify(state));
+const originalTransactionState = JSON.parse(JSON.stringify(transactionState));
+const transaction = createDevelopmentGameStateTransaction(transactionState, 101);
+assert.strictEqual(transaction.executable, true);
+assert.ok(transaction.changedAttributes > 0);
+assert.strictEqual(transaction.candidateState.universe.players[0].attributes.skating, 77);
+assert.deepStrictEqual(transactionState, originalTransactionState);
+assert.notStrictEqual(transaction.candidateState, transactionState);
+const emptyTransaction = createDevelopmentGameStateTransaction({
+  meta: { currentDate: '2027-07-01' },
+  universe: { players: [{ id: 9, birthYear: 2000, attributes: {} }] },
+  activity: { injuries: [] }
+}, 9);
+assert.strictEqual(emptyTransaction.executable, false);
+assert.strictEqual(emptyTransaction.changedAttributes, 0);
+assert.strictEqual(emptyTransaction.changes, null);
+
+assert.strictEqual(createDevelopmentGameStateTransaction({
+  meta: { currentDate: '2027-07-01' },
+  universe: { players: [{ id: 8, birthYear: 2000, attributes: { skating: 70 }, retired: true }] },
+  activity: { injuries: [] }
+}, 8).executable, false);
 
 console.log('Player development foundation tests passed.');
