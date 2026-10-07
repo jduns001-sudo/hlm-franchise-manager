@@ -2,7 +2,7 @@
 
 const assert = require('assert');
 const { createGameStateEnvelope } = require('./hlm-game-state');
-const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
+const { DEVELOPMENT_CURVES, DEVELOPMENT_STAGES, DEVELOPMENT_DIRECTIONS, calculateAge, normalizeDevelopmentCurve, classifyDevelopmentStage, classifyDevelopmentDirection, normalizeDevelopmentFactor, calculateDevelopmentFactorSignal, classifyDevelopmentEvaluation, normalizeAttributeRating, resolveAttributeDevelopmentDirection, resolveAttributeDevelopmentSnapshot, resolveOverallRecalculationInput, resolveDevelopmentInputs } = require('./hlm-player-development-foundation');
 
 const player = {
   id: 101,
@@ -67,6 +67,11 @@ assert.deepStrictEqual(calculateDevelopmentFactorSignal({ workEthic: 80, coachab
   score: 80, sampleSize: 3, availableFactors: ['workEthic', 'coachability', 'morale']
 });
 assert.strictEqual(calculateDevelopmentFactorSignal({}), null);
+assert.deepStrictEqual(classifyDevelopmentEvaluation('growth', { score: 85 }), { direction: 'growth', pace: 'accelerating', score: 85 });
+assert.deepStrictEqual(classifyDevelopmentEvaluation('growth', { score: 55 }), { direction: 'growth', pace: 'normal', score: 55 });
+assert.deepStrictEqual(classifyDevelopmentEvaluation('growth', { score: 25 }), { direction: 'growth', pace: 'stalling', score: 25 });
+assert.deepStrictEqual(classifyDevelopmentEvaluation('stable', null), { direction: 'stable', pace: 'normal', score: null });
+assert.strictEqual(classifyDevelopmentEvaluation(null, { score: 90 }), null);
 assert.strictEqual(normalizeAttributeRating(75), 75);
 assert.strictEqual(normalizeAttributeRating('71'), 71);
 assert.strictEqual(normalizeAttributeRating(null), null);
