@@ -93,10 +93,11 @@ const lifecycle = resolveDevelopmentLifecycle({
   position: 'G', age: 34, retired: false, contract: { years: 1 },
   careerSatisfaction: 60, draftStatus: { year: 2012 }, promotions: ['NHL'],
   breakouts: ['2020'], developmentSetbacks: ['injury'], awards: ['Vezina'], milestones: ['500 GP']
-}, 'decline', { pace: 'stalling', direction: 'decline', score: 35 }, { injuries: [{ type: 'knee' }] });
+}, 'decline', { pace: 'stalling', direction: 'decline', score: 35 }, { injuries: [{ type: 'knee' }] }, 34);
 assert.strictEqual(lifecycle.goalie.specializedDevelopment, true);
 assert.strictEqual(lifecycle.aging.attributeSpecificDeclineReady, true);
 assert.strictEqual(lifecycle.retirement.decliningAbility, true);
+assert.strictEqual(lifecycle.retirement.age, 34);
 assert.deepStrictEqual(lifecycle.history.promotions, ['NHL']);
 assert.deepStrictEqual(lifecycle.report, { status: 'stalling', direction: 'decline', score: 35 });
 assert.ok(Object.isFrozen(lifecycle));
