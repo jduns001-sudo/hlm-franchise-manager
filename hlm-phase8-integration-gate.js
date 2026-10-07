@@ -1,0 +1,12 @@
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {DRAFT_BOARD_TAGS}=require('./hlm-draft-rankings');
+const {verifyDraftPickOwnership}=require('./hlm-draft-pick-system');
+function fail(c,m){const e=new Error(m);e.code=c;throw e;}function valid(s){if(!validateGameStateEnvelope(s).valid)fail('INVALID_PHASE8_STATE','Valid GameState required.');}
+function resolveCanonicalProspect(state,id){valid(state);const role=(state.universe.prospects||[]).find(p=>String(p.playerId??p.id)===String(id));const player=(state.universe.players||[]).find(p=>String(p.id)===String(role?.playerId??id));return Object.freeze({prospectId:String(id),role:role??null,player:player??null,resolved:Boolean(role||player),canonicalPlayerId:player?.id??role?.playerId??null});}
+function createTeamFacingProspectView(state,id,input={}){const r=resolveCanonicalProspect(state,id);if(!r.resolved)fail('PROSPECT_NOT_FOUND','Prospect not found.');return Object.freeze({kind:'team-facing-prospect-view',version:1,prospectId:String(id),playerId:r.canonicalPlayerId,display:input.display??null,scouting:input.scouting??null,actualAbility:null,actualPotential:null,hiddenRealityExposed:false});}
+function validateDraftBoardTags(tags=[]){const invalid=tags.filter(t=>!DRAFT_BOARD_TAGS.includes(t));return Object.freeze({valid:invalid.length===0,invalid:Object.freeze([...invalid]),tags:Object.freeze([...tags])});}
+function createPhase8IntegrationGate(state,input={}){valid(state);const ownership=input.pickId&&input.selectingTeamId?verifyDraftPickOwnership(state,input.pickId,input.selectingTeamId):null;const tags=validateDraftBoardTags(input.draftBoardTags||[]);
+ const checks=Object.freeze({hiddenRealityProtected:input.teamFacingProspectView?.hiddenRealityExposed===false,prospectIdentityResolved:input.prospectIdentity?.resolved===true,draftBoardTagsValid:tags.valid,pickOwnershipVerified:ownership?.verified===true,sourceGameStateProtected:input.sourceGameStateProtected===true,noPersistencePerformed:input.noPersistencePerformed===true});
+ return Object.freeze({kind:'phase8-integration-gate',version:1,checks,passed:Object.values(checks).every(Boolean),ownership,tags,nextPhase:checks&&Object.values(checks).every(Boolean)?9:null,sourceStateMutated:false,persistencePerformed:false});}
+module.exports={resolveCanonicalProspect,createTeamFacingProspectView,validateDraftBoardTags,createPhase8IntegrationGate};
