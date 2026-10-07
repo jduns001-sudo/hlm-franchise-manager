@@ -124,7 +124,9 @@ function calculateOverallFromAttributes(attributes) {
 function resolveOverallRecalculationSnapshot(attributes, currentOverall) {
   const calculatedOverall = calculateOverallFromAttributes(attributes);
   if (calculatedOverall === null) return null;
-  const current = Number.isFinite(Number(currentOverall)) ? Number(currentOverall) : null;
+  const current = currentOverall !== null && currentOverall !== undefined && currentOverall !== '' && typeof currentOverall !== 'boolean' && Number.isFinite(Number(currentOverall))
+    ? Number(currentOverall)
+    : null;
   return Object.freeze({
     currentOverall: current,
     calculatedOverall,
