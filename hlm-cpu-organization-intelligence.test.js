@@ -1,0 +1,7 @@
+'use strict';
+const assert=require('assert');const {createGameStateEnvelope}=require('./hlm-game-state');const x=require('./hlm-cpu-organization-intelligence');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[{id:1,teamId:'PIT'}],contracts:[{id:'c1',playerId:1,teamId:'PIT'}],draftPicks:[{pickId:'p1',currentOwnerId:'PIT'}]});const before=JSON.stringify(state);
+const cpu=x.createCPUOrganizationIntelligence(state,'PIT',{competitiveState:'Contender',leadership:{philosophy:'Win Now'},gmTraits:{riskTolerance:'high',tradeAggression:'high'},priorities:[{area:'roster'}],organizationalMemory:[{type:'trade-result'}]});
+assert.strictEqual(cpu.kind,'cpu-organization-intelligence');assert.strictEqual(cpu.teamId,'PIT');assert.strictEqual(cpu.identity.philosophy,'Win Now');assert.strictEqual(cpu.identity.competitiveStateValid,true);assert.deepStrictEqual(cpu.decisionModel.areas,x.DECISION_AREAS);assert.strictEqual(cpu.decisionModel.cycle.length,8);assert.strictEqual(cpu.authority.cpuDecisionExecutionEnabled,false);assert.strictEqual(cpu.authority.automaticTransactions,false);assert.strictEqual(cpu.sourceStateMutated,false);assert.strictEqual(cpu.persistencePerformed,false);assert.strictEqual(JSON.stringify(state),before);
+assert.throws(()=>x.createCPUOrganizationIntelligence(state,'MISSING'),/Team not found/);assert.throws(()=>x.createCPUOrganizationIntelligence({},'PIT'),/Valid GameState required/);
+console.log('Phase 9 CPU organization intelligence foundation tests passed.');
