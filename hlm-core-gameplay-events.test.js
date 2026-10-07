@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('assert');
+const {createCoreGameplaySequence,createGameEvent}=require('./hlm-core-gameplay-events');
+const source={gameId:'g1',teamId:10,playerId:1,goalieId:6,period:1,clock:'12:34',danger:'high',rush:true,oneTimer:true,outcome:'save'};
+const seq=createCoreGameplaySequence(source);
+assert.deepStrictEqual(seq.events.map(e=>e.type),['possession','zone-entry','scoring-chance','shot','save']);
+assert.deepStrictEqual(seq.events.map(e=>e.sequence),[1,2,3,4,5]);
+assert.strictEqual(seq.events[2].danger,'high');assert.strictEqual(seq.events[3].context.rush,true);
+assert.strictEqual(seq.events[4].goalieId,6);assert.strictEqual(seq.terminalOutcome,'save');
+assert.strictEqual(seq.probabilitiesApplied,false);assert.strictEqual(seq.persistencePerformed,false);
+const goal=createCoreGameplaySequence({...source,outcome:'goal'});
+assert.strictEqual(goal.terminalOutcome,'goal');assert.strictEqual(goal.goalModeled,true);
+const unresolved=createCoreGameplaySequence({...source,outcome:null});
+assert.deepStrictEqual(unresolved.events.map(e=>e.type),['possession','zone-entry','scoring-chance','shot']);
+assert.throws(()=>createGameEvent({type:'fight',gameId:'g1',teamId:10,sequence:1}),e=>e.code==='INVALID_GAME_EVENT_TYPE');
+console.log('Core gameplay event foundation tests passed.');
