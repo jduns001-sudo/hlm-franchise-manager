@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {GAME_SIMULATION_MODES,GAME_SIMULATION_LAYERS,createGameSimulationInput}=require('./hlm-game-simulation-foundation');
+const state=createGameStateEnvelope({meta:{currentDate:'2027-10-01'}});
+state.universe.games=[{id:'g1',seasonId:2027,homeTeamId:1,awayTeamId:2,date:'2027-10-01',status:'Scheduled'}];
+const before=JSON.stringify(state);
+const input=createGameSimulationInput(state,'g1',{mode:'full-summary',deterministicSeed:'season-2027-g1'});
+assert.deepStrictEqual(GAME_SIMULATION_MODES,['quick-result','full-summary','full-game']);
+assert.deepStrictEqual(GAME_SIMULATION_LAYERS,['pre-game','game','post-game']);
+assert.strictEqual(input.gameId,'g1');assert.strictEqual(input.mode,'full-summary');
+assert.strictEqual(input.matchup.homeTeamId,1);assert.strictEqual(input.matchup.awayTeamId,2);
+assert.strictEqual(input.deterministicSeed,'season-2027-g1');
+assert.strictEqual(input.simulationPerformed,false);assert.strictEqual(input.persistencePerformed,false);
+assert.strictEqual(input.systems.possession,false);assert.strictEqual(input.outputs.standardStatistics,null);
+assert.strictEqual(JSON.stringify(state),before);
+assert.throws(()=>createGameSimulationInput(state,'missing'),error=>error.code==='GAME_NOT_FOUND');
+console.log('Game simulation foundation tests passed.');
