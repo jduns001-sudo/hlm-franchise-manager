@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {prioritizeCPUReviewQueue}=require('./hlm-cpu-review-queue-prioritization');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});
+const before=JSON.stringify(state);
+const prioritization={evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]};
+const result=prioritizeCPUReviewQueue(state,'PIT',{selections:[{prioritization,priorityId:'first',authorized:true,execute:true},{prioritization,priorityId:'first',execute:true},{prioritization,priorityId:'missing',authorized:true,execute:true}]});
+assert.strictEqual(result.items.length,3);
+assert.deepStrictEqual(result.items.map(x=>x.order),[1,2,0]);
+assert.strictEqual(result.items[0].reviewPriority,'high');
+assert.strictEqual(result.items[2].reviewPriority,'normal');
+assert.strictEqual(result.summary.prioritizationPolicy,'blocked-first-stable-order');
+assert.strictEqual(result.summary.executedCount,0);
+assert.strictEqual(prioritizeCPUReviewQueue(state,'PIT').items.length,0);
+assert.strictEqual(JSON.stringify(state),before);
+console.log('Phase 9 CPU review queue prioritization tests passed.');
