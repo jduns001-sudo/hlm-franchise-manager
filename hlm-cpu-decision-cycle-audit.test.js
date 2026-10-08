@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createCPUDecisionCycleAudit}=require('./hlm-cpu-decision-cycle-audit');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});
+const before=JSON.stringify(state);
+const prioritization={evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]};
+const ready=createCPUDecisionCycleAudit(state,'PIT',{prioritization,priorityId:'first',authorized:true,execute:true});
+assert.strictEqual(ready.audit.allGatesPassed,true);
+assert.strictEqual(ready.audit.firstIncompleteStage,'outcome');
+assert.strictEqual(ready.audit.actionPerformed,false);
+assert.strictEqual(ready.audit.persisted,false);
+assert.strictEqual(ready.stages.length,7);
+const denied=createCPUDecisionCycleAudit(state,'PIT',{prioritization,priorityId:'first',execute:true});
+assert.strictEqual(denied.audit.allGatesPassed,false);
+assert.strictEqual(denied.audit.firstIncompleteStage,'authorization');
+assert.strictEqual(JSON.stringify(state),before);
+console.log('Phase 9 CPU decision cycle audit tests passed.');
