@@ -6,6 +6,6 @@ function validate(a){if(!isRecord(a)||a.kind!=='cpu-legacy-audit'||a.readOnly!==
 function summarize(a){validate(a);const counts={};for(const key of ['teams','players','contracts','draftPicks','transactions','prospects'])counts[key]=Number.isSafeInteger(a.counts[key])&&a.counts[key]>=0?a.counts[key]:0;return Object.freeze({kind:'cpu-audit-summary',readOnly:true,found:a.found===true,controlledTeamId:a.controlledTeamId??null,counts:Object.freeze(counts),issues:Object.freeze([...a.warnings].filter(x=>typeof x==='string')),issueCount:a.warnings.filter(x=>typeof x==='string').length});}
 function compare(previous,current){const before=summarize(previous),after=summarize(current),delta={};for(const key of Object.keys(after.counts))delta[key]=after.counts[key]-before.counts[key];return Object.freeze({kind:'cpu-audit-comparison',readOnly:true,delta:Object.freeze(delta),controlledTeamChanged:before.controlledTeamId!==after.controlledTeamId,issueCountChange:after.issueCount-before.issueCount});}
 function exportReport(a){return JSON.stringify(summarize(a),null,2);}
-function exportCSV(a){const s=summarize(a);return 'dataset,count\\n'+Object.entries(s.counts).map(([k,v])=>k+','+v).join('\\n')+'\\n';}
+function exportCSV(a){const s=summarize(a);return 'dataset,count\n'+Object.entries(s.counts).map(([k,v])=>k+','+v).join('\n')+'\n';}
 const api=Object.freeze({summarize,compare,exportReport,exportCSV});if(typeof module!=='undefined'&&module.exports)module.exports=api;root.HFMCPUAuditReports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
