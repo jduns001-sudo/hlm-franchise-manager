@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const bundles=require('./cpu-audit-review-evidence-timeline-bundle');
+const gates=require('./cpu-audit-review-evidence-timeline-gate');
+const api=require('./cpu-audit-review-evidence-timeline-verification');
+const bundle=bundles.build([]);
+const gate=gates.assess(bundle);
+const verified=api.verify(bundle,gate);
+assert.equal(verified.consistent,true);
+assert.equal(verified.requiresHumanReview,true);
+assert.equal(verified.snapshotCount,0);
+assert.ok(Object.isFrozen(verified));
+assert.deepEqual(api.check(bundle),verified);
+assert.throws(()=>api.verify(bundle,{...gate,requiresHumanReview:false}),TypeError);
+assert.throws(()=>api.verify(bundle,{...gate,reasons:['forged']}),TypeError);
+assert.throws(()=>api.verify({...bundle,text:'forged'},gate),TypeError);
+console.log('Aggregate review evidence timeline gate verification tests passed');
