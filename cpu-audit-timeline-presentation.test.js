@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./cpu-audit-timeline-presentation');
+const base={kind:'cpu-audit-public-timeline-summary',readOnly:true,reportCount:2,reviewCount:1,transitionCount:1,latestReviewRequired:true};
+const lines=api.lines(base);
+assert.equal(lines.length,5);
+assert.ok(Object.isFrozen(lines));
+assert.match(api.describe(base),/Latest review required: yes/);
+assert.match(api.describe({...base,reportCount:0,reviewCount:0,transitionCount:0,latestReviewRequired:null}),/no reports/);
+assert.throws(()=>api.lines({...base,reviewCount:3}),TypeError);
+assert.throws(()=>api.lines({...base,latestReviewRequired:'yes'}),TypeError);
+console.log('Aggregate advisory timeline presentation tests passed');
