@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createCPUActionReadiness,assessCPUActionReadiness}=require('./hlm-cpu-action-readiness');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});
+const before=JSON.stringify(state);
+const prioritization={evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]};
+const options={prioritization,priorityId:'first'};
+const denied=createCPUActionReadiness(state,'PIT',options);
+assert.strictEqual(denied.readiness.ready,false);
+const approved=createCPUActionReadiness(state,'PIT',{...options,authorized:true});
+assert.strictEqual(approved.readiness.ready,true);
+assert.strictEqual(approved.executionEnabled,false);
+assert.strictEqual(approved.decisionStage.actPerformed,false);
+assert.strictEqual(JSON.stringify(state),before);
+const tampered={...approved.verificationPackage,authorizationPackage:{...approved.verificationPackage.authorizationPackage,authority:{cpuDecisionExecutionEnabled:true}}};
+assert.strictEqual(assessCPUActionReadiness(tampered).ready,false);
+console.log('Phase 9 CPU action readiness tests passed.');
