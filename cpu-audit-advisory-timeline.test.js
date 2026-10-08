@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./cpu-audit-advisory-timeline');
+const a={kind:'cpu-audit-public-advisory',readOnly:true,requiresReview:false,changed:false,issueTrend:'unchanged',warnings:[]};
+const b={...a,requiresReview:true,changed:true,issueTrend:'increased',warnings:['Data issue count increased']};
+const result=api.summarize([a,b]);
+assert.equal(result.count,2);
+assert.equal(result.reviewCount,1);
+assert.deepEqual(result.transitions[0].added,['Data issue count increased']);
+assert.ok(Object.isFrozen(result)&&Object.isFrozen(result.transitions));
+assert.equal(api.summarize([]).latest,null);
+assert.equal(api.summarize(Array(20).fill(a)).transitions.length,19);
+assert.throws(()=>api.summarize(Array(21).fill(a)),TypeError);
+assert.throws(()=>api.summarize([a,{...b,warnings:['Player ID 1']}]),TypeError);
+assert.match(api.describe([a]),/Reports: 1/);
+console.log('Audit advisory timeline tests passed');
