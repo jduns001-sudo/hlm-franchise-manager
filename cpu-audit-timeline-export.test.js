@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./cpu-audit-timeline-export');
+const a={kind:'cpu-audit-public-advisory',readOnly:true,requiresReview:false,changed:false,issueTrend:'unchanged',warnings:[]};
+const b={...a,requiresReview:true,changed:true,issueTrend:'increased',warnings:['Data issue count increased']};
+const report=api.create([a,b]);
+assert.deepEqual(api.parse(api.stringify(report)),report);
+assert.deepEqual([report.reportCount,report.reviewCount,report.transitionCount],[2,1,1]);
+assert.equal(api.create([]).latestReviewRequired,null);
+assert.ok(Object.isFrozen(report));
+for(const bad of [{...report,reviewCount:3},{...report,transitionCount:2},{...report,latestReviewRequired:null},{...report,reportCount:21}])assert.throws(()=>api.validate(bad),TypeError);
+assert.throws(()=>api.parse('x'.repeat(513)),TypeError);
+console.log('Aggregate advisory timeline export tests passed');
