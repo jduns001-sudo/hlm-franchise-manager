@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const bundles=require('./cpu-audit-review-evidence-timeline-bundle');
+const api=require('./cpu-audit-review-evidence-timeline-record');
+const value=api.create(bundles.build([]));
+assert.equal(value.requiresHumanReview,true);
+assert.deepEqual(value.reasons,['No review evidence timeline snapshots available']);
+assert.ok(Object.isFrozen(value)&&Object.isFrozen(value.reasons));
+assert.deepEqual(api.parse(api.stringify(value)),value);
+assert.throws(()=>api.validate({...value,requiresHumanReview:false}),TypeError);
+assert.throws(()=>api.validate({...value,reasons:['forged']}),TypeError);
+assert.throws(()=>api.validate({...value,summary:{...value.summary,count:2}}),TypeError);
+assert.throws(()=>api.parse('x'.repeat(1025)),TypeError);
+console.log('Aggregate review evidence timeline record tests passed');
