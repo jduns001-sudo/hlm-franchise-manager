@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {auditLegacy}=require('./cpu-legacy-audit');
+const storage=x=>({getItem:()=>x===null?null:JSON.stringify(x)});
+const sample={gmSettings:{controlledTeamId:1},teams:[{id:1}],players:[{id:1,teamId:1},{id:1,teamId:2},{id:2,teamId:1}],contracts:[{}],draftPicks:[{}]};
+const a=auditLegacy(storage(sample));
+assert.equal(a.found,true);assert.equal(a.readOnly,true);assert.equal(a.controlledTeamId,'1');
+assert.equal(a.counts.players,3);assert.equal(a.counts.contracts,1);assert.equal(a.counts.draftPicks,1);
+assert.equal(a.duplicatePlayers,1);assert.equal(a.unknownTeams,1);
+assert.ok(Object.isFrozen(a));assert.ok(Object.isFrozen(a.counts));assert.ok(Object.isFrozen(a.warnings));
+assert.equal(auditLegacy(storage(null)).found,false);
+assert.throws(()=>auditLegacy({getItem:()=>'{'}),/JSON/);
+assert.throws(()=>auditLegacy(storage([])),/object/);
+assert.ok(auditLegacy(storage({teams:'invalid'})).warnings.some(x=>x.includes('teams')));
+console.log('Phase 9 missions 436-450 audit tests passed');
