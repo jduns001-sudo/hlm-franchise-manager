@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {analyzeFranchise}=require('./cpu-franchise-insights');
+const state=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT',name:'Pittsburgh'}],players:[{id:'a',teamId:'PIT'},{id:'b',teamId:'BOS'}],contracts:[{teamId:'PIT'}],draftPicks:[{ownerTeamId:'PIT'}]});
+const before=JSON.stringify(state),insights=analyzeFranchise(state);
+assert.strictEqual(insights.rosterCount,1);
+assert.strictEqual(insights.contractCount,1);
+assert.strictEqual(insights.draftPickCount,1);
+assert.strictEqual(insights.teamName,'Pittsburgh');
+assert.strictEqual(insights.executionEnabled,false);
+assert.strictEqual(Object.isFrozen(insights.warnings),true);
+assert.strictEqual(JSON.stringify(state),before);
+assert.ok(analyzeFranchise(createGameStateEnvelope()).warnings.length);
+assert.throws(()=>analyzeFranchise({}),/GameState/);
+console.log('Phase 9 Missions 416-420 franchise insights tests passed.');
