@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const gate=require('./cpu-audit-review-gate');
+const bundle=require('./cpu-audit-summary-bundle');
+const clear={kind:'cpu-audit-public-advisory',readOnly:true,requiresReview:false,changed:false,issueTrend:'unchanged',warnings:[]};
+const flagged={...clear,requiresReview:true,changed:true,issueTrend:'increased',warnings:['Data issue count increased']};
+assert.equal(gate.assess(bundle.build([])).requiresHumanReview,true);
+assert.equal(gate.assess(bundle.build([clear])).requiresHumanReview,false);
+const v=gate.assess(bundle.build([clear,flagged]));
+assert.equal(v.requiresHumanReview,true);
+assert.equal(v.reasons.length,2);
+assert.ok(Object.isFrozen(v)&&Object.isFrozen(v.reasons));
+assert.match(gate.describe(bundle.build([flagged])),/human review needed/);
+assert.throws(()=>gate.assess({...bundle.build([clear]),text:'altered'}),TypeError);
+console.log('Aggregate advisory review gate tests passed');
