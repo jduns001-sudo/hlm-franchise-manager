@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./cpu-audit-review-trend-presentation');
+const sample={kind:'cpu-audit-public-review-trend-summary',readOnly:true,count:3,reviewCount:1,reviewStateChanges:2,transitionCount:2};
+const lines=api.lines(sample);
+assert.equal(lines.length,5);
+assert.ok(Object.isFrozen(lines));
+assert.match(api.describe(sample),/Review state changes: 2/);
+assert.throws(()=>api.lines({...sample,reviewCount:4}),TypeError);
+assert.throws(()=>api.lines({...sample,transitionCount:0}),TypeError);
+console.log('Aggregate advisory review trend presentation tests passed');
