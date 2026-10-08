@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('assert');
+const {inspectLegacySnapshot}=require('./cpu-legacy-preview');
+const calls=[];const storage={getItem(k){calls.push(k);return JSON.stringify({controlledTeam:'PIT',roster:[]});}};
+const result=inspectLegacySnapshot(storage);
+assert.strictEqual(result.found,true);
+assert.deepStrictEqual(result.keys,['controlledTeam','roster']);
+assert.strictEqual(result.readOnly,true);
+assert.deepStrictEqual(calls,['hlm_tracker_v3']);
+assert.strictEqual(inspectLegacySnapshot({getItem:()=>null}).found,false);
+assert.throws(()=>inspectLegacySnapshot({getItem:()=>'{'}),/valid JSON/);
+assert.throws(()=>inspectLegacySnapshot({getItem:()=> '[]'}),/object/);
+console.log('Phase 9 Missions 426-430 legacy preview tests passed.');
