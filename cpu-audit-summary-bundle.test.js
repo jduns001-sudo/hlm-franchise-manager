@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./cpu-audit-summary-bundle');
+const a={kind:'cpu-audit-public-advisory',readOnly:true,requiresReview:false,changed:false,issueTrend:'unchanged',warnings:[]};
+const b={...a,requiresReview:true,changed:true,issueTrend:'increased',warnings:['Data issue count increased']};
+const bundle=api.build([a,b]);
+assert.deepEqual(api.parse(api.stringify(bundle)),bundle);
+assert.match(bundle.text,/Reviews flagged: 1/);
+assert.ok(Object.isFrozen(bundle)&&Object.isFrozen(bundle.summary));
+assert.throws(()=>api.validate({...bundle,text:'Player ID 123'}),TypeError);
+assert.throws(()=>api.validate({...bundle,summary:{...bundle.summary,reportCount:21}}),TypeError);
+assert.throws(()=>api.parse('x'.repeat(1025)),TypeError);
+console.log('Audit summary bundle tests passed');
