@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./cpu-audit-advisory-diff');
+const old={kind:'cpu-audit-public-advisory',readOnly:true,requiresReview:true,changed:true,issueTrend:'increased',warnings:['Data issue count increased','Player count decreased']};
+const next={...old,issueTrend:'decreased',warnings:['Player count decreased','Draft pick count decreased']};
+const d=api.compare(old,next);
+assert.deepEqual(d.added,['Draft pick count decreased']);
+assert.deepEqual(d.resolved,['Data issue count increased']);
+assert.deepEqual(d.unchanged,['Player count decreased']);
+assert.equal(d.issueTrendChanged,true);
+assert.ok(Object.isFrozen(d)&&Object.isFrozen(d.added));
+assert.match(api.describe(old,next),/Resolved warnings/);
+assert.throws(()=>api.compare({...old,warnings:['Player ID: 1']},next),TypeError);
+assert.throws(()=>api.compare(old,{...next,readOnly:false}),TypeError);
+console.log('Audit advisory diff tests passed');
