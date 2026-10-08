@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {summarize,compare,exportReport,exportCSV}=require('./cpu-audit-reports');
+const a={kind:'cpu-legacy-audit',readOnly:true,found:true,controlledTeamId:'1',counts:{teams:2,players:3,contracts:1,draftPicks:0},warnings:['duplicate']};
+const b={...a,controlledTeamId:'2',counts:{...a.counts,players:5},warnings:[]};
+assert.equal(summarize(a).counts.players,3);assert.equal(summarize(a).issueCount,1);
+assert.equal(compare(a,b).delta.players,2);assert.equal(compare(a,b).controlledTeamChanged,true);
+assert.equal(compare(a,b).issueCountChange,-1);
+assert.equal(JSON.parse(exportReport(a)).readOnly,true);
+assert.match(exportCSV(a),/players,3/);
+assert.ok(Object.isFrozen(summarize(a).counts));assert.ok(Object.isFrozen(compare(a,b).delta));
+assert.throws(()=>summarize({}),/audit/);
+console.log('Phase 9 missions 451-465 report tests passed');
