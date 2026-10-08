@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict');
+const records=require('./cpu-audit-review-evidence-timeline-record');
+const presentation=require('./cpu-audit-review-evidence-timeline-presentation');
+const diff=require('./cpu-audit-review-evidence-timeline-record-diff');
+const base={kind:'cpu-audit-public-review-evidence-timeline-summary',readOnly:true,count:2,reviewCount:0,reviewStateChanges:0,transitionCount:1};
+const flagged={...base,reviewCount:1,reviewStateChanges:1};
+function record(summary){return records.create({kind:'cpu-audit-public-review-evidence-timeline-bundle',readOnly:true,summary,text:presentation.describe(summary)});}
+const before=record(base),after=record(flagged);
+const change=diff.compare(before,after);
+assert.equal(change.reviewChanged,true);
+assert.equal(change.snapshotCountDelta,0);
+assert.equal(change.reviewCountDelta,1);
+assert.equal(change.reviewStateChangesDelta,1);
+assert.deepEqual(change.addedReasons,['Human review flags occurred in evidence timeline','Human review requirement changed in evidence timeline']);
+assert.deepEqual(change.resolvedReasons,[]);
+assert.ok(Object.isFrozen(change)&&Object.isFrozen(change.addedReasons));
+assert.equal(diff.compare(after,after).reviewChanged,false);
+assert.throws(()=>diff.compare(before,{...after,reasons:['forged']}),TypeError);
+assert.match(diff.describe(before,after),/Review flag delta: 1/);
+console.log('Aggregate review evidence timeline record comparison tests passed');
