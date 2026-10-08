@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {toCSV,fromCSV}=require('./cpu-audit-comparison-csv');
+const sample={kind:'cpu-audit-public-comparison',readOnly:true,changes:{teams:0,players:2,contracts:-1,draftPicks:0,transactions:3,prospects:0},issueDelta:-2};
+const csv=toCSV(sample);
+assert.deepEqual(fromCSV(csv).changes,sample.changes);
+assert.equal(fromCSV(csv).issueDelta,-2);
+assert.equal(fromCSV(csv.replace(/\n/g,'\r\n')).issueDelta,-2);
+for(const bad of [csv+'playerId,123\n',csv.replace('players,2','players,=1+1'),csv.replace('teams,0','teams,9007199254740992'),csv.replace('issues,-2','issues,NaN'),csv.replace('contracts,-1','contracts,1.2')])assert.throws(()=>fromCSV(bad),TypeError);
+assert.throws(()=>toCSV({...sample,changes:{...sample.changes,players:'=1+1'}}),TypeError);
+console.log('Comparison CSV safety tests passed');
