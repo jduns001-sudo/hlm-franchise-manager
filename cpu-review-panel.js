@@ -22,6 +22,7 @@
  if(!root.document) return;
  const doc=root.document,byId=id=>doc.getElementById(id);
  let rows=[],page=1,selected=null;const pageSize=10;
+ function loadRows(next){rows=next;page=1;selected=null;byId('details').textContent='Select a decision to inspect it.';render();}
  function node(tag,cls,text){const el=doc.createElement(tag);if(cls)el.className=cls;if(text!==undefined)el.textContent=text;return el;}
  function render(){
   const filtered=filterRows(rows,byId('search').value,byId('section').value,byId('sort').value);
@@ -41,8 +42,17 @@
  byId('next').addEventListener('click',()=>{page++;render();});
  byId('file').addEventListener('change',async event=>{
   const file=event.target.files[0];if(!file)return;
-  try{if(file.size>5000000)throw new Error('File exceeds 5 MB');rows=parseReviewExport(await file.text());page=1;selected=null;byId('details').textContent='Select a decision to inspect it.';render();}
+  try{if(file.size>5000000)throw new Error('File exceeds 5 MB');loadRows(parseReviewExport(await file.text()));}
   catch(err){rows=[];page=1;render();byId('status').textContent='Import failed: '+err.message;}
+ });
+ // 406: paste JSON; 407: explicitly labeled sample; 408: filtered download;
+ // 409: accessible status on import failures; 410: no mutation or transaction actions.
+ byId('load-paste').addEventListener('click',()=>{try{loadRows(parseReviewExport(byId('paste').value));}catch(err){byId('status').textContent='Import failed: '+err.message;}});
+ byId('demo').addEventListener('click',()=>{loadRows(parseReviewExport(JSON.stringify({kind:'cpu-review-export',rows:[{id:'sample-1',title:'Example cap review',subtitle:'Blocked: demonstration only',section:'Needs attention'},{id:'sample-2',title:'Example contract review',subtitle:'Awaiting human review (demo)',section:'Pending review'}]})));byId('status').textContent='DEMO DATA ONLY. No live franchise decisions loaded.';});
+ byId('download').addEventListener('click',()=>{
+  const matches=filterRows(rows,byId('search').value,byId('section').value,byId('sort').value);
+  const blob=new Blob([JSON.stringify({kind:'cpu-review-export',version:1,rows:matches},null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const link=node('a');link.href=url;link.download='cpu-review-filtered.json';doc.body.append(link);link.click();link.remove();URL.revokeObjectURL(url);
  });
  render();
 })(typeof globalThis!=='undefined'?globalThis:this);
