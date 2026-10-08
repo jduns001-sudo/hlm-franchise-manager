@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const bundles=require('./cpu-audit-summary-bundle');
+const evidence=require('./cpu-audit-review-evidence');
+const api=require('./cpu-audit-review-trend-export');
+const clear={kind:'cpu-audit-public-advisory',readOnly:true,requiresReview:false,changed:false,issueTrend:'unchanged',warnings:[]};
+const flagged={...clear,requiresReview:true,changed:true,issueTrend:'increased',warnings:['Data issue count increased']};
+const a=evidence.create(bundles.build([clear]));
+const b=evidence.create(bundles.build([flagged]));
+const v=api.create([a,b,a]);
+assert.deepEqual([v.count,v.reviewCount,v.reviewStateChanges,v.transitionCount],[3,1,2,2]);
+assert.deepEqual(api.parse(api.stringify(v)),v);
+assert.ok(Object.isFrozen(v));
+assert.throws(()=>api.validate({...v,reviewStateChanges:3}),TypeError);
+assert.throws(()=>api.validate({...v,transitionCount:1}),TypeError);
+assert.throws(()=>api.validate({...v,reviewCount:4}),TypeError);
+assert.throws(()=>api.parse('x'.repeat(513)),TypeError);
+console.log('Aggregate advisory review trend export tests passed');
