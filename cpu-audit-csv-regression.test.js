@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {exportCSV}=require('./cpu-audit-reports');
+const audit={kind:'cpu-legacy-audit',readOnly:true,found:true,counts:{teams:1,players:2,contracts:0,draftPicks:0,transactions:0,prospects:0},warnings:[]};
+const csv=exportCSV(audit);
+assert.equal(csv.split('\n')[0],'dataset,count');
+assert.ok(csv.split('\n').includes('players,2'));
+assert.equal(csv.split('\n').filter(Boolean).length,7);
+assert.equal(csv.includes('\\n'),false);
+console.log('Audit CSV real newline regression passed');
