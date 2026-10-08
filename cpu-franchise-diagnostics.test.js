@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {diagnoseFranchise}=require('./cpu-franchise-diagnostics');
+const state=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'}],players:[{id:'1',teamId:'PIT',position:'C'},{id:'1',teamId:'PIT',position:'D'},{id:'3',teamId:'PIT',position:'G'},{id:'4',teamId:'BAD',position:'LW'}],contracts:[{teamId:'BAD'}]});
+const before=JSON.stringify(state),result=diagnoseFranchise(state);
+assert.deepStrictEqual(result.positions,{forward:1,defense:1,goalie:1,unknown:0});
+assert.strictEqual(result.missingTeamPlayers,1);
+assert.strictEqual(result.duplicatePlayerIds,1);
+assert.strictEqual(result.unmappedContracts,1);
+assert.strictEqual(result.executionEnabled,false);
+assert.strictEqual(JSON.stringify(state),before);
+assert.throws(()=>diagnoseFranchise({}),/GameState/);
+console.log('Phase 9 Missions 421-425 franchise diagnostics tests passed.');
