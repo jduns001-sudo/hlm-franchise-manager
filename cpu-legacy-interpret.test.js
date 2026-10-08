@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('assert');
+const {interpretLegacy}=require('./cpu-legacy-interpret');
+const source={getItem:()=>JSON.stringify({players:[{id:1},{id:2}],gmSettings:{controlledTeamId:5},teams:[]})};
+const result=interpretLegacy(source);
+assert.strictEqual(result.teamId,5);
+assert.strictEqual(result.players,2);
+assert.deepStrictEqual(result.datasets,['players','teams']);
+assert.strictEqual(result.readOnly,true);
+assert.strictEqual(result.decisionsGenerated,false);
+assert.strictEqual(interpretLegacy({getItem:()=>null}).found,false);
+assert.throws(()=>interpretLegacy({getItem:()=>'{'}),/JSON/);
+console.log('Phase 9 Missions 431-435 legacy interpretation tests passed.');
