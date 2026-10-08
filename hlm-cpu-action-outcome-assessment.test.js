@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {assessCPUActionOutcome}=require('./hlm-cpu-action-outcome-assessment');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});
+const before=JSON.stringify(state);
+const prioritization={evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]};
+const pending=assessCPUActionOutcome(state,'PIT',{prioritization,priorityId:'first',authorized:true,execute:true});
+assert.strictEqual(pending.outcome.status,'awaiting-execution');
+assert.strictEqual(pending.outcome.actionPerformed,false);
+assert.strictEqual(pending.outcome.completed,false);
+assert.strictEqual(pending.outcome.feedbackRecorded,false);
+assert.strictEqual(pending.decisionStage.cycleCompleted,false);
+assert.strictEqual(assessCPUActionOutcome(state,'PIT',{prioritization,priorityId:'first',execute:true}).outcome.status,'blocked');
+assert.strictEqual(assessCPUActionOutcome(state,'PIT',{prioritization,priorityId:'missing',authorized:true,execute:true}).outcome.status,'blocked');
+assert.strictEqual(JSON.stringify(state),before);
+console.log('Phase 9 CPU action outcome assessment tests passed.');
