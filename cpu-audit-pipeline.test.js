@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict');const {pipeline}=require('./cpu-audit-pipeline');
+const snapshot={teams:[{id:1}],players:[{id:1,teamId:1}],contracts:[],draftPicks:[],transactions:[],prospects:[],gmSettings:{controlledTeamId:1}};
+const storage={getItem:()=>JSON.stringify(snapshot)};const result=pipeline(storage);
+assert.equal(result.found,true);assert.equal(result.summary.counts.players,1);assert.equal(result.trend.delta.players,0);assert.equal(result.alerts.count,0);assert.equal(result.readOnly,true);
+const old={...result.summary,counts:{...result.summary.counts,players:0}};
+assert.equal(pipeline(storage,old).alerts.alerts.some(a=>a.field==='players'),true);
+assert.equal(pipeline({getItem:()=>null}).found,false);
+assert.ok(Object.isFrozen(result));
+console.log('Phase 9 missions 496-510 audit pipeline tests passed');
