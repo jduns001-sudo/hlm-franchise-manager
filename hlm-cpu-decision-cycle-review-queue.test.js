@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createCPUDecisionCycleReviewQueue}=require('./hlm-cpu-decision-cycle-review-queue');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});
+const before=JSON.stringify(state);
+const prioritization={evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]};
+const ready=createCPUDecisionCycleReviewQueue(state,'PIT',{prioritization,priorityId:'first',authorized:true,execute:true});
+assert.strictEqual(ready.items.length,1);
+assert.strictEqual(ready.queue.pendingCount,1);
+assert.strictEqual(ready.items[0].status,'awaiting-execution');
+assert.strictEqual(ready.items[0].executionEnabled,false);
+assert.strictEqual(ready.queue.executedCount,0);
+const denied=createCPUDecisionCycleReviewQueue(state,'PIT',{prioritization,priorityId:'first',execute:true});
+assert.strictEqual(denied.items[0].nextStep,'request-human-authorization');
+assert.strictEqual(JSON.stringify(state),before);
+console.log('Phase 9 CPU decision cycle review queue tests passed.');
