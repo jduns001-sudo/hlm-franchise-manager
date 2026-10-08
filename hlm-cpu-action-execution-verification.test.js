@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {verifyCPUActionExecutionPackage}=require('./hlm-cpu-action-execution-verification');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});
+const before=JSON.stringify(state);
+const prioritization={evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]};
+const approved=verifyCPUActionExecutionPackage(state,'PIT',{prioritization,priorityId:'first',authorized:true,execute:true});
+assert.strictEqual(approved.verification.verified,true);
+assert.strictEqual(approved.verification.executionPerformed,false);
+assert.strictEqual(approved.checks.executorDisabled,true);
+assert.strictEqual(approved.sourceStateMutated,false);
+assert.strictEqual(JSON.stringify(state),before);
+assert.strictEqual(verifyCPUActionExecutionPackage(state,'PIT',{prioritization,priorityId:'first',execute:true}).verification.verified,false);
+assert.strictEqual(verifyCPUActionExecutionPackage(state,'PIT',{prioritization,priorityId:'missing',authorized:true,execute:true}).verification.verified,false);
+console.log('Phase 9 CPU action execution verification tests passed.');
