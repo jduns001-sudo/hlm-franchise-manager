@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createCPUReviewQueueAggregation}=require('./hlm-cpu-review-queue-aggregation');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});
+const before=JSON.stringify(state);
+const prioritization={evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]};
+const r=createCPUReviewQueueAggregation(state,'PIT',{selections:[{prioritization,priorityId:'first',authorized:true,execute:true},{prioritization,priorityId:'first',execute:true}]});
+assert.strictEqual(r.summary.count,2);
+assert.strictEqual(r.summary.blockedCount,1);
+assert.strictEqual(r.summary.awaitingExecutionCount,1);
+assert.strictEqual(r.summary.executedCount,0);
+assert.notStrictEqual(r.items[0].id,r.items[1].id);
+assert.strictEqual(createCPUReviewQueueAggregation(state,'PIT').summary.count,0);
+assert.strictEqual(JSON.stringify(state),before);
+console.log('Phase 9 CPU review queue aggregation tests passed.');
