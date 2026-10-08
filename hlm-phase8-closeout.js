@@ -1,0 +1,6 @@
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {createPhase8IntegrationGate}=require('./hlm-phase8-integration-gate');
+const DEFERRED=Object.freeze(['live-draft-execution','cpu-selection-weighting','lottery-odds-and-resolution','draft-protection-resolution','scouting-report-generation-and-persistence','future-prospect-generation-distributions','career-retrospective-evaluation','team-facing-nested-hidden-data-hardening','automatic-canonical-draft-selection-verification','phase7-trade-ownership-hardening']);
+function createPhase8Closeout(state,input={}){if(!validateGameStateEnvelope(state).valid)throw new Error('Valid GameState required.');const before=JSON.stringify(state);const gate=createPhase8IntegrationGate(state,input);const sourceUnchanged=JSON.stringify(state)===before;const foundationComplete=gate.passed&&sourceUnchanged&&input.foundationTestsPassed===true&&input.reviewFindingsResolved===true;return Object.freeze({kind:'phase8-closeout',version:1,foundationComplete,fullDraftEngineComplete:false,phase9Ready:foundationComplete,gate,sourceUnchanged,foundationTestsPassed:input.foundationTestsPassed===true,reviewFindingsResolved:input.reviewFindingsResolved===true,deferred:DEFERRED,persistencePerformed:false});}
+module.exports={DEFERRED,createPhase8Closeout};
