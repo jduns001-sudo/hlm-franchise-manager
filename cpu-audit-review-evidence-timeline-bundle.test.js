@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./cpu-audit-review-evidence-timeline-bundle');
+const empty=api.build([]);
+assert.equal(empty.readOnly,true);
+assert.equal(empty.summary.count,0);
+assert.match(empty.text,/Snapshots: 0/);
+assert.ok(Object.isFrozen(empty)&&Object.isFrozen(empty.summary));
+assert.deepEqual(api.parse(api.stringify(empty)),empty);
+assert.throws(()=>api.validate({...empty,text:'forged'}),TypeError);
+assert.throws(()=>api.validate({...empty,summary:{...empty.summary,reviewCount:1}}),TypeError);
+assert.throws(()=>api.parse('x'.repeat(1025)),TypeError);
+console.log('Aggregate review evidence timeline bundle tests passed');
