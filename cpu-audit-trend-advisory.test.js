@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {assess,describe}=require('./cpu-audit-trend-advisory');
+const base={kind:'cpu-audit-public-comparison',readOnly:true,changes:{teams:0,players:0,contracts:0,draftPicks:0,transactions:0,prospects:0},issueDelta:0};
+const safe=assess(base);
+assert.equal(safe.requiresReview,false);
+assert.ok(Object.isFrozen(safe)&&Object.isFrozen(safe.warnings));
+const risky=assess({...base,changes:{...base.changes,players:-1,draftPicks:-2},issueDelta:2});
+assert.equal(risky.requiresReview,true);
+assert.deepEqual(risky.warnings,['Data issue count increased','Player count decreased','Draft pick count decreased']);
+assert.match(describe(base),/Advisory only/);
+assert.throws(()=>assess({...base,issueDelta:'1'}),TypeError);
+assert.throws(()=>assess({...base,changes:{...base.changes,players:1.5}}),TypeError);
+console.log('Audit trend advisory tests passed');
