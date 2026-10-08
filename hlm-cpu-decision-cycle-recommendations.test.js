@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createCPUDecisionCycleRecommendations}=require('./hlm-cpu-decision-cycle-recommendations');
+const state=createGameStateEnvelope({teams:[{id:'PIT',name:'Pittsburgh'}],players:[],contracts:[],draftPicks:[]});
+const before=JSON.stringify(state);
+const prioritization={evaluation:{identification:{problems:[{id:'cap-pressure',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'cap-pressure',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]};
+const ready=createCPUDecisionCycleRecommendations(state,'PIT',{prioritization,priorityId:'first',authorized:true,execute:true});
+assert.strictEqual(ready.recommendation.nextStep,'await-authorized-executor');
+assert.strictEqual(ready.recommendation.advisoryOnly,true);
+assert.strictEqual(ready.recommendation.executionEnabled,false);
+const denied=createCPUDecisionCycleRecommendations(state,'PIT',{prioritization,priorityId:'first',execute:true});
+assert.strictEqual(denied.recommendation.nextStep,'request-human-authorization');
+const invalid=createCPUDecisionCycleRecommendations(state,'PIT',{prioritization,priorityId:'missing',authorized:true,execute:true});
+assert.strictEqual(invalid.recommendation.nextStep,'select-valid-action-candidate');
+assert.strictEqual(JSON.stringify(state),before);
+console.log('Phase 9 CPU decision cycle recommendations tests passed.');
