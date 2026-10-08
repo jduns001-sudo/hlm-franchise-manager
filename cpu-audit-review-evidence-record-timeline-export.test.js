@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict');
+const records=require('./cpu-audit-review-evidence-timeline-record');
+const presentation=require('./cpu-audit-review-evidence-timeline-presentation');
+const api=require('./cpu-audit-review-evidence-record-timeline-export');
+const clean={kind:'cpu-audit-public-review-evidence-timeline-summary',readOnly:true,count:2,reviewCount:0,reviewStateChanges:0,transitionCount:1};
+const flagged={...clean,reviewCount:1,reviewStateChanges:1};
+function record(summary){return records.create({kind:'cpu-audit-public-review-evidence-timeline-bundle',readOnly:true,summary,text:presentation.describe(summary)});}
+const a=record(clean),b=record(flagged);
+const v=api.create([a,b,a]);
+assert.equal(v.count,3);
+assert.equal(v.reviewCount,1);
+assert.equal(v.reviewStateChanges,2);
+assert.equal(v.transitionCount,2);
+assert.ok(Object.isFrozen(v));
+assert.deepEqual(api.parse(api.stringify(v)),v);
+assert.deepEqual(api.parse(api.stringify(api.create([]))),api.create([]));
+assert.throws(()=>api.validate({...v,reviewCount:4}),TypeError);
+assert.throws(()=>api.validate({...v,transitionCount:1}),TypeError);
+assert.throws(()=>api.parse('x'.repeat(513)),TypeError);
+console.log('Aggregate review evidence record timeline export tests passed');
