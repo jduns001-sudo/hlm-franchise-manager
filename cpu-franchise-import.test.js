@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('assert');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createSaveEnvelope}=require('./hlm-save-envelope');
+const {parseFranchise}=require('./cpu-franchise-import');
+const state=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT',name:'Pittsburgh'}],players:[{id:'p1'}],contracts:[],draftPicks:[]});
+const before=JSON.stringify(state);
+const preview=parseFranchise(before);
+assert.strictEqual(preview.teamName,'Pittsburgh');
+assert.strictEqual(preview.counts.players,1);
+assert.strictEqual(preview.executionEnabled,false);
+assert.strictEqual(parseFranchise(JSON.stringify(createSaveEnvelope(state))).teamId,'PIT');
+const tampered=createSaveEnvelope(state);tampered.payload+=' ';
+assert.throws(()=>parseFranchise(JSON.stringify(tampered)),/integrity/);
+assert.throws(()=>parseFranchise('{}'),/GameState/);
+assert.strictEqual(JSON.stringify(state),before);
+console.log('Phase 9 Missions 411-415 franchise import tests passed.');
