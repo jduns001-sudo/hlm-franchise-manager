@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./cpu-audit-advisory-report');
+const comparison={kind:'cpu-audit-public-comparison',readOnly:true,changes:{teams:0,players:-2,contracts:0,draftPicks:0,transactions:0,prospects:0},issueDelta:1};
+const result=api.create(comparison);
+assert.deepEqual(api.parse(api.stringify(result)),result);
+assert.deepEqual(result.warnings,['Data issue count increased','Player count decreased']);
+assert.ok(Object.isFrozen(result)&&Object.isFrozen(result.warnings));
+for(const invalid of [{...result,warnings:['Player ID 1']},{...result,requiresReview:false},{...result,warnings:['Player count decreased','Player count decreased']},{...result,issueTrend:'bad'}])assert.throws(()=>api.validate(invalid),TypeError);
+assert.throws(()=>api.parse('x'.repeat(2049)),TypeError);
+assert.throws(()=>api.create({...comparison,issueDelta:'1'}),TypeError);
+console.log('Audit advisory report tests passed');
