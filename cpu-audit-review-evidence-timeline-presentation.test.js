@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const api=require('./cpu-audit-review-evidence-timeline-presentation');
+const valid={kind:'cpu-audit-public-review-evidence-timeline-summary',readOnly:true,count:3,reviewCount:1,reviewStateChanges:2,transitionCount:2};
+const lines=api.lines(valid);
+assert.equal(lines.length,5);
+assert.ok(Object.isFrozen(lines));
+assert.match(api.describe(valid),/Human-review snapshots: 1/);
+assert.match(api.describe(valid),/Transitions: 2/);
+assert.throws(()=>api.lines({...valid,reviewCount:4}),TypeError);
+assert.throws(()=>api.lines({...valid,transitionCount:0}),TypeError);
+console.log('Aggregate review evidence timeline presentation tests passed');
