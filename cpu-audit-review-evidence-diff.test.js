@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const bundle=require('./cpu-audit-summary-bundle');
+const evidence=require('./cpu-audit-review-evidence');
+const diff=require('./cpu-audit-review-evidence-diff');
+const clear={kind:'cpu-audit-public-advisory',readOnly:true,requiresReview:false,changed:false,issueTrend:'unchanged',warnings:[]};
+const flagged={...clear,requiresReview:true,changed:true,issueTrend:'increased',warnings:['Data issue count increased']};
+const a=evidence.create(bundle.build([clear]));
+const b=evidence.create(bundle.build([clear,flagged]));
+const d=diff.compare(a,b);
+assert.equal(d.reviewChanged,true);
+assert.equal(d.reportCountDelta,1);
+assert.deepEqual(d.addedReasons,['Advisory history contains review flags','Latest advisory requires review']);
+assert.deepEqual(diff.compare(b,a).resolvedReasons,d.addedReasons);
+assert.ok(Object.isFrozen(d)&&Object.isFrozen(d.addedReasons));
+assert.match(diff.describe(a,b),/New review reasons: 2/);
+assert.throws(()=>diff.compare({...a,requiresHumanReview:true},b),TypeError);
+console.log('Aggregate advisory review evidence diff tests passed');
