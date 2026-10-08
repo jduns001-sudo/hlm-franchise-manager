@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {analyze,describe}=require('./cpu-audit-comparison-diagnostics');
+const base={kind:'cpu-audit-public-comparison',readOnly:true,changes:{teams:0,players:2,contracts:-1,draftPicks:0,transactions:0,prospects:0},issueDelta:-3};
+const v=analyze(base);
+assert.deepEqual(v.increased,['players']);
+assert.deepEqual(v.decreased,['contracts']);
+assert.equal(v.issueTrend,'decreased');
+assert.equal(v.changed,true);
+assert.ok(Object.isFrozen(v)&&Object.isFrozen(v.increased));
+assert.match(describe(base),/Data issues: decreased/);
+assert.equal(analyze({...base,changes:Object.fromEntries(Object.keys(base.changes).map(k=>[k,0])),issueDelta:0}).changed,false);
+assert.throws(()=>analyze({...base,changes:{...base.changes,players:'2'}}),TypeError);
+assert.throws(()=>analyze({...base,issueDelta:Infinity}),TypeError);
+console.log('Aggregate audit diagnostics tests passed');
