@@ -1,0 +1,22 @@
+'use strict';
+const assert=require('node:assert/strict');
+const evidence=require('./cpu-audit-review-evidence-record-timeline-evidence');
+const presentation=require('./cpu-audit-review-evidence-record-timeline-presentation');
+const bundles=require('./cpu-audit-review-evidence-record-history-bundle');
+const api=require('./cpu-audit-review-evidence-record-history-evidence');
+const clean={kind:'cpu-audit-public-review-evidence-record-timeline-summary',readOnly:true,count:2,reviewCount:0,reviewStateChanges:0,transitionCount:1};
+const flagged={...clean,reviewCount:1,reviewStateChanges:1};
+function record(summary){return evidence.create({kind:'cpu-audit-public-review-evidence-record-timeline-bundle',readOnly:true,summary,text:presentation.describe(summary)});}
+const a=record(clean),b=record(flagged);
+const value=api.create(bundles.build([a,b]));
+assert.equal(value.summary.count,2);
+assert.equal(value.requiresHumanReview,true);
+assert.equal(value.reasons.length,2);
+assert.ok(Object.isFrozen(value)&&Object.isFrozen(value.reasons));
+assert.deepEqual(api.parse(api.stringify(value)),value);
+assert.equal(api.create(bundles.build([a,a])).requiresHumanReview,false);
+assert.throws(()=>api.validate({...value,requiresHumanReview:false}),TypeError);
+assert.throws(()=>api.validate({...value,reasons:['forged']}),TypeError);
+assert.throws(()=>api.validate({...value,summary:{...value.summary,count:21}}),TypeError);
+assert.throws(()=>api.parse('x'.repeat(1025)),TypeError);
+console.log('Aggregate review evidence record history evidence tests passed');
