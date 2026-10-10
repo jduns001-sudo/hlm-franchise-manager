@@ -1,0 +1,23 @@
+'use strict';
+const assert=require('node:assert/strict');
+const records=require('./cpu-audit-review-evidence-timeline-record');
+const presentation=require('./cpu-audit-review-evidence-timeline-presentation');
+const bundles=require('./cpu-audit-review-evidence-record-timeline-bundle');
+const api=require('./cpu-audit-review-evidence-record-timeline-gate');
+const clean={kind:'cpu-audit-public-review-evidence-timeline-summary',readOnly:true,count:2,reviewCount:0,reviewStateChanges:0,transitionCount:1};
+const flagged={...clean,reviewCount:1,reviewStateChanges:1};
+function record(summary){return records.create({kind:'cpu-audit-public-review-evidence-timeline-bundle',readOnly:true,summary,text:presentation.describe(summary)});}
+const a=record(clean),b=record(flagged);
+const empty=api.assess(bundles.build([]));
+assert.equal(empty.requiresHumanReview,true);
+assert.equal(empty.reasons.length,1);
+const safe=api.assess(bundles.build([a,a]));
+assert.equal(safe.requiresHumanReview,false);
+const review=api.assess(bundles.build([a,b]));
+assert.equal(review.requiresHumanReview,true);
+assert.equal(review.reasons.length,2);
+assert.equal(review.snapshotCount,2);
+assert.ok(Object.isFrozen(review)&&Object.isFrozen(review.reasons));
+assert.match(api.describe(bundles.build([a,b])),/human review needed/);
+assert.throws(()=>api.assess({...bundles.build([a,b]),text:'forged'}),TypeError);
+console.log('Aggregate review evidence record timeline gate tests passed');
