@@ -1,0 +1,23 @@
+'use strict';
+const assert=require('node:assert/strict');
+const bundles=require('./cpu-audit-review-evidence-record-timeline-bundle');
+const evidence=require('./cpu-audit-review-evidence-record-timeline-evidence');
+const api=require('./cpu-audit-review-evidence-record-timeline-evidence-diff');
+const empty=evidence.create(bundles.build([]));
+const baseline={kind:'cpu-audit-public-review-evidence-record-timeline-summary',readOnly:true,count:2,reviewCount:0,reviewStateChanges:0,transitionCount:1};
+const flagged={...baseline,reviewCount:1,reviewStateChanges:1};
+const presentation=require('./cpu-audit-review-evidence-record-timeline-presentation');
+function fromSummary(summary){return evidence.create({kind:'cpu-audit-public-review-evidence-record-timeline-bundle',readOnly:true,summary,text:presentation.describe(summary)});}
+const a=fromSummary(baseline),b=fromSummary(flagged);
+const d=api.compare(a,b);
+assert.equal(d.reviewChanged,true);
+assert.equal(d.reviewCountDelta,1);
+assert.equal(d.reviewStateChangesDelta,1);
+assert.equal(d.addedReasons.length,2);
+assert.ok(Object.isFrozen(d)&&Object.isFrozen(d.addedReasons));
+assert.equal(api.compare(a,a).reviewChanged,false);
+assert.equal(api.compare(empty,a).reviewChanged,true);
+assert.match(api.describe(a,b),/Review requirement changed: true/);
+assert.throws(()=>api.compare({...a,requiresHumanReview:true},b),TypeError);
+assert.throws(()=>api.compare(a,{...b,reasons:['forged']}),TypeError);
+console.log('Aggregate review evidence record timeline evidence comparison tests passed');
