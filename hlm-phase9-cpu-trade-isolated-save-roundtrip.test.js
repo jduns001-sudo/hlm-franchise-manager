@@ -23,7 +23,7 @@ assert.equal(repo.has('bad'),false);
 const corrupt=createMemorySaveRepository();
 const sabotaged={has:corrupt.has,save:corrupt.save,remove:corrupt.remove,load:()=>({state})};
 assert.throws(()=>verifyIsolatedCPUTradeSaveRoundTrip({state,teamId:'BUF',trade,repository:sabotaged,slotId:'rollback'}),e=>e.code==='CPU_TRADE_SAVE_ROUNDTRIP_MISMATCH');
-assert.equal(corrupt.has('rollback'),false);
+assert.equal(corrupt.has('rollback'),true); // Cannot verify slot ownership through sabotaged loader.
 const partial=createMemorySaveRepository();
 const writeThenThrow={
  has:partial.has,load:partial.load,remove:partial.remove,
@@ -38,5 +38,13 @@ const competingWriter={has:raced.has,load:raced.load,remove:raced.remove,
 assert.throws(()=>verifyIsolatedCPUTradeSaveRoundTrip({state,teamId:'BUF',trade,repository:competingWriter,slotId:'raced'}),e=>e.code==='SAVE_SLOT_EXISTS');
 assert.equal(raced.has('raced'),true);
 assert.deepEqual(raced.load('raced').state,state);
+const replaced=createMemorySaveRepository();
+const competingReplacement={
+ has:replaced.has,save:replaced.save,remove:replaced.remove,
+ load:(id)=>{replaced.save(id,state,{}, {replace:true});return replaced.load(id);}
+};
+assert.throws(()=>verifyIsolatedCPUTradeSaveRoundTrip({state,teamId:'BUF',trade,repository:competingReplacement,slotId:'replacement'}),e=>e.code==='CPU_TRADE_SAVE_ROUNDTRIP_MISMATCH');
+assert.equal(replaced.has('replacement'),true);
+assert.deepEqual(replaced.load('replacement').state,state);
 assert.deepEqual(repo.load('original').state,state);
 console.log('Phase 9 isolated CPU trade save round-trip tests passed');
