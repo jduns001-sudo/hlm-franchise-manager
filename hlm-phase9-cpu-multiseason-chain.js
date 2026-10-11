@@ -13,6 +13,21 @@ function createSequentialCPUSeasonTransitionCandidates(state,transitions){
  for(const [index,transition] of transitions.entries()){
   if(!transition||typeof transition!=='object'||Array.isArray(transition))
    fail('CPU_MULTI_SEASON_INVALID_STEP','Transition object required');
+  // Between transitions, only an explicitly supplied season completion record can close the prior season.
+  if(index>0){
+   const completion=transition.completedSeason;
+   if(!completion||completion.seasonId!==transition.fromSeasonId||
+      typeof completion.championTeamId!=='string'||!completion.championTeamId.trim())
+    fail('CPU_MULTI_SEASON_COMPLETION_REQUIRED','Explicit completed-season result required for subsequent transition');
+   if(!current.universe.teams.some(t=>String(t.id)===completion.championTeamId))
+    fail('CPU_MULTI_SEASON_CHAMPION_UNKNOWN','Champion team must exist');
+   const active=current.history.seasons.filter(s=>String(s.id??s.seasonId)===completion.seasonId&&s.status==='active');
+   if(active.length!==1)fail('CPU_MULTI_SEASON_COMPLETION_MISMATCH','Exactly one matching active season required');
+   current=JSON.parse(JSON.stringify(current));
+   const season=current.history.seasons.find(s=>String(s.id??s.seasonId)===completion.seasonId);
+   season.status='completed';
+   season.champion=completion.championTeamId;
+  }
   const result=createCPUSeasonTransitionCandidate(current,transition);
   current=result.candidateState;
   summaries.push(Object.freeze({index,fromSeasonId:result.fromSeasonId,toSeasonId:result.toSeasonId,
