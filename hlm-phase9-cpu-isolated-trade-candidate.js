@@ -40,17 +40,17 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
      const rowsForTeam=team=>financeRows.filter(row=>row&&String(row.teamId)===team);
      const from=rowsForTeam(leg.fromTeamId),to=rowsForTeam(leg.toTeamId);
      if(from.length!==1||to.length!==1||
-        from.some(row=>!Number.isFinite(row.payroll)||!Number.isFinite(row.capLimit))||
-        to.some(row=>!Number.isFinite(row.payroll)||!Number.isFinite(row.capLimit))||
+        from.some(row=>!Number.isSafeInteger(row.payroll)||!Number.isSafeInteger(row.capLimit))||
+        to.some(row=>!Number.isSafeInteger(row.payroll)||!Number.isSafeInteger(row.capLimit))||
         String(from[0].seasonId??'')!==String(to[0].seasonId??'')||
-        linkedContracts.length!==1||!Number.isFinite(linkedContracts[0].aav)||linkedContracts[0].aav<0)
+        linkedContracts.length!==1||!Number.isSafeInteger(linkedContracts[0].aav)||linkedContracts[0].aav<0)
       fail('CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED','Exact matching finance rows and one numeric contract AAV required');
      if(from[0].payroll<0||to[0].payroll<0||from[0].capLimit<0||to[0].capLimit<0||
         from[0].payroll>from[0].capLimit||to[0].payroll>to[0].capLimit)
       fail('CPU_TRADE_INVALID_BASELINE_FINANCES','Trade cannot reconcile invalid or already over-cap baseline payroll');
      const aav=linkedContracts[0].aav;
      const fromPayroll=from[0].payroll-aav,toPayroll=to[0].payroll+aav;
-     if(!Number.isFinite(fromPayroll)||!Number.isFinite(toPayroll)||fromPayroll<0||
+     if(!Number.isSafeInteger(fromPayroll)||!Number.isSafeInteger(toPayroll)||fromPayroll<0||
         fromPayroll>from[0].capLimit||toPayroll>to[0].capLimit)
       fail('CPU_TRADE_CAP_LIMIT_EXCEEDED','Trade would produce invalid payroll or exceed team cap');
      const candidateRows=Array.isArray(candidate.finances)?candidate.finances:Object.values(candidate.finances||{});
