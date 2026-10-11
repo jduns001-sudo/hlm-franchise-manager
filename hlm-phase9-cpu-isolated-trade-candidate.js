@@ -25,6 +25,13 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
    const key=asset.type+':'+asset.id;
    if(seen.has(key))fail('CPU_TRADE_DUPLICATE_ASSET','Same asset cannot move twice');
    seen.add(key);
+   if(asset.type==='player'||asset.type==='prospect'){
+    if(state.assets.contracts.some(contract=>String(contract.playerId)===asset.id))
+     fail('CPU_TRADE_CONTRACT_TRANSFER_NOT_IMPLEMENTED','Contracted player trade requires contract transfer and cap reconciliation');
+    const financeRows=Array.isArray(state.finances)?state.finances:Object.values(state.finances||{});
+    if(financeRows.some(row=>row&&[leg.fromTeamId,leg.toTeamId].includes(String(row.teamId))))
+     fail('CPU_TRADE_CAP_RECONCILIATION_NOT_IMPLEMENTED','Player trade requires salary cap and payroll reconciliation');
+   }
    const original=asset.type==='draft-pick'?state.assets.draftPicks.find(p=>String(p.id??p.pickId)===asset.id):state.universe.players.find(p=>String(p.id)===asset.id);
    if(!original)fail('CPU_TRADE_ASSET_NOT_FOUND','Source asset not found');
    const owner=asset.type==='draft-pick'?original.currentOwnerId??original.ownerTeamId??original.teamId:original.teamId;
