@@ -16,4 +16,8 @@ const direct=createTradeExecutionCandidate(state,input);
 assert.equal(direct.candidateState.assets.draftPicks[0].currentOwnerId,'BUF');
 const bad=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'}],draftPicks:[{pickId:'d1',currentOwnerId:'BUF',ownerTeamId:'NYR'}]});
 assert.throws(()=>createIsolatedCPUTradeCandidate(bad,'BUF',input),/owner differs from sending team/i);
+const conflicted=createGameStateEnvelope({meta:state.meta,teams:state.universe.teams,draftPicks:[{pickId:'d1',currentOwnerId:'NYR',ownerTeamId:'BUF'}]});
+assert.throws(()=>createIsolatedCPUTradeCandidate(conflicted,'BUF',input),e=>e.code==='CPU_TRADE_PICK_OWNER_CONFLICT');
+assert.equal(conflicted.assets.draftPicks[0].currentOwnerId,'NYR');
+assert.equal(conflicted.assets.draftPicks[0].ownerTeamId,'BUF');
 console.log('Phase 9 CPU trade canonical draft pick ownership tests passed');
