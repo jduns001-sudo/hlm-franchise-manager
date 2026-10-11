@@ -50,7 +50,11 @@ assert.throws(()=>createIsolatedCPUTradeCandidate(invalidBaseline,'BUF',input),e
 const negativeBaseline=createGameStateEnvelope({meta:financed.meta,teams:financed.universe.teams,players:financed.universe.players,draftPicks:financed.assets.draftPicks,contracts:financed.assets.contracts,finances:{buf:financed.finances.buf,nyr:{...financed.finances.nyr,payroll:-1}}});
 assert.throws(()=>createIsolatedCPUTradeCandidate(negativeBaseline,'BUF',input),e=>e.code==='CPU_TRADE_INVALID_BASELINE_FINANCES');
 const overflow=createGameStateEnvelope({meta:financed.meta,teams:financed.universe.teams,players:financed.universe.players,draftPicks:financed.assets.draftPicks,contracts:[{playerId:'p1',teamId:'BUF',aav:Number.MAX_VALUE}],finances:{buf:{...financed.finances.buf,payroll:Number.MAX_VALUE,capLimit:Number.MAX_VALUE},nyr:{...financed.finances.nyr,payroll:Number.MAX_VALUE,capLimit:Number.MAX_VALUE}}});
-assert.throws(()=>createIsolatedCPUTradeCandidate(overflow,'BUF',input),e=>e.code==='CPU_TRADE_CAP_LIMIT_EXCEEDED');
+assert.throws(()=>createIsolatedCPUTradeCandidate(overflow,'BUF',input),e=>e.code==='CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED');
+const fractional=createGameStateEnvelope({meta:financed.meta,teams:financed.universe.teams,players:financed.universe.players,draftPicks:financed.assets.draftPicks,contracts:[{playerId:'p1',teamId:'BUF',aav:3000000.5}],finances:financed.finances});
+assert.throws(()=>createIsolatedCPUTradeCandidate(fractional,'BUF',input),e=>e.code==='CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED');
+const imprecise=createGameStateEnvelope({meta:financed.meta,teams:financed.universe.teams,players:financed.universe.players,draftPicks:financed.assets.draftPicks,contracts:financed.assets.contracts,finances:{buf:{...financed.finances.buf,payroll:Number.MAX_SAFE_INTEGER+1},nyr:financed.finances.nyr}});
+assert.throws(()=>createIsolatedCPUTradeCandidate(imprecise,'BUF',input),e=>e.code==='CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED');
 const duplicateContracts=createGameStateEnvelope({meta:financed.meta,teams:financed.universe.teams,players:financed.universe.players,draftPicks:financed.assets.draftPicks,contracts:[{playerId:'p1',teamId:'BUF',aav:1000000},{playerId:'p1',teamId:'BUF',aav:2000000}]});
 assert.throws(()=>createIsolatedCPUTradeCandidate(duplicateContracts,'BUF',input),e=>e.code==='CPU_TRADE_MULTIPLE_LINKED_CONTRACTS');
 assert.equal(duplicateContracts.assets.contracts[0].teamId,'BUF');
