@@ -20,6 +20,10 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
  const candidate=result.candidateState;
  const teams=new Set(state.universe.teams.map(team=>String(team.id)));
  const seen=new Set();
+ const financeRowsForTrade=Array.isArray(state.finances)?state.finances:Object.values(state.finances||{});
+ const playerMoves=result.gate.verification.candidate.legs.flatMap(leg=>leg.assets.filter(asset=>asset.type==='player'||asset.type==='prospect'));
+ if(playerMoves.length>1&&financeRowsForTrade.some(row=>row&&result.gate.verification.candidate.teamIds.map(String).includes(String(row.teamId))))
+  fail('CPU_TRADE_MULTI_PLAYER_CAP_UNSUPPORTED','Multi-player financial reconciliation is not yet supported');
  for(const leg of result.gate.verification.candidate.legs){
   for(const asset of leg.assets){
    const key=asset.type+':'+asset.id;
