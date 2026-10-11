@@ -1,0 +1,44 @@
+'use strict';
+// Executes only an isolated candidate trade. Never changes the source save.
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {inspectCPUExecutionBoundary}=require('./hlm-phase9-cpu-execution-boundary');
+const {createTradeExecutionCandidate}=require('./hlm-trade-execution-candidate');
+function fail(code,message){const error=new Error(message);error.code=code;throw error;}
+function createIsolatedCPUTradeCandidate(state,teamId,input={}){
+ if(!validateGameStateEnvelope(state).valid)fail('INVALID_CPU_TRADE_STATE','Valid GameState required');
+ const id=String(teamId??'');
+ if(!state.universe.teams.some(team=>String(team.id)===id))fail('CPU_TRADE_TEAM_NOT_FOUND','CPU team not found');
+ const controlled=state.meta?.controlledTeamId;
+ if(controlled!=null&&String(controlled)===id)fail('CPU_TRADE_HUMAN_TEAM_PROTECTED','CPU cannot control the human franchise');
+ if(input.humanGMApproved!==true)fail('CPU_TRADE_APPROVAL_REQUIRED','Explicit human approval required for this isolated trade path');
+ if(!Array.isArray(input.teamIds)||!input.teamIds.map(String).includes(id))fail('CPU_TRADE_PARTICIPANT_REQUIRED','CPU team must participate');
+ if(controlled!=null&&input.teamIds.map(String).includes(String(controlled)))fail('CPU_TRADE_HUMAN_TEAM_PROTECTED','Human-controlled franchise cannot be traded by CPU integration');
+ const before=JSON.stringify(state);
+ const boundary=inspectCPUExecutionBoundary(state,id,{decision:input.decision||{}});
+ const result=createTradeExecutionCandidate(state,input);
+ if(!result.verification.sourceGameStateProtected||JSON.stringify(state)!==before)fail('CPU_TRADE_SOURCE_CHANGED','Source GameState changed');
+ const candidate=result.candidateState;
+ const teams=new Set(state.universe.teams.map(team=>String(team.id)));
+ const seen=new Set();
+ for(const leg of result.gate.verification.candidate.legs){
+  for(const asset of leg.assets){
+   const key=asset.type+':'+asset.id;
+   if(seen.has(key))fail('CPU_TRADE_DUPLICATE_ASSET','Same asset cannot move twice');
+   seen.add(key);
+   const original=asset.type==='draft-pick'?state.assets.draftPicks.find(p=>String(p.id??p.pickId)===asset.id):state.universe.players.find(p=>String(p.id)===asset.id);
+   if(!original)fail('CPU_TRADE_ASSET_NOT_FOUND','Source asset not found');
+   const owner=asset.type==='draft-pick'?original.currentOwnerId??original.ownerTeamId??original.teamId:original.teamId;
+   if(String(owner)!==leg.fromTeamId)fail('CPU_TRADE_OWNERSHIP_MISMATCH','Actual asset owner differs from sending team');
+   if(!teams.has(leg.toTeamId))fail('CPU_TRADE_DESTINATION_UNKNOWN','Receiving team missing');
+   const moved=asset.type==='draft-pick'?candidate.assets.draftPicks.find(p=>String(p.id??p.pickId)===asset.id):candidate.universe.players.find(p=>String(p.id)===asset.id);
+   if(!moved||String(asset.type==='draft-pick'?(moved.currentOwnerId??moved.ownerTeamId??moved.teamId):moved.teamId)!==leg.toTeamId)
+    fail('CPU_TRADE_CANDIDATE_MISMATCH','Candidate ownership not updated correctly');
+  }
+ }
+ if(!validateGameStateEnvelope(candidate).valid)fail('CPU_TRADE_CANDIDATE_INVALID','Candidate invalid');
+ return Object.freeze({kind:'phase9-isolated-cpu-trade-candidate',version:1,teamId:id,
+  candidateState:candidate,boundary,assetCount:seen.size,sourceStateMutated:false,
+  candidateOnly:true,liveExecutionPerformed:false,persistencePerformed:false,
+  readyForLiveExecution:false});
+}
+module.exports={createIsolatedCPUTradeCandidate};
