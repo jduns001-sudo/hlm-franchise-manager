@@ -5,7 +5,7 @@ function fail(code,message){const e=new Error(message);e.code=code;throw e;}
 function clone(v){return JSON.parse(JSON.stringify(v));}
 function applyAssetMove(state,asset,toTeamId){
  if(asset.type==='player'||asset.type==='prospect'){const p=state.universe.players.find(x=>String(x.id)===asset.id);if(!p)fail('TRADE_EXECUTION_PLAYER_NOT_FOUND','Player asset not found.');p.teamId=toTeamId;return;}
- if(asset.type==='draft-pick'){const p=state.assets.draftPicks.find(x=>String(x.id??x.pickId)===asset.id);if(!p)fail('TRADE_EXECUTION_PICK_NOT_FOUND','Draft pick not found.');p.ownerTeamId=toTeamId;return;}
+ if(asset.type==='draft-pick'){const p=state.assets.draftPicks.find(x=>String(x.id??x.pickId)===asset.id);if(!p)fail('TRADE_EXECUTION_PICK_NOT_FOUND','Draft pick not found.');p.ownerTeamId=toTeamId;if(Object.prototype.hasOwnProperty.call(p,'currentOwnerId'))p.currentOwnerId=toTeamId;return;}
  fail('TRADE_EXECUTION_ASSET_NOT_ACTIVATED','Asset type is not activated for candidate movement.');
 }
 function createTradeExecutionCandidate(state,input={}){
