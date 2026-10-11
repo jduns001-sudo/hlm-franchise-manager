@@ -12,9 +12,9 @@ function createCPUSeasonTransitionCandidate(state,{fromSeasonId,toSeasonId,nextD
  if(old.length!==1)fail('CPU_SEASON_TRANSITION_SOURCE_SEASON','Exactly one source season required');
  if(state.history.seasons.some(s=>String(s.id??s.seasonId)===toSeasonId))
   fail('CPU_SEASON_TRANSITION_TARGET_EXISTS','Target season already exists');
+ if(old[0].status!=='completed')fail('CPU_SEASON_TRANSITION_NOT_COMPLETED','Source season must be completed');
  if(state.history.seasons.some(s=>s.status==='active'))
   fail('CPU_SEASON_TRANSITION_ACTIVE_SEASON','Cannot create a new active season while another is active');
- if(old[0].status!=='completed')fail('CPU_SEASON_TRANSITION_NOT_COMPLETED','Source season must be completed');
  if(!/^\d{4}-\d{2}-\d{2}$/.test(nextDate)||!Number.isFinite(Date.parse(nextDate))||
     new Date(nextDate).toISOString().slice(0,10)!==nextDate)
   fail('CPU_SEASON_TRANSITION_INVALID_DATE','Valid next date required');
