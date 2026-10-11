@@ -58,4 +58,10 @@ assert.throws(()=>createIsolatedCPUTradeCandidate(imprecise,'BUF',input),e=>e.co
 const duplicateContracts=createGameStateEnvelope({meta:financed.meta,teams:financed.universe.teams,players:financed.universe.players,draftPicks:financed.assets.draftPicks,contracts:[{playerId:'p1',teamId:'BUF',aav:1000000},{playerId:'p1',teamId:'BUF',aav:2000000}]});
 assert.throws(()=>createIsolatedCPUTradeCandidate(duplicateContracts,'BUF',input),e=>e.code==='CPU_TRADE_MULTIPLE_LINKED_CONTRACTS');
 assert.equal(duplicateContracts.assets.contracts[0].teamId,'BUF');
+const duplicatedPlayer=createGameStateEnvelope({meta:state.meta,teams:state.universe.teams,players:[{id:'p1',teamId:'BUF'},{id:'p1',teamId:'BUF'}],draftPicks:state.assets.draftPicks});
+assert.throws(()=>createIsolatedCPUTradeCandidate(duplicatedPlayer,'BUF',input),e=>e.code==='CPU_TRADE_DUPLICATE_SOURCE_RECORD');
+assert.equal(duplicatedPlayer.universe.players.every(p=>p.teamId==='BUF'),true);
+const duplicatedPick=createGameStateEnvelope({meta:state.meta,teams:state.universe.teams,players:state.universe.players,draftPicks:[{pickId:'d1',ownerTeamId:'NYR'},{pickId:'d1',ownerTeamId:'NYR'}]});
+assert.throws(()=>createIsolatedCPUTradeCandidate(duplicatedPick,'BUF',input),e=>e.code==='CPU_TRADE_DUPLICATE_SOURCE_RECORD');
+assert.equal(duplicatedPick.assets.draftPicks.every(p=>p.ownerTeamId==='NYR'),true);
 console.log('Phase 9 isolated CPU trade candidate integration tests passed');
