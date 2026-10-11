@@ -24,4 +24,12 @@ const corrupt=createMemorySaveRepository();
 const sabotaged={has:corrupt.has,save:corrupt.save,remove:corrupt.remove,load:()=>({state})};
 assert.throws(()=>verifyIsolatedCPUTradeSaveRoundTrip({state,teamId:'BUF',trade,repository:sabotaged,slotId:'rollback'}),e=>e.code==='CPU_TRADE_SAVE_ROUNDTRIP_MISMATCH');
 assert.equal(corrupt.has('rollback'),false);
+const partial=createMemorySaveRepository();
+const writeThenThrow={
+ has:partial.has,load:partial.load,remove:partial.remove,
+ save:(...args)=>{partial.save(...args);throw Object.assign(new Error('Disk error after write'),{code:'DISK_AFTER_WRITE'});}
+};
+assert.throws(()=>verifyIsolatedCPUTradeSaveRoundTrip({state,teamId:'BUF',trade,repository:writeThenThrow,slotId:'partial'}),e=>e.code==='DISK_AFTER_WRITE');
+assert.equal(partial.has('partial'),false);
+assert.deepEqual(repo.load('original').state,state);
 console.log('Phase 9 isolated CPU trade save round-trip tests passed');
