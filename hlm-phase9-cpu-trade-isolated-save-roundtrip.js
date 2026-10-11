@@ -25,9 +25,13 @@ function verifyIsolatedCPUTradeSaveRoundTrip({state,teamId,trade,repository,slot
    candidateOnly:true,productionCPUExecutionEnabled:false,assetCount:candidate.assetCount});
  }catch(error){
   try{
-   // Never delete a slot that another writer may have created after our initial has() check.
-   // On an ambiguous failed write, preserve the slot for manual recovery.
-   if(written)repository.remove(id);
+   // A failed verification may have followed a competing writer's replacement.
+   // Preserve ambiguous save slots instead of deleting data we cannot prove we own.
+   if(written && repository.has(id)){
+    const persisted=repository.load(id)?.state;
+    if(validateGameStateEnvelope(persisted).valid &&
+       serializeGameState(persisted)===expected)repository.remove(id);
+   }
   }catch(rollbackError){error.rollbackError=rollbackError;}
   throw error;
  }
