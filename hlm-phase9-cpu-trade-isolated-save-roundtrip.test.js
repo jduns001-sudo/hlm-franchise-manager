@@ -5,7 +5,7 @@ const {createMemorySaveRepository}=require('./hlm-save-repository');
 const {verifyIsolatedCPUTradeSaveRoundTrip}=require('./hlm-phase9-cpu-trade-isolated-save-roundtrip');
 const state=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'}],players:[{id:'p1',teamId:'BUF'}],draftPicks:[{pickId:'d1',ownerTeamId:'NYR',currentOwnerId:'NYR'}]});
 const before=JSON.stringify(state);
-const trade={teamIds:['BUF','NYR'],legs:[{fromTeamId:'BUF',toTeamId:'NYR',assets:[{type:'player',id:'p1',ownerTeamId:'BUF'}]},{fromTeamId:'NYR',toTeamId:'BUF',assets:[{type:'draft-pick',id:'d1',ownerTeamId:'NYR'}]}],playerProtectionVerified:true,leagueRulesVerified:true,capRulesVerified:true,humanGMApproved:true};
+const trade={teamIds:['BUF','NYR'],legs:[{fromTeamId:'BUF',toTeamId:'NYR',assets:[{type:'player',id:'p1',ownerTeamId:'BUF'}]},{fromTeamId:'NYR',toTeamId:'BUF',assets:[{type:'draft-pick',id:'d1',ownerTeamId:'NYR'}]}],playerProtectionVerified:true,leagueRulesVerified:true,capRulesVerified:true,humanGMApproved:true,transactionId:'cpu-trade-001'};
 const repo=createMemorySaveRepository();
 repo.save('original',state);
 const result=verifyIsolatedCPUTradeSaveRoundTrip({state,teamId:'BUF',trade,repository:repo,slotId:'candidate'});
