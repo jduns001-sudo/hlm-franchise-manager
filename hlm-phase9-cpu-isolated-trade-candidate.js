@@ -30,8 +30,24 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
     if(linkedContracts.some(contract=>String(contract.teamId)!==leg.fromTeamId))
      fail('CPU_TRADE_CONTRACT_OWNER_MISMATCH','Linked contract must belong to sending team');
     const financeRows=Array.isArray(state.finances)?state.finances:Object.values(state.finances||{});
-    if(financeRows.some(row=>row&&[leg.fromTeamId,leg.toTeamId].includes(String(row.teamId))))
-     fail('CPU_TRADE_CAP_RECONCILIATION_NOT_IMPLEMENTED','Player trade requires salary cap and payroll reconciliation');
+    if(financeRows.some(row=>row&&[leg.fromTeamId,leg.toTeamId].includes(String(row.teamId)))){
+     const rowsForTeam=team=>financeRows.filter(row=>row&&String(row.teamId)===team);
+     const from=rowsForTeam(leg.fromTeamId),to=rowsForTeam(leg.toTeamId);
+     if(from.length!==1||to.length!==1||
+        from.some(row=>!Number.isFinite(row.payroll)||!Number.isFinite(row.capLimit))||
+        to.some(row=>!Number.isFinite(row.payroll)||!Number.isFinite(row.capLimit))||
+        String(from[0].seasonId??'')!==String(to[0].seasonId??'')||
+        linkedContracts.length!==1||!Number.isFinite(linkedContracts[0].aav)||linkedContracts[0].aav<0)
+      fail('CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED','Exact matching finance rows and one numeric contract AAV required');
+     const aav=linkedContracts[0].aav;
+     const fromPayroll=from[0].payroll-aav,toPayroll=to[0].payroll+aav;
+     if(fromPayroll<0||toPayroll>to[0].capLimit)
+      fail('CPU_TRADE_CAP_LIMIT_EXCEEDED','Trade would produce negative payroll or exceed receiving team cap');
+     const candidateRows=Array.isArray(candidate.finances)?candidate.finances:Object.values(candidate.finances||{});
+     const cf=candidateRows.find(row=>row&&String(row.teamId)===leg.fromTeamId);
+     const ct=candidateRows.find(row=>row&&String(row.teamId)===leg.toTeamId);
+     cf.payroll=fromPayroll;ct.payroll=toPayroll;
+    }
    }
    const original=asset.type==='draft-pick'?state.assets.draftPicks.find(p=>String(p.id??p.pickId)===asset.id):state.universe.players.find(p=>String(p.id)===asset.id);
    if(!original)fail('CPU_TRADE_ASSET_NOT_FOUND','Source asset not found');
