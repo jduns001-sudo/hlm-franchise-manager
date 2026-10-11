@@ -13,6 +13,14 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
  if(input.humanGMApproved!==true)fail('CPU_TRADE_APPROVAL_REQUIRED','Explicit human approval required for this isolated trade path');
  if(!Array.isArray(input.teamIds)||!input.teamIds.map(String).includes(id))fail('CPU_TRADE_PARTICIPANT_REQUIRED','CPU team must participate');
  if(controlled!=null&&input.teamIds.map(String).includes(String(controlled)))fail('CPU_TRADE_HUMAN_TEAM_PROTECTED','Human-controlled franchise cannot be traded by CPU integration');
+ // Reject ambiguous source records before the underlying candidate mover selects the first match.
+ const movedAssets=Array.isArray(input.legs)?input.legs.flatMap(leg=>Array.isArray(leg.assets)?leg.assets:[]):[];
+ for(const asset of movedAssets){
+  if(!asset||!['player','prospect','draft-pick'].includes(asset.type))continue;
+  const records=asset.type==='draft-pick'?state.assets.draftPicks:state.universe.players;
+  const matches=records.filter(row=>String(asset.type==='draft-pick'?(row.id??row.pickId):row.id)===String(asset.id));
+  if(matches.length>1)fail('CPU_TRADE_DUPLICATE_SOURCE_RECORD','Traded asset ID resolves to multiple source records');
+ }
  const before=JSON.stringify(state);
  const boundary=inspectCPUExecutionBoundary(state,id,{decision:input.decision||{}});
  const result=createTradeExecutionCandidate(state,input);
