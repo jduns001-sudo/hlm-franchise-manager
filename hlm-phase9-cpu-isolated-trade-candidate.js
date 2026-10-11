@@ -31,6 +31,8 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
    seen.add(key);
    if(asset.type==='player'||asset.type==='prospect'){
     const linkedContracts=state.assets.contracts.filter(contract=>String(contract.playerId)===asset.id);
+    if(linkedContracts.length>1)
+     fail('CPU_TRADE_MULTIPLE_LINKED_CONTRACTS','Cannot transfer a player with ambiguous multiple linked contracts');
     if(linkedContracts.some(contract=>String(contract.teamId)!==leg.fromTeamId))
      fail('CPU_TRADE_CONTRACT_OWNER_MISMATCH','Linked contract must belong to sending team');
     const financeRows=Array.isArray(state.finances)?state.finances:Object.values(state.finances||{});
