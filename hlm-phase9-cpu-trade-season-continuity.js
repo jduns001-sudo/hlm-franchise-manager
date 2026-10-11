@@ -16,9 +16,9 @@ function previewCPUTradeSeasonContinuity({repository,sourceSlotId,expectedSource
  const sequence=createSequentialIsolatedCPUTradeCandidates(state,steps);
  const result=sequence.candidateState;
  if(serializeGameState(state)!==sourceFingerprint)fail('CPU_SEASON_SOURCE_CHANGED','Source mutated');
- if(serializeGameState(result.history.seasons)!==serializeGameState(state.history.seasons))
+ if(JSON.stringify(result.history.seasons)!==JSON.stringify(state.history.seasons))
   fail('CPU_SEASON_HISTORY_CHANGED','CPU trades must preserve season history');
- if(serializeGameState(result.meta)!==serializeGameState(state.meta))
+ if(JSON.stringify(result.meta)!==JSON.stringify(state.meta))
   fail('CPU_SEASON_META_CHANGED','CPU trades must not advance calendar or controlled team');
  const newTransactions=result.activity.transactions.slice(state.activity.transactions.length);
  if(newTransactions.length!==steps.length||newTransactions.some(t=>t.type!=='cpu-trade'))
