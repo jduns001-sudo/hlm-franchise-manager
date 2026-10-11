@@ -61,6 +61,9 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
    }
    const original=asset.type==='draft-pick'?state.assets.draftPicks.find(p=>String(p.id??p.pickId)===asset.id):state.universe.players.find(p=>String(p.id)===asset.id);
    if(!original)fail('CPU_TRADE_ASSET_NOT_FOUND','Source asset not found');
+   if(asset.type==='draft-pick'&&original.currentOwnerId!=null&&original.ownerTeamId!=null&&
+      String(original.currentOwnerId)!==String(original.ownerTeamId))
+    fail('CPU_TRADE_PICK_OWNER_CONFLICT','Conflicting draft pick ownership fields must be resolved before trading');
    const owner=asset.type==='draft-pick'?original.currentOwnerId??original.ownerTeamId??original.teamId:original.teamId;
    if(String(owner)!==leg.fromTeamId)fail('CPU_TRADE_OWNERSHIP_MISMATCH','Actual asset owner differs from sending team');
    if(!teams.has(leg.toTeamId))fail('CPU_TRADE_DESTINATION_UNKNOWN','Receiving team missing');
