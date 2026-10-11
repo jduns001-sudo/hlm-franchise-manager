@@ -14,7 +14,7 @@ assert.equal(result.candidateOnly,true);
 assert.equal(result.persistencePerformed,false);
 assert.equal(JSON.stringify(state),before);
 assert.throws(()=>createSequentialIsolatedCPUTradeCandidates(state,[steps[0],{teamId:'NYR',trade:trade('NYR','BOS','trade-1')}]),e=>e.code==='CPU_TRADE_TRANSACTION_ID_DUPLICATE');
-assert.throws(()=>createSequentialIsolatedCPUTradeCandidates(state,[steps[0],{teamId:'NYR',trade:trade('BUF','BOS','trade-2')}]),e=>e.code==='CPU_TRADE_OWNERSHIP_MISMATCH');
+assert.throws(()=>createSequentialIsolatedCPUTradeCandidates(state,[steps[0],{teamId:'BUF',trade:trade('BUF','BOS','trade-2')}]),e=>e.code==='CPU_TRADE_OWNERSHIP_MISMATCH');
 assert.throws(()=>createSequentialIsolatedCPUTradeCandidates(state,[steps[0],{teamId:'PIT',trade:trade('NYR','PIT','trade-2')}]),e=>e.code==='CPU_TRADE_HUMAN_TEAM_PROTECTED');
 assert.throws(()=>createSequentialIsolatedCPUTradeCandidates(state,[]),e=>e.code==='CPU_TRADE_SEQUENCE_EMPTY');
 assert.equal(JSON.stringify(state),before);
