@@ -12,6 +12,8 @@ function verifySequentialCPUTradeSaveRoundTrip({state,steps,repository,slotId}={
  if(repository.has(id))fail('CPU_TRADE_SEQUENCE_SAVE_SLOT_OCCUPIED','Cannot overwrite an existing save');
  const original=serializeGameState(state);
  const sequence=createSequentialIsolatedCPUTradeCandidates(state,steps);
+ // The candidate must not have modified the source before any repository write.
+ if(serializeGameState(state)!==original)fail('CPU_TRADE_SEQUENCE_SOURCE_CHANGED','Original state changed before save');
  const expected=serializeGameState(sequence.candidateState);
  repository.save(id,sequence.candidateState,{saveId:id},{replace:false});
  const loaded=repository.load(id)?.state;
