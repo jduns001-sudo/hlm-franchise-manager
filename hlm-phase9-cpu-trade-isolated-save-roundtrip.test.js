@@ -13,6 +13,8 @@ assert.equal(result.verified,true);
 assert.equal(result.liveFranchiseSaveChanged,false);
 assert.equal(repo.load('candidate').state.universe.players[0].teamId,'NYR');
 assert.equal(repo.load('candidate').state.assets.draftPicks[0].currentOwnerId,'BUF');
+assert.equal(repo.load('candidate').state.activity.transactions.length,1);
+assert.equal(repo.load('candidate').state.activity.transactions[0].id,'cpu-trade-001');
 assert.deepEqual(repo.load('original').state,state);
 assert.equal(JSON.stringify(state),before);
 assert.throws(()=>verifyIsolatedCPUTradeSaveRoundTrip({state,teamId:'BUF',trade,repository:repo,slotId:'candidate'}),e=>e.code==='CPU_TRADE_SAVE_SLOT_OCCUPIED');
