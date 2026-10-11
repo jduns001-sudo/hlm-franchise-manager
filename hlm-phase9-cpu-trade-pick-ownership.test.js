@@ -15,5 +15,5 @@ assert.equal(JSON.stringify(state),before);
 const direct=createTradeExecutionCandidate(state,input);
 assert.equal(direct.candidateState.assets.draftPicks[0].currentOwnerId,'BUF');
 const bad=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'}],draftPicks:[{pickId:'d1',currentOwnerId:'BUF',ownerTeamId:'NYR'}]});
-assert.throws(()=>createIsolatedCPUTradeCandidate(bad,'BUF',input),/ownership/i);
+assert.throws(()=>createIsolatedCPUTradeCandidate(bad,'BUF',input),/owner differs from sending team/i);
 console.log('Phase 9 CPU trade canonical draft pick ownership tests passed');
