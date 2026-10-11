@@ -35,6 +35,19 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
     fail('CPU_TRADE_CANDIDATE_MISMATCH','Candidate ownership not updated correctly');
   }
  }
+ const transactionId=typeof input.transactionId==='string'?input.transactionId.trim():'';
+ if(!transactionId)fail('CPU_TRADE_TRANSACTION_ID_REQUIRED','Unique transaction ID required for audit history');
+ if(state.activity.transactions.some(tx=>String(tx.id)===transactionId))
+  fail('CPU_TRADE_TRANSACTION_ID_DUPLICATE','Transaction ID already recorded');
+ const legs=result.gate.verification.candidate.legs.map(leg=>({
+  fromTeamId:leg.fromTeamId,toTeamId:leg.toTeamId,
+  assets:leg.assets.map(asset=>({type:asset.type,id:asset.id}))
+ }));
+ candidate.activity.transactions.push({
+  id:transactionId,type:'cpu-trade',date:state.meta.currentDate??null,
+  teamIds:result.gate.verification.candidate.teamIds.slice(),legs,
+  humanGMApproved:true,source:'phase9-isolated-cpu-trade-candidate'
+ });
  if(!validateGameStateEnvelope(candidate).valid)fail('CPU_TRADE_CANDIDATE_INVALID','Candidate invalid');
  return Object.freeze({kind:'phase9-isolated-cpu-trade-candidate',version:1,teamId:id,
   candidateState:candidate,boundary,assetCount:seen.size,sourceStateMutated:false,
