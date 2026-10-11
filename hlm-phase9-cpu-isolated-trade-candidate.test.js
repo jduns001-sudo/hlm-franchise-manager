@@ -51,4 +51,7 @@ const negativeBaseline=createGameStateEnvelope({meta:financed.meta,teams:finance
 assert.throws(()=>createIsolatedCPUTradeCandidate(negativeBaseline,'BUF',input),e=>e.code==='CPU_TRADE_INVALID_BASELINE_FINANCES');
 const overflow=createGameStateEnvelope({meta:financed.meta,teams:financed.universe.teams,players:financed.universe.players,draftPicks:financed.assets.draftPicks,contracts:[{playerId:'p1',teamId:'BUF',aav:Number.MAX_VALUE}],finances:{buf:{...financed.finances.buf,payroll:Number.MAX_VALUE,capLimit:Number.MAX_VALUE},nyr:{...financed.finances.nyr,payroll:Number.MAX_VALUE,capLimit:Number.MAX_VALUE}}});
 assert.throws(()=>createIsolatedCPUTradeCandidate(overflow,'BUF',input),e=>e.code==='CPU_TRADE_CAP_LIMIT_EXCEEDED');
+const duplicateContracts=createGameStateEnvelope({meta:financed.meta,teams:financed.universe.teams,players:financed.universe.players,draftPicks:financed.assets.draftPicks,contracts:[{playerId:'p1',teamId:'BUF',aav:1000000},{playerId:'p1',teamId:'BUF',aav:2000000}]});
+assert.throws(()=>createIsolatedCPUTradeCandidate(duplicateContracts,'BUF',input),e=>e.code==='CPU_TRADE_MULTIPLE_LINKED_CONTRACTS');
+assert.equal(duplicateContracts.assets.contracts[0].teamId,'BUF');
 console.log('Phase 9 isolated CPU trade candidate integration tests passed');
