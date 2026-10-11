@@ -30,8 +30,49 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
  const seen=new Set();
  const financeRowsForTrade=Array.isArray(state.finances)?state.finances:Object.values(state.finances||{});
  const playerMoves=result.gate.verification.candidate.legs.flatMap(leg=>leg.assets.filter(asset=>asset.type==='player'||asset.type==='prospect'));
- if(playerMoves.length>1&&financeRowsForTrade.some(row=>row&&result.gate.verification.candidate.teamIds.map(String).includes(String(row.teamId))))
-  fail('CPU_TRADE_MULTI_PLAYER_CAP_UNSUPPORTED','Multi-player financial reconciliation is not yet supported');
+ const participantIds=result.gate.verification.candidate.teamIds.map(String);
+ const hasFinances=financeRowsForTrade.some(row=>row&&participantIds.includes(String(row.teamId)));
+ const deltas=new Map(participantIds.map(id=>[id,0]));
+ if(hasFinances){
+  const financeByTeam=new Map();
+  for(const id of participantIds){
+   const matches=financeRowsForTrade.filter(row=>row&&String(row.teamId)===id);
+   if(matches.length!==1||!Number.isSafeInteger(matches[0].payroll)||!Number.isSafeInteger(matches[0].capLimit))
+    fail('CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED','Exactly one numeric finance record required per participating team');
+   const row=matches[0];
+   if(row.payroll<0||row.capLimit<0||row.payroll>row.capLimit)
+    fail('CPU_TRADE_INVALID_BASELINE_FINANCES','Invalid or over-cap baseline payroll');
+   financeByTeam.set(id,row);
+  }
+  if(new Set([...financeByTeam.values()].map(row=>String(row.seasonId??''))).size!==1)
+   fail('CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED','Participating teams must have matching season');
+  for(const leg of result.gate.verification.candidate.legs){
+   for(const asset of leg.assets.filter(a=>a.type==='player'||a.type==='prospect')){
+    const linked=state.assets.contracts.filter(row=>String(row.playerId)===asset.id);
+    if(linked.length>1)fail('CPU_TRADE_MULTIPLE_LINKED_CONTRACTS','Ambiguous linked contracts');
+    if(linked.length!==1||!Number.isSafeInteger(linked[0].aav)||linked[0].aav<0)
+     fail('CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED','Each moved player requires one safe numeric contract');
+    if(String(linked[0].teamId)!==leg.fromTeamId)
+     fail('CPU_TRADE_CONTRACT_OWNER_MISMATCH','Contract owner mismatch');
+    const amount=linked[0].aav;
+    const debit=deltas.get(leg.fromTeamId)-amount;
+    const credit=deltas.get(leg.toTeamId)+amount;
+    if(!Number.isSafeInteger(debit)||!Number.isSafeInteger(credit))
+     fail('CPU_TRADE_CAP_LIMIT_EXCEEDED','Payroll delta overflow');
+    deltas.set(leg.fromTeamId,debit);
+    deltas.set(leg.toTeamId,credit);
+   }
+  }
+  const candidateRows=Array.isArray(candidate.finances)?candidate.finances:Object.values(candidate.finances||{});
+  for(const [id,row] of financeByTeam){
+   const finalPayroll=row.payroll+deltas.get(id);
+   if(!Number.isSafeInteger(finalPayroll)||finalPayroll<0||finalPayroll>row.capLimit)
+    fail('CPU_TRADE_CAP_LIMIT_EXCEEDED','Net trade payroll invalid or above cap');
+   const target=candidateRows.find(item=>item&&String(item.teamId)===id);
+   if(!target)fail('CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED','Candidate finance record missing');
+   target.payroll=finalPayroll;
+  }
+ }
  for(const leg of result.gate.verification.candidate.legs){
   for(const asset of leg.assets){
    const key=asset.type+':'+asset.id;
@@ -43,29 +84,7 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
      fail('CPU_TRADE_MULTIPLE_LINKED_CONTRACTS','Cannot transfer a player with ambiguous multiple linked contracts');
     if(linkedContracts.some(contract=>String(contract.teamId)!==leg.fromTeamId))
      fail('CPU_TRADE_CONTRACT_OWNER_MISMATCH','Linked contract must belong to sending team');
-    const financeRows=Array.isArray(state.finances)?state.finances:Object.values(state.finances||{});
-    if(financeRows.some(row=>row&&[leg.fromTeamId,leg.toTeamId].includes(String(row.teamId)))){
-     const rowsForTeam=team=>financeRows.filter(row=>row&&String(row.teamId)===team);
-     const from=rowsForTeam(leg.fromTeamId),to=rowsForTeam(leg.toTeamId);
-     if(from.length!==1||to.length!==1||
-        from.some(row=>!Number.isSafeInteger(row.payroll)||!Number.isSafeInteger(row.capLimit))||
-        to.some(row=>!Number.isSafeInteger(row.payroll)||!Number.isSafeInteger(row.capLimit))||
-        String(from[0].seasonId??'')!==String(to[0].seasonId??'')||
-        linkedContracts.length!==1||!Number.isSafeInteger(linkedContracts[0].aav)||linkedContracts[0].aav<0)
-      fail('CPU_TRADE_CAP_RECONCILIATION_UNSUPPORTED','Exact matching finance rows and one numeric contract AAV required');
-     if(from[0].payroll<0||to[0].payroll<0||from[0].capLimit<0||to[0].capLimit<0||
-        from[0].payroll>from[0].capLimit||to[0].payroll>to[0].capLimit)
-      fail('CPU_TRADE_INVALID_BASELINE_FINANCES','Trade cannot reconcile invalid or already over-cap baseline payroll');
-     const aav=linkedContracts[0].aav;
-     const fromPayroll=from[0].payroll-aav,toPayroll=to[0].payroll+aav;
-     if(!Number.isSafeInteger(fromPayroll)||!Number.isSafeInteger(toPayroll)||fromPayroll<0||
-        fromPayroll>from[0].capLimit||toPayroll>to[0].capLimit)
-      fail('CPU_TRADE_CAP_LIMIT_EXCEEDED','Trade would produce invalid payroll or exceed team cap');
-     const candidateRows=Array.isArray(candidate.finances)?candidate.finances:Object.values(candidate.finances||{});
-     const cf=candidateRows.find(row=>row&&String(row.teamId)===leg.fromTeamId);
-     const ct=candidateRows.find(row=>row&&String(row.teamId)===leg.toTeamId);
-     cf.payroll=fromPayroll;ct.payroll=toPayroll;
-    }
+
    }
    const original=asset.type==='draft-pick'?state.assets.draftPicks.find(p=>String(p.id??p.pickId)===asset.id):state.universe.players.find(p=>String(p.id)===asset.id);
    if(!original)fail('CPU_TRADE_ASSET_NOT_FOUND','Source asset not found');
