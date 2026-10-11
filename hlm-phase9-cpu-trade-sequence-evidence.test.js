@@ -16,7 +16,7 @@ assert.notEqual(evidence.sourceStateFingerprint,evidence.candidateStateFingerpri
 assert.equal(JSON.stringify(state),before);
 assert.throws(()=>summarizeCPUTradeSequence(state,[steps[0],{teamId:'NYR',trade:trade('NYR','BOS','t1')}]),e=>e.code==='CPU_TRADE_TRANSACTION_ID_DUPLICATE');
 assert.equal(JSON.stringify(state),before);
-const financed=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'},{id:'BOS'}],players:[{id:'p1',teamId:'BUF'}],contracts:[{playerId:'p1',teamId:'BUF',aav:100}],finances:[{teamId:'BUF',seasonId:'2026',payroll:200,capLimit:1000},{teamId:'NYR',seasonId:'2026',payroll:300,capLimit:1000},{teamId:'BOS',seasonId:'2026',payroll:400,capLimit:1000}]});
+const financed=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'},{id:'BOS'}],players:[{id:'p1',teamId:'BUF'}],contracts:[{playerId:'p1',teamId:'BUF',aav:100}],finances:{BUF:{teamId:'BUF',seasonId:'2026',payroll:200,capLimit:1000},NYR:{teamId:'NYR',seasonId:'2026',payroll:300,capLimit:1000},BOS:{teamId:'BOS',seasonId:'2026',payroll:400,capLimit:1000}}});
 const financialBefore=JSON.stringify(financed);
 const financialEvidence=summarizeCPUTradeSequence(financed,steps);
 assert.deepEqual(financialEvidence.financialChanges,[
