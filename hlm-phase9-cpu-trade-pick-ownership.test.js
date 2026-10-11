@@ -5,7 +5,7 @@ const {createIsolatedCPUTradeCandidate}=require('./hlm-phase9-cpu-isolated-trade
 const {createTradeExecutionCandidate}=require('./hlm-trade-execution-candidate');
 const state=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'}],players:[],draftPicks:[{pickId:'d1',currentOwnerId:'NYR',ownerTeamId:'NYR'}]});
 const before=JSON.stringify(state);
-const input={teamIds:['BUF','NYR'],legs:[{fromTeamId:'NYR',toTeamId:'BUF',assets:[{type:'draft-pick',id:'d1',ownerTeamId:'NYR'}]}],playerProtectionVerified:true,leagueRulesVerified:true,capRulesVerified:true,humanGMApproved:true};
+const input={teamIds:['BUF','NYR'],legs:[{fromTeamId:'NYR',toTeamId:'BUF',assets:[{type:'draft-pick',id:'d1',ownerTeamId:'NYR'}]}],playerProtectionVerified:true,leagueRulesVerified:true,capRulesVerified:true,humanGMApproved:true,transactionId:'cpu-trade-001'};
 const candidate=createIsolatedCPUTradeCandidate(state,'BUF',input);
 assert.equal(candidate.candidateState.assets.draftPicks[0].currentOwnerId,'BUF');
 assert.equal(candidate.candidateState.assets.draftPicks[0].ownerTeamId,'BUF');
