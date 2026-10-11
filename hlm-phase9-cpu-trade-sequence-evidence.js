@@ -20,6 +20,17 @@ function summarizeCPUTradeSequence(state,steps){
    if(String(from)!==String(to))pickMoves.push(Object.freeze({pickId:id,fromTeamId:String(from),toTeamId:String(to)}));
   }
  }
+ // Reject ambiguous source IDs rather than silently omit changes from the audit.
+ for(const [beforeItems,afterItems,key,label] of [
+  [before.universe.players,after.universe.players,x=>String(x.id),'PLAYER'],
+  [before.assets.draftPicks,after.assets.draftPicks,x=>String(x.id??x.pickId),'PICK']
+ ]){
+  const count=items=>{const counts=new Map();for(const item of items){const id=key(item);counts.set(id,(counts.get(id)||0)+1);}return counts;};
+  const oldCount=count(beforeItems),newCount=count(afterItems);
+  if([...oldCount.values(),...newCount.values()].some(n=>n>1)){
+   const e=new Error('Ambiguous '+label.toLowerCase()+' identifier in CPU trade audit');e.code='CPU_TRADE_AUDIT_DUPLICATE_'+label+'_ID';throw e;
+  }
+ }
  const financialChanges=[];
  const rows=finance=>Array.isArray(finance)?finance:Object.values(finance||{});
  const beforeRows=rows(before.finances),afterRows=rows(after.finances);
