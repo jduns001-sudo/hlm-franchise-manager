@@ -7,7 +7,7 @@ const state=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'P
  contracts:[{playerId:'p1',teamId:'BUF',aav:3000000},{playerId:'p2',teamId:'NYR',aav:4000000},{playerId:'p3',teamId:'BOS',aav:2000000}],
  finances:{buf:{teamId:'BUF',seasonId:2030,payroll:17000000,capLimit:20000000},
  nyr:{teamId:'NYR',seasonId:2030,payroll:18000000,capLimit:20000000},
- bos:{teamId:'BOS',seasonId:2030,payroll:19000000,capLimit:20000000}}});
+ bos:{teamId:'BOS',seasonId:2030,payroll:17000000,capLimit:20000000}}});
 const trade={teamIds:['BUF','NYR','BOS'],legs:[
  {fromTeamId:'BUF',toTeamId:'NYR',assets:[{type:'player',id:'p1',ownerTeamId:'BUF'}]},
  {fromTeamId:'NYR',toTeamId:'BOS',assets:[{type:'player',id:'p2',ownerTeamId:'NYR'}]},
@@ -17,7 +17,7 @@ const original=JSON.stringify(state);
 const candidate=createIsolatedCPUTradeCandidate(state,'BUF',trade).candidateState;
 assert.deepEqual(candidate.universe.players.map(p=>p.teamId),['NYR','BOS','BUF']);
 assert.deepEqual(candidate.assets.contracts.map(p=>p.teamId),['NYR','BOS','BUF']);
-assert.deepEqual([candidate.finances.buf.payroll,candidate.finances.nyr.payroll,candidate.finances.bos.payroll],[16000000,17000000,21000000-2000000]);
+assert.deepEqual([candidate.finances.buf.payroll,candidate.finances.nyr.payroll,candidate.finances.bos.payroll],[16000000,17000000,19000000]);
 assert.equal(candidate.activity.transactions.length,1);
 assert.equal(candidate.activity.transactions[0].legs.length,3);
 assert.equal(JSON.stringify(state),original);
