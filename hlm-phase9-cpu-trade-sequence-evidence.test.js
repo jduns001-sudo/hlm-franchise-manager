@@ -26,4 +26,8 @@ assert.deepEqual(financialEvidence.financialChanges,[
 assert.deepEqual(financialEvidence.transactionIds,['t1','t2']);
 assert.equal(JSON.stringify(financed),financialBefore);
 assert.deepEqual(evidence.financialChanges,[]);
+const duplicatePlayer=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'},{id:'BOS'}],players:[{id:'p1',teamId:'BUF'},{id:'p1',teamId:'BOS'}]});
+assert.throws(()=>summarizeCPUTradeSequence(duplicatePlayer,steps),e=>e.code==='CPU_TRADE_SOURCE_DUPLICATE_PLAYER_ID'||e.code==='CPU_TRADE_AUDIT_DUPLICATE_PLAYER_ID');
+const duplicatePick=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'},{id:'BOS'}],players:[{id:'p1',teamId:'BUF'}],draftPicks:[{id:'pick1',ownerTeamId:'BUF'},{id:'pick1',ownerTeamId:'BUF'}]});
+assert.throws(()=>summarizeCPUTradeSequence(duplicatePick,steps),e=>e.code==='CPU_TRADE_SOURCE_DUPLICATE_PICK_ID'||e.code==='CPU_TRADE_AUDIT_DUPLICATE_PICK_ID');
 console.log('Phase 9 CPU trade sequence evidence tests passed');
