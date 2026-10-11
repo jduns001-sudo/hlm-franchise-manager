@@ -30,6 +30,13 @@ const writeThenThrow={
  save:(...args)=>{partial.save(...args);throw Object.assign(new Error('Disk error after write'),{code:'DISK_AFTER_WRITE'});}
 };
 assert.throws(()=>verifyIsolatedCPUTradeSaveRoundTrip({state,teamId:'BUF',trade,repository:writeThenThrow,slotId:'partial'}),e=>e.code==='DISK_AFTER_WRITE');
-assert.equal(partial.has('partial'),false);
+assert.equal(partial.has('partial'),true); // Ambiguous write failure: preserve unknown slot for recovery.
+const raced=createMemorySaveRepository();
+const competingWriter={has:raced.has,load:raced.load,remove:raced.remove,
+ save:(...args)=>{raced.save(args[0],state);throw Object.assign(new Error('Concurrent slot created'),{code:'SAVE_SLOT_EXISTS'});}
+};
+assert.throws(()=>verifyIsolatedCPUTradeSaveRoundTrip({state,teamId:'BUF',trade,repository:competingWriter,slotId:'raced'}),e=>e.code==='SAVE_SLOT_EXISTS');
+assert.equal(raced.has('raced'),true);
+assert.deepEqual(raced.load('raced').state,state);
 assert.deepEqual(repo.load('original').state,state);
 console.log('Phase 9 isolated CPU trade save round-trip tests passed');
