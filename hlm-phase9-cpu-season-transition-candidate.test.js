@@ -26,4 +26,9 @@ assert.throws(()=>run({fromSeasonId:'2028-29'}),e=>e.code==='CPU_SEASON_TRANSITI
 assert.throws(()=>run({steps:[{teamId:'PIT',trade}]}),e=>e.code==='CPU_TRADE_HUMAN_TEAM_PROTECTED');
 const incomplete=JSON.parse(JSON.stringify(state));incomplete.history.seasons[0].status='active';
 assert.throws(()=>createCPUSeasonTransitionCandidate(incomplete,{fromSeasonId:'2029-30',toSeasonId:'2030-31',nextDate:'2030-07-01'}),e=>e.code==='CPU_SEASON_TRANSITION_NOT_COMPLETED');
+const overlapping=JSON.parse(JSON.stringify(state));
+overlapping.history.seasons.push({id:'2028-29',status:'active'});
+const overlapFingerprint=serializeGameState(overlapping);
+assert.throws(()=>createCPUSeasonTransitionCandidate(overlapping,{fromSeasonId:'2029-30',toSeasonId:'2030-31',nextDate:'2030-07-01'}),e=>e.code==='CPU_SEASON_TRANSITION_ACTIVE_SEASON');
+assert.equal(serializeGameState(overlapping),overlapFingerprint);
 console.log('Phase 9 CPU season transition candidate tests passed');
