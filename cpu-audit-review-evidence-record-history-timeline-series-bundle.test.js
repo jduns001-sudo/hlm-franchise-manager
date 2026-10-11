@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const evidence=require('./cpu-audit-review-evidence-record-history-timeline-evidence');
+const presentation=require('./cpu-audit-review-evidence-record-history-timeline-presentation');
+const api=require('./cpu-audit-review-evidence-record-history-timeline-series-bundle');
+const summary={kind:'cpu-audit-public-review-evidence-record-history-timeline-summary',readOnly:true,count:2,reviewCount:0,reviewStateChanges:0,transitionCount:1};
+const record=evidence.create({kind:'cpu-audit-public-review-evidence-record-history-timeline-bundle',readOnly:true,summary,text:presentation.describe(summary)});
+const value=api.build([record,record]);
+assert.equal(value.summary.count,2);
+assert.equal(value.summary.reviewStateChanges,0);
+assert.match(value.text,/Transitions: 1/);
+assert.ok(Object.isFrozen(value));
+assert.deepEqual(api.parse(api.stringify(value)),value);
+assert.deepEqual(api.parse(api.stringify(api.build([]))),api.build([]));
+assert.throws(()=>api.validate({...value,text:'forged'}),TypeError);
+assert.throws(()=>api.validate({...value,summary:{...value.summary,count:21}}),TypeError);
+assert.throws(()=>api.parse('x'.repeat(1025)),TypeError);
+console.log('Aggregate review evidence record history timeline series bundle tests passed');
