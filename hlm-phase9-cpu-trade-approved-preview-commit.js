@@ -14,6 +14,14 @@ function commitPreviewedCPUTradeBatch({repository,preview,steps,destinationSlotI
     fresh.stepCount!==preview.stepCount||
     JSON.stringify(fresh.transactionIds)!==JSON.stringify(preview.transactionIds))
   fail('CPU_PREVIEW_COMMIT_CHANGED','Trade sequence no longer matches reviewed preview');
+ // Recompute from the saved source and reject any preview whose transaction evidence is ambiguous.
+ const sourceTransactions=repository.load(preview.sourceSlotId).state.activity.transactions;
+ const sourceIds=new Set(sourceTransactions.map(tx=>String(tx.id)));
+ if(sourceIds.size!==sourceTransactions.length)
+  fail('CPU_PREVIEW_COMMIT_DUPLICATE_HISTORY','Source transaction history contains duplicate IDs');
+ if(fresh.transactionIds.length!==new Set(fresh.transactionIds.map(String)).size||
+    fresh.transactionIds.some(id=>sourceIds.has(String(id))))
+  fail('CPU_PREVIEW_COMMIT_DUPLICATE_TRANSACTION','Batch transaction IDs must be unique and new');
  const commit=commitApprovedCPUTradeSequence({repository,sourceSlotId:preview.sourceSlotId,
   destinationSlotId,steps,expectedSourceFingerprint:preview.sourceFingerprint,confirmCommit:true});
  const loaded=repository.load(commit.destinationSlotId).state;
