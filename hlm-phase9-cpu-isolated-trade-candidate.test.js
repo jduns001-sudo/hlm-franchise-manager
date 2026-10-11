@@ -27,7 +27,11 @@ assert.throws(()=>createIsolatedCPUTradeCandidate(state,'BUF',{...input,legs:[..
 const wrong={...input,legs:[{...input.legs[0],assets:[{type:'player',id:'p1',ownerTeamId:'BUF'}]},{...input.legs[1],assets:[{type:'draft-pick',id:'d1',ownerTeamId:'NYR'}]}]};
 assert.equal(createIsolatedCPUTradeCandidate(state,'BUF',wrong).candidateOnly,true);
 const contracted=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:state.universe.teams,players:state.universe.players,draftPicks:state.assets.draftPicks,contracts:[{playerId:'p1',teamId:'BUF',aav:3000000}]});
-assert.throws(()=>createIsolatedCPUTradeCandidate(contracted,'BUF',input),e=>e.code==='CPU_TRADE_CONTRACT_TRANSFER_NOT_IMPLEMENTED');
+const contractedCandidate=createIsolatedCPUTradeCandidate(contracted,'BUF',input);
+assert.equal(contractedCandidate.candidateState.assets.contracts[0].teamId,'NYR');
+assert.equal(contracted.assets.contracts[0].teamId,'BUF');
+const mismatched=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:state.universe.teams,players:state.universe.players,draftPicks:state.assets.draftPicks,contracts:[{playerId:'p1',teamId:'NYR',aav:3000000}]});
+assert.throws(()=>createIsolatedCPUTradeCandidate(mismatched,'BUF',input),e=>e.code==='CPU_TRADE_CONTRACT_OWNER_MISMATCH');
 const capped=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:state.universe.teams,players:state.universe.players,draftPicks:state.assets.draftPicks,finances:{BUF:{teamId:'BUF',capLimit:90000000,payroll:50000000}}});
 assert.throws(()=>createIsolatedCPUTradeCandidate(capped,'BUF',input),e=>e.code==='CPU_TRADE_CAP_RECONCILIATION_NOT_IMPLEMENTED');
 const pickOnly={...input,legs:[input.legs[1]]};

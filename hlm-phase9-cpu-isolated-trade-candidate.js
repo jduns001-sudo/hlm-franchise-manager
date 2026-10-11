@@ -26,8 +26,9 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
    if(seen.has(key))fail('CPU_TRADE_DUPLICATE_ASSET','Same asset cannot move twice');
    seen.add(key);
    if(asset.type==='player'||asset.type==='prospect'){
-    if(state.assets.contracts.some(contract=>String(contract.playerId)===asset.id))
-     fail('CPU_TRADE_CONTRACT_TRANSFER_NOT_IMPLEMENTED','Contracted player trade requires contract transfer and cap reconciliation');
+    const linkedContracts=state.assets.contracts.filter(contract=>String(contract.playerId)===asset.id);
+    if(linkedContracts.some(contract=>String(contract.teamId)!==leg.fromTeamId))
+     fail('CPU_TRADE_CONTRACT_OWNER_MISMATCH','Linked contract must belong to sending team');
     const financeRows=Array.isArray(state.finances)?state.finances:Object.values(state.finances||{});
     if(financeRows.some(row=>row&&[leg.fromTeamId,leg.toTeamId].includes(String(row.teamId))))
      fail('CPU_TRADE_CAP_RECONCILIATION_NOT_IMPLEMENTED','Player trade requires salary cap and payroll reconciliation');
@@ -40,6 +41,11 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
    const moved=asset.type==='draft-pick'?candidate.assets.draftPicks.find(p=>String(p.id??p.pickId)===asset.id):candidate.universe.players.find(p=>String(p.id)===asset.id);
    if(!moved||String(asset.type==='draft-pick'?(moved.currentOwnerId??moved.ownerTeamId??moved.teamId):moved.teamId)!==leg.toTeamId)
     fail('CPU_TRADE_CANDIDATE_MISMATCH','Candidate ownership not updated correctly');
+   if(asset.type==='player'||asset.type==='prospect'){
+    for(const contract of candidate.assets.contracts.filter(row=>String(row.playerId)===asset.id)){
+     contract.teamId=leg.toTeamId;
+    }
+   }
   }
  }
  const transactionId=typeof input.transactionId==='string'?input.transactionId.trim():'';
