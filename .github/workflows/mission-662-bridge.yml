@@ -1,0 +1,21 @@
+name: Mission 662 Bridge Tests
+on:
+  push:
+    branches:
+      - mission-662-readonly-franchise-data-bridge
+  pull_request:
+    paths:
+      - 'hlm-franchise-simulation-data-bridge.js'
+      - 'hlm-franchise-simulation-data-bridge.test.js'
+      - 'hlm-game-state.js'
+      - '.github/workflows/mission-662-bridge.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-game-state.test.js
+      - run: node hlm-franchise-simulation-data-bridge.test.js
