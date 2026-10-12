@@ -35,7 +35,11 @@ function createSequentialCPUSeasonTransitionCandidates(state,transitions){
    const season=current.history.seasons.find(s=>String(s.id??s.seasonId)===completion.seasonId);
    season.status='completed';
    season.champion=completion.championTeamId;
-   if(completion.completedAt!==undefined)season.completedAt=completion.completedAt;
+   if(completion.completedAt!==undefined){
+    season.completedAt=completion.completedAt;
+    // The explicit season-completion event advances the candidate simulation clock.
+    current.meta.currentDate=completion.completedAt;
+   }
   }
   const result=createCPUSeasonTransitionCandidate(current,transition);
   current=result.candidateState;
