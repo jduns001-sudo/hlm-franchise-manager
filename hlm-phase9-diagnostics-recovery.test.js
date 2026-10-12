@@ -683,6 +683,43 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
   console.log('Mission 635 recovery after invalid inspections passed');
 
+  // Mission 636: modified JSON content without a matching fingerprint is rejected.
+  const mission636=JSON.parse(validPackage);
+  mission636.files['diagnostics.json']=JSON.stringify({valid:false});
+  inspect(JSON.stringify(mission636));
+  assert.equal(download.disabled,true,'tampered JSON cannot be downloaded');
+  assert.match(result.textContent,/Integrity fingerprint mismatch: diagnostics.json/);
+  console.log('Mission 636 JSON fingerprint tamper guard passed');
+
+  // Mission 637: modified CSV content cannot reuse the previous approval.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid fixture restores approval');
+  const mission637=JSON.parse(validPackage);
+  mission637.files['diagnostics.csv']+='\\nextra,row';
+  inspect(JSON.stringify(mission637));
+  assert.equal(download.disabled,true,'tampered CSV revokes approval');
+  assert.match(result.textContent,/Integrity fingerprint mismatch: diagnostics.csv/);
+  console.log('Mission 637 CSV fingerprint tamper guard passed');
+
+  // Mission 638: modified text diagnostics fail the independent fingerprint check.
+  const mission638=JSON.parse(validPackage);
+  mission638.files['diagnostics.txt']='changed diagnostics';
+  inspect(JSON.stringify(mission638));
+  assert.equal(download.disabled,true,'tampered text cannot be downloaded');
+  assert.match(result.textContent,/Integrity fingerprint mismatch: diagnostics.txt/);
+  console.log('Mission 638 text fingerprint tamper guard passed');
+
+  // Mission 639: consistent fingerprints cannot mask a contradictory validity declaration.
+  const mission639=JSON.parse(validPackage);
+  mission639.valid=false;
+  inspect(JSON.stringify(mission639));
+  assert.equal(download.disabled,true,'contradictory validity cannot be approved');
+  assert.match(result.textContent,/Diagnostics or manifest validity does not match package/);
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package remains recoverable after integrity failures');
+  console.log('Mission 639 validity consistency and recovery passed');
+
+
 
 
 
