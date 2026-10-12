@@ -381,6 +381,56 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   inspect(validPackage);
   assert.equal(download.disabled,false,'valid reinspection restores approval');
   console.log('Mission 603 malformed JSON recovery passed');
+  // Mission 604: an oversized file never invokes its text reader.
+  let mission604OversizedReadCalled=false;
+  payload.value='{"preserve":true}';
+  elements['package-file'].files=[{size:5*1024*1024+1,text:()=>{mission604OversizedReadCalled=true;return Promise.resolve('bad');}}];
+  await elements['package-file'].handlers.change();
+  assert.equal(mission604OversizedReadCalled,false,'oversized file reader not invoked');
+  assert.equal(payload.value,'{"preserve":true}','oversized file preserves input');
+  assert.match(result.textContent,/File exceeds 5 MB limit/);
+  assert.equal(download.disabled,true,'oversized file cannot approve download');
+  console.log('Mission 604 oversized file guard passed');
+
+  // Mission 605: oversize selection invalidates an earlier pending file read.
+  let finishBeforeOversize;
+  const beforeOversize=new Promise(resolve=>{finishBeforeOversize=resolve;});
+  elements['package-file'].files=[{size:100,text:()=>beforeOversize}];
+  const earlierRead=elements['package-file'].handlers.change();
+  elements['package-file'].files=[{size:5*1024*1024+1,text:()=>Promise.resolve('bad')}];
+  await elements['package-file'].handlers.change();
+  finishBeforeOversize('{"stale":true}');
+  await earlierRead;
+  assert.equal(payload.value,'{"preserve":true}','oversize blocks stale pending read');
+  assert.match(result.textContent,/File exceeds 5 MB limit/);
+  console.log('Mission 605 oversize pending-read race passed');
+
+  // Mission 606: inspection during a pending read invalidates the stale read.
+  let finishBeforeInspect;
+  const beforeInspect=new Promise(resolve=>{finishBeforeInspect=resolve;});
+  elements['package-file'].files=[{size:100,text:()=>beforeInspect}];
+  const readBeforeInspect=elements['package-file'].handlers.change();
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'explicit inspection approves current valid payload');
+  finishBeforeInspect('{"stale":true}');
+  await readBeforeInspect;
+  assert.equal(payload.value,validPackage,'stale read cannot overwrite inspected payload');
+  assert.equal(download.disabled,false,'stale read cannot revoke successful inspection');
+  console.log('Mission 606 inspect-during-read race passed');
+
+  // Mission 607: manual edits during pending reads take priority over file completion.
+  let finishBeforeEdit;
+  const beforeEdit=new Promise(resolve=>{finishBeforeEdit=resolve;});
+  elements['package-file'].files=[{size:100,text:()=>beforeEdit}];
+  const readBeforeEdit=elements['package-file'].handlers.change();
+  payload.value='manual edit wins';
+  payload.handlers.input();
+  finishBeforeEdit('{"stale":true}');
+  await readBeforeEdit;
+  assert.equal(payload.value,'manual edit wins','manual edit blocks stale file completion');
+  assert.equal(download.disabled,true,'manual edit remains unapproved');
+  console.log('Mission 607 edit-during-read race passed');
+
 
 
 
