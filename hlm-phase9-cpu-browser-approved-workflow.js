@@ -17,10 +17,25 @@ function createBrowserCPUTradeWorkflow({storage,sourceSlotId,teamId,steps,decisi
  return Object.freeze({
   kind:'phase9-browser-cpu-trade-workflow',version:1,sourceSlotId:sourceSlotId.trim(),teamId:String(teamId),
   preview:reviewedPreview,requiresHumanGMApproval:true,autonomousExecutionEnabled:false,
-  execute({destinationSlotId,confirmExecution=false}={}){
+  approveReviewedTrade({preview,confirmApproval=false}={}){
+   if(confirmApproval!==true)fail('CPU_BROWSER_REVIEW_APPROVAL_REQUIRED','Human GM must explicitly approve reviewed trade');
+   if(preview!==reviewedPreview)fail('CPU_BROWSER_REVIEW_MISMATCH','Human GM must approve the exact workflow preview');
+   return Object.freeze({kind:'phase9-browser-cpu-trade-approval',version:1,preview,
+    sourceFingerprint:preview.sourceFingerprint,candidateFingerprint:preview.candidateFingerprint,
+    transactionIds:Object.freeze([...preview.transactionIds]),humanGMApproved:true});
+  },
+  execute({destinationSlotId,confirmExecution=false,approval}={}){
    if(confirmExecution!==true)fail('CPU_BROWSER_EXECUTION_APPROVAL_REQUIRED','Human GM must confirm execution');
+   if(!approval||approval.kind!=='phase9-browser-cpu-trade-approval'||approval.humanGMApproved!==true||
+      approval.preview!==reviewedPreview||approval.sourceFingerprint!==reviewedPreview.sourceFingerprint||
+      approval.candidateFingerprint!==reviewedPreview.candidateFingerprint||
+      JSON.stringify(approval.transactionIds)!==JSON.stringify(reviewedPreview.transactionIds))
+    fail('CPU_BROWSER_EXACT_APPROVAL_REQUIRED','Exact reviewed CPU trade approval required');
+   const boundDecision={...decisionOptions,approvedTradeSourceFingerprint:reviewedPreview.sourceFingerprint,
+    approvedTradeCandidateFingerprint:reviewedPreview.candidateFingerprint,
+    approvedTradeTransactionIds:[...reviewedPreview.transactionIds]};
    return executeReviewedCPUDecisionTrade({repository,sourceSlotId:sourceSlotId.trim(),destinationSlotId,
-    teamId,steps,decisionOptions,reviewedPreview,confirmExecution:true});
+    teamId,steps,decisionOptions:boundDecision,reviewedPreview,confirmExecution:true});
   }
  });
 }
