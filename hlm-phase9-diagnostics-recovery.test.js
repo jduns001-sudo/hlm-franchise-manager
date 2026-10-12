@@ -873,6 +873,38 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
   console.log('Mission 655 package boundary recovery passed');
 
+  // Mission 656: a null files container must not be treated as an approved package.
+  const mission656=JSON.parse(validPackage);
+  mission656.files=null;
+  inspect(JSON.stringify(mission656));
+  assert.equal(download.disabled,true,'null files container rejected');
+  assert.match(result.textContent,/Not a recognized Phase 9 diagnostics package/);
+  console.log('Mission 656 null files container passed');
+
+  // Mission 657: a missing files container must revoke earlier approval.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'baseline package approved');
+  const mission657=JSON.parse(validPackage);
+  delete mission657.files;
+  inspect(JSON.stringify(mission657));
+  assert.equal(download.disabled,true,'missing files container revokes approval');
+  assert.match(result.textContent,/Not a recognized Phase 9 diagnostics package/);
+  console.log('Mission 657 missing files container passed');
+
+  // Mission 658: a non-string diagnostics CSV file is rejected.
+  const mission658=JSON.parse(validPackage);
+  mission658.files['diagnostics.csv']=123;
+  inspect(JSON.stringify(mission658));
+  assert.equal(download.disabled,true,'non-string CSV rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics.csv/);
+  console.log('Mission 658 non-string CSV guard passed');
+
+  // Mission 659: valid package reinspection restores approval after schema failures.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package restores approval');
+  assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
+  console.log('Mission 659 file schema recovery passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
