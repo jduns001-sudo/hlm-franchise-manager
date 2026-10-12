@@ -16,7 +16,7 @@ let approved=null,revision=0;
 const packageFile=document.getElementById('package-file');
 packageFile.addEventListener('change',async()=>{
  const ticket=++revision;
- reset();
+ invalidate('Select a diagnostics file to inspect.');
  const file=packageFile.files&&packageFile.files[0];
  if(!file)return;
  if(file.size>5*1024*1024){result.textContent='File exceeds 5 MB limit.';packageFile.value='';return;}
@@ -40,10 +40,11 @@ function fingerprint(value){
  return (hash>>>0).toString(16).padStart(8,'0')+'-'+bytes.length;
 }
 function reset(){approved=null;download.disabled=true;}
-payload.addEventListener('input',()=>{revision++;reset();});
+function invalidate(message){reset();result.textContent=message;}
+payload.addEventListener('input',()=>{revision++;invalidate('Package changed. Select Inspect package to verify again.');});
 document.getElementById('clear').addEventListener('click',()=>{revision++;payload.value='';packageFile.value='';reset();result.textContent='No package inspected.';});
 document.getElementById('inspect').addEventListener('click',()=>{
- revision++;reset();
+ revision++;invalidate('Inspecting package...');
  try{
   const parsed=JSON.parse(payload.value);
   if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('Expected a JSON object.');
@@ -61,7 +62,7 @@ document.getElementById('inspect').addEventListener('click',()=>{
  }catch(error){result.textContent='Inspection failed: '+error.message;}
 });
 download.addEventListener('click',()=>{
- if(approved===null)return;
+ if(approved===null||download.disabled||payload.value!==approved){invalidate('Package changed or is not verified. Inspect again before downloading.');return;}
  const url=URL.createObjectURL(new Blob([approved],{type:'application/json'}));
  const a=document.createElement('a');a.href=url;a.download='phase9-diagnostics-copy.json';document.body.appendChild(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
