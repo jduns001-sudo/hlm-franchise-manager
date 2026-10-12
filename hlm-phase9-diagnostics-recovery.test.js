@@ -905,6 +905,34 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
   console.log('Mission 659 file schema recovery passed');
 
+
+  // Missions 660–663: reject non-text diagnostic files and recover after rejection.
+  const mission660=JSON.parse(validPackage);
+  mission660.files["diagnostics.json"]=false;
+  inspect(JSON.stringify(mission660));
+  assert.equal(download.disabled,true,'Mission 660: invalid file type blocks approval');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+  console.log('Mission 660 non-text diagnostics.json rejected');
+
+  const mission661=JSON.parse(validPackage);
+  mission661.files["diagnostics.txt"]=["invalid"];
+  inspect(JSON.stringify(mission661));
+  assert.equal(download.disabled,true,'Mission 661: invalid file type blocks approval');
+  assert.match(result.textContent,/Missing required file: diagnostics\.txt/);
+  console.log('Mission 661 non-text diagnostics.txt rejected');
+
+  const mission662=JSON.parse(validPackage);
+  mission662.files["diagnostics.csv"]={"value":"bad"};
+  inspect(JSON.stringify(mission662));
+  assert.equal(download.disabled,true,'Mission 662: invalid file type blocks approval');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+  console.log('Mission 662 non-text diagnostics.csv rejected');
+
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'Mission 663: valid package restores approval');
+  assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
+  console.log('Mission 663 schema recovery passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
