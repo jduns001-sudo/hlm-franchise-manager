@@ -31,6 +31,15 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
  const financeRowsForTrade=Array.isArray(state.finances)?state.finances:Object.values(state.finances||{});
  const playerMoves=result.gate.verification.candidate.legs.flatMap(leg=>leg.assets.filter(asset=>asset.type==='player'||asset.type==='prospect'));
  const participantIds=result.gate.verification.candidate.teamIds.map(String);
+ if(new Set(participantIds).size!==participantIds.length)
+  fail('CPU_TRADE_DUPLICATE_PARTICIPANT','CPU trade participant team IDs must be unique');
+ for(const leg of result.gate.verification.candidate.legs){
+  if(!participantIds.includes(leg.fromTeamId)||!participantIds.includes(leg.toTeamId))
+   fail('CPU_TRADE_UNLISTED_PARTICIPANT','Every sending and receiving team must be declared');
+  if(leg.fromTeamId===leg.toTeamId)
+   fail('CPU_TRADE_SELF_TRANSFER','CPU trade cannot send an asset to its existing team');
+ }
+
  const hasFinances=financeRowsForTrade.some(row=>row&&participantIds.includes(String(row.teamId)));
  const deltas=new Map(participantIds.map(id=>[id,0]));
  if(hasFinances){
