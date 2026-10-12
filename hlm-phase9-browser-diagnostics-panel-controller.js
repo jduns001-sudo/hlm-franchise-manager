@@ -21,6 +21,11 @@ function createGameBatchDiagnosticsPanelController(browser){
    state='idle';
    return removed;
   },
+  reset(){
+   host.unmount();
+   state='idle';
+   return Object.freeze({state,isOpen:false});
+  },
   get state(){return state;},
   get isOpen(){return host.isMounted;},
   persistencePerformed:false,
