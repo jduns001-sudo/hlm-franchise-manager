@@ -17,8 +17,12 @@ function mountGameBatchDiagnosticsDownloadPanel({container,documentRef,urlRef,Bl
  for(const file of prepared.files){
   const button=documentRef.createElement('button');
   button.type='button';
+  button.disabled=!prepared.valid;
   button.textContent='Download '+file.filename;
-  button.addEventListener('click',()=>downloadPreparedDiagnosticsFile(file,{documentRef,urlRef,BlobCtor}));
+  button.addEventListener('click',()=>{
+   if(!prepared.valid)return;
+   downloadPreparedDiagnosticsFile(file,{documentRef,urlRef,BlobCtor});
+  });
   panel.appendChild(button);buttons.push(button);
  }
  container.appendChild(panel);
