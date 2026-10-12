@@ -17,4 +17,8 @@ store.save(state);
 const result=store.advanceAndSave(3);
 assert.equal(result.results.length,1);
 assert.equal(store.load().meta.currentDate,'2026-10-13');
+assert.equal(typeof api.startSeasonPlayoffs,'function');
+assert.equal(typeof api.simulateNextPlayoffGame,'function');
+assert.match(html,/id="playoffs"/);
+assert.match(html,/id="playgame"/);
 console.log('Phase 10 browser prototype smoke tests passed');

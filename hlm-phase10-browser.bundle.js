@@ -1,4 +1,4 @@
-/* Phase 10 standalone browser CommonJS module bundle */
+/* Phase 10 browser bundle: generated from tested source modules */
 (function(global){'use strict';var modules={
 "hlm-phase10-browser-storage.js":function(module,exports,require){
 'use strict';
@@ -394,5 +394,131 @@ function createMasterCalendar(input = {}) {
 
 module.exports = { assertIsoDate, addCalendarDays, createMasterCalendar };
 
+},
+"hlm-phase10-playoffs.js":function(module,exports,require){
+'use strict';
+function seedPlayoffs(standings,spots=4) {
+  if(!Array.isArray(standings)||!Number.isInteger(spots)||spots<2||spots>standings.length||spots%2)throw new RangeError('Invalid playoff field size');
+  const ordered=standings.slice().sort((a,b)=>(b.points||0)-(a.points||0)||(b.w||0)-(a.w||0)||((b.gf||0)-(b.ga||0))-((a.gf||0)-(a.ga||0))||String(a.teamId).localeCompare(String(b.teamId)));
+  const ids=ordered.map(row=>row.teamId);
+  if(ids.some(id=>id==null)||new Set(ids.map(String)).size!==ids.length)throw new Error('Invalid team IDs');
+  return ordered.slice(0,spots).map((row,index)=>({seed:index+1,teamId:row.teamId}));
 }
-};var cache={};function load(name){if(cache[name])return cache[name].exports;if(!modules[name])throw Error('Missing module '+name);var module={exports:{}};cache[name]=module;function localRequire(request){if(request.slice(0,2)!=='./')throw Error('Unsupported require '+request);return load(request.slice(2)+'.js')}modules[name](module,module.exports,localRequire);return module.exports;}var api={};for(var name of ['hlm-phase10-browser-storage.js','hlm-phase10-standings.js','hlm-master-calendar.js','hlm-game-state.js'])Object.assign(api,load(name));global.HLMPhase10=api;})(typeof window!=='undefined'?window:globalThis);
+function createPlayoffSeries(highSeed,lowSeed,bestOf=7) {
+  if(!highSeed||!lowSeed||highSeed.teamId==null||lowSeed.teamId==null||highSeed.teamId===lowSeed.teamId)throw new Error('Series requires two different teams');
+  if(!Number.isInteger(bestOf)||bestOf<1||bestOf%2!==1)throw new RangeError('Best-of must be a positive odd number');
+  return {highSeed:{...highSeed},lowSeed:{...lowSeed},bestOf,games:[],wins:{[String(highSeed.teamId)]:0,[String(lowSeed.teamId)]:0},winnerTeamId:null,status:'active'};
+}
+function recordPlayoffGame(series,result) {
+  if(!series||series.status!=='active')throw new Error('Series is not active');
+  const ids=[series.highSeed.teamId,series.lowSeed.teamId];
+  if(!result||!ids.includes(result.winnerTeamId)||result.homeTeamId===result.awayTeamId||!ids.includes(result.homeTeamId)||!ids.includes(result.awayTeamId)||result.status!=='final')throw new Error('Invalid series game result');
+  if(result.gameId==null||series.games.some(g=>String(g.gameId)===String(result.gameId)))throw new Error('Duplicate or missing playoff game ID');
+  const next=JSON.parse(JSON.stringify(series));
+  next.games.push({...result});
+  const key=String(result.winnerTeamId);
+  next.wins[key]++;
+  if(next.wins[key]>=Math.floor(next.bestOf/2)+1){next.status='complete';next.winnerTeamId=result.winnerTeamId;}
+  return next;
+}
+module.exports={seedPlayoffs,createPlayoffSeries,recordPlayoffGame};
+
+},
+"hlm-phase10-playoff-bracket.js":function(module,exports,require){
+'use strict';
+const {createPlayoffSeries,recordPlayoffGame}=require('./hlm-phase10-playoffs');
+function createPlayoffBracket(seeds,bestOf=7) {
+  if(!Array.isArray(seeds)||seeds.length<2||(seeds.length&(seeds.length-1))!==0)throw new RangeError('Playoff field must be a power of two');
+  const ordered=seeds.slice().sort((a,b)=>a.seed-b.seed);
+  if(ordered.some((s,i)=>!s||!Number.isInteger(s.seed)||s.seed!==i+1||s.teamId==null)||new Set(ordered.map(s=>String(s.teamId))).size!==ordered.length)throw new Error('Seeds must be unique and numbered consecutively');
+  const round=makeRound(ordered,bestOf);
+  return {bestOf,rounds:[round],championTeamId:null,status:'active'};
+}
+function makeRound(seeds,bestOf){
+  const matches=[];
+  for(let i=0;i<seeds.length/2;i++)matches.push(createPlayoffSeries(seeds[i],seeds[seeds.length-1-i],bestOf));
+  return matches;
+}
+function recordBracketGame(bracket,seriesIndex,result) {
+  if(!bracket||bracket.status!=='active')throw new Error('Bracket is complete or invalid');
+  const next=JSON.parse(JSON.stringify(bracket));
+  const round=next.rounds[next.rounds.length-1];
+  if(!Number.isInteger(seriesIndex)||seriesIndex<0||seriesIndex>=round.length)throw new RangeError('Invalid series index');
+  round[seriesIndex]=recordPlayoffGame(round[seriesIndex],result);
+  if(round.every(series=>series.status==='complete')){
+    if(round.length===1){
+      next.championTeamId=round[0].winnerTeamId;
+      next.status='complete';
+    }else{
+      const advancing=round.map(series=>series.winnerTeamId===series.highSeed.teamId?series.highSeed:series.lowSeed).sort((a,b)=>a.seed-b.seed);
+      next.rounds.push(makeRound(advancing,next.bestOf));
+    }
+  }
+  return next;
+}
+module.exports={createPlayoffBracket,recordBracketGame};
+
+},
+"hlm-phase10-season-playoffs.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {calculateStandings}=require('./hlm-phase10-standings');
+const {seedPlayoffs}=require('./hlm-phase10-playoffs');
+const {createPlayoffBracket}=require('./hlm-phase10-playoff-bracket');
+
+/**
+ * Pure regular-season -> playoff transition.
+ * Only scheduled regular-season games block qualification.
+ */
+function startSeasonPlayoffs(state,spots=4,bestOf=7){
+  const validation=validateGameStateEnvelope(state);
+  if(!validation.valid)throw new Error('Invalid franchise game state');
+  if(!Array.isArray(state.universe.teams)||state.universe.teams.length<spots)throw new Error('Not enough teams for playoffs');
+  const games=state.activity.games;
+  if(games.some(g=>!g||!['scheduled','final'].includes(g.status)))throw new Error('Invalid regular-season game status');
+  if(games.some(g=>g.status==='scheduled'))throw new Error('Regular season has unplayed games');
+  if(games.length===0)throw new Error('Cannot qualify playoffs without regular-season games');
+  const standings=calculateStandings(state.universe.teams,games);
+  const seeds=seedPlayoffs(standings,spots);
+  const bracket=createPlayoffBracket(seeds,bestOf);
+  const nextState=JSON.parse(JSON.stringify(state));
+  if(nextState.extensions.phase10Playoffs)throw new Error('Playoffs already initialized');
+  nextState.extensions.phase10Playoffs=bracket;
+  return {nextState,standings,seeds,bracket};
+}
+module.exports={startSeasonPlayoffs};
+
+},
+"hlm-phase10-playoff-simulation.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {simulateGameScore}=require('./hlm-phase10-game-simulator');
+const {recordBracketGame}=require('./hlm-phase10-playoff-bracket');
+
+/** Simulate one playoff game, advancing the active bracket without mutating input. */
+function simulateNextPlayoffGame(state,seed=0) {
+  const validation=validateGameStateEnvelope(state);
+  if(!validation.valid)throw new Error('Invalid franchise game state');
+  if(!Number.isSafeInteger(seed)||seed<0)throw new TypeError('Invalid simulation seed');
+  const bracket=state.extensions.phase10Playoffs;
+  if(!bracket||bracket.status!=='active')throw new Error('No active playoff bracket');
+  const roundIndex=bracket.rounds.length-1;
+  const round=bracket.rounds[roundIndex];
+  const seriesIndex=round.findIndex(s=>s.status==='active');
+  if(seriesIndex<0)throw new Error('No active playoff series');
+  const series=round[seriesIndex];
+  const gameNumber=series.games.length+1;
+  const high=series.highSeed.teamId,low=series.lowSeed.teamId;
+  const highHome=[1,2,5,7].includes(gameNumber%7||7);
+  const homeTeamId=highHome?high:low,awayTeamId=highHome?low:high;
+  const gameId='PO-R'+(roundIndex+1)+'-S'+(seriesIndex+1)+'-G'+gameNumber;
+  const result=simulateGameScore({gameId,homeTeamId,awayTeamId,seed});
+  const nextBracket=recordBracketGame(bracket,seriesIndex,result);
+  const nextState=JSON.parse(JSON.stringify(state));
+  nextState.extensions.phase10Playoffs=nextBracket;
+  return {nextState,result,bracket:nextBracket,roundIndex,seriesIndex,championTeamId:nextBracket.championTeamId};
+}
+module.exports={simulateNextPlayoffGame};
+
+}
+};var cache={};function load(name){if(cache[name])return cache[name].exports;if(!modules[name])throw Error('Missing module '+name);var module={exports:{}};cache[name]=module;function localRequire(request){if(request.slice(0,2)!=='./')throw Error('Unsupported require '+request);return load(request.slice(2)+'.js')}modules[name](module,module.exports,localRequire);return module.exports;}var api={};for(var name of ['hlm-phase10-browser-storage.js','hlm-phase10-standings.js','hlm-master-calendar.js','hlm-game-state.js','hlm-phase10-season-playoffs.js','hlm-phase10-playoff-simulation.js'])Object.assign(api,load(name));global.HLMPhase10=api;})(typeof window!=='undefined'?window:globalThis);
