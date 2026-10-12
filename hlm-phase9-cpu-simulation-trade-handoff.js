@@ -15,6 +15,16 @@ function prepareCPUTradeAfterReviewedSimulation({storage,simulationSaveResult,te
  if(typeof slot!=='string'||!repository.has(slot))
   fail('CPU_SIMULATION_TRADE_SAVE_MISSING','Reviewed simulation destination must exist');
  const state=repository.load(slot).state;
+ if(typeof simulationSaveResult.candidateFingerprint!=='string'||
+    serializeGameState(state)!==simulationSaveResult.candidateFingerprint)
+  fail('CPU_SIMULATION_TRADE_CANDIDATE_MISMATCH','Reviewed simulation candidate fingerprint mismatch');
+ if(typeof simulationSaveResult.sourceFingerprint!=='string'||
+    typeof simulationSaveResult.sourceSlotId!=='string'||
+    !repository.has(simulationSaveResult.sourceSlotId)||
+    serializeGameState(repository.load(simulationSaveResult.sourceSlotId).state)!==simulationSaveResult.sourceFingerprint)
+  fail('CPU_SIMULATION_TRADE_SOURCE_MISMATCH','Original simulation source fingerprint mismatch');
+ if(simulationSaveResult.sourceSlotId===slot)
+  fail('CPU_SIMULATION_TRADE_SOURCE_MISMATCH','Source and candidate slots must be distinct');
  if(state.meta.currentDate!==simulationSaveResult.toDate)
   fail('CPU_SIMULATION_TRADE_DATE_MISMATCH','Reviewed simulation save date mismatch');
  const controlled=String(state.meta.controlledTeamId??'');
