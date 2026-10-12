@@ -1,0 +1,22 @@
+name: Mission 667 Roster Readiness Tests
+on:
+  push:
+    branches:
+      - mission-667-readonly-roster-readiness
+  pull_request:
+    paths:
+      - 'hlm-simulation-roster-readiness.js'
+      - 'hlm-simulation-roster-readiness.test.js'
+      - '.github/workflows/mission-667-roster-readiness.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-canonical-franchise-bridge.test.js
+      - run: node hlm-classified-canonical-bridge.test.js
+      - run: node hlm-simulation-roster-eligibility.test.js
+      - run: node hlm-simulation-roster-readiness.test.js
