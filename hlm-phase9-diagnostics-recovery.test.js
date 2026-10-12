@@ -430,6 +430,39 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(payload.value,'manual edit wins','manual edit blocks stale file completion');
   assert.equal(download.disabled,true,'manual edit remains unapproved');
   console.log('Mission 607 edit-during-read race passed');
+  // Mission 608: an empty local file loads as text but remains unapproved.
+  elements['package-file'].files=[{size:0,text:()=>Promise.resolve('')}];
+  await elements['package-file'].handlers.change();
+  assert.equal(payload.value,'','empty file contents loaded');
+  assert.equal(download.disabled,true,'empty file remains unapproved');
+  assert.match(result.textContent,/File loaded/);
+  console.log('Mission 608 empty local file passed');
+
+  // Mission 609: a file read rejection reports its error and blocks download.
+  elements['package-file'].files=[{size:100,text:()=>Promise.reject(new Error('permission denied'))}];
+  await elements['package-file'].handlers.change();
+  assert.equal(payload.value,'','failed read clears stale text');
+  assert.equal(download.disabled,true,'failed read remains unapproved');
+  assert.match(result.textContent,/Unable to read file: permission denied/);
+  console.log('Mission 609 failed file read passed');
+
+  // Mission 610: a valid file read still needs explicit inspection.
+  elements['package-file'].files=[{size:validPackage.length,text:()=>Promise.resolve(validPackage)}];
+  await elements['package-file'].handlers.change();
+  assert.equal(payload.value,validPackage,'valid file content loaded');
+  assert.equal(download.disabled,true,'loaded file requires inspection');
+  inspect(payload.value);
+  assert.equal(download.disabled,false,'explicit inspection approves loaded package');
+  console.log('Mission 610 file inspection approval passed');
+
+  // Mission 611: a new invalid selection revokes approval without erasing input.
+  elements['package-file'].files=[{size:5*1024*1024+1,text:()=>Promise.resolve('oversize')}];
+  await elements['package-file'].handlers.change();
+  assert.equal(payload.value,validPackage,'oversized selection preserves inspected text');
+  assert.equal(download.disabled,true,'oversized selection revokes previous approval');
+  assert.match(result.textContent,/File exceeds 5 MB limit/);
+  console.log('Mission 611 invalid selection approval revocation passed');
+
 
 
 
