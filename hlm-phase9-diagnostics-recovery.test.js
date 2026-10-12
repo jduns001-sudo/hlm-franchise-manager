@@ -156,6 +156,16 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(elements['package-file'].value,'','oversized file picker cleared');
   assert.equal(payload.value,validPackage,'oversized selection does not overwrite text');
   console.log('Mission 576 oversized file guard checks passed');
+  // Exact boundary is accepted, but content still needs inspection.
+  let boundaryReadCalled=false;
+  elements['package-file'].files=[{size:5*1024*1024,text:()=>{boundaryReadCalled=true;return Promise.resolve(validPackage);}}];
+  await elements['package-file'].handlers.change();
+  assert.equal(boundaryReadCalled,true,'exactly 5 MB file is accepted');
+  assert.equal(payload.value,validPackage,'boundary file content loaded');
+  assert.equal(download.disabled,true,'boundary file still requires inspection');
+  assert.match(result.textContent,/File loaded/);
+  console.log('Mission 577 exact file size boundary checks passed');
+
 
 
 
