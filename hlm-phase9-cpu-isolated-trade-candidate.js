@@ -11,6 +11,17 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
  const controlled=state.meta?.controlledTeamId;
  if(controlled!=null&&String(controlled)===id)fail('CPU_TRADE_HUMAN_TEAM_PROTECTED','CPU cannot control the human franchise');
  if(input.humanGMApproved!==true)fail('CPU_TRADE_APPROVAL_REQUIRED','Explicit human approval required for this isolated trade path');
+ if(Array.isArray(input.teamIds)&&new Set(input.teamIds.map(String)).size!==input.teamIds.length)
+  fail('CPU_TRADE_DUPLICATE_PARTICIPANT','CPU trade participant team IDs must be unique');
+ if(Array.isArray(input.teamIds)&&Array.isArray(input.legs)){
+  const declared=new Set(input.teamIds.map(String));
+  for(const leg of input.legs){
+   if(!leg||!declared.has(String(leg.fromTeamId))||!declared.has(String(leg.toTeamId)))
+    fail('CPU_TRADE_UNLISTED_PARTICIPANT','Trade legs must use declared participant teams');
+   if(String(leg.fromTeamId)===String(leg.toTeamId))
+    fail('CPU_TRADE_SELF_TRANSFER','Trade cannot transfer assets within the same team');
+  }
+ }
  if(!Array.isArray(input.teamIds)||!input.teamIds.map(String).includes(id))fail('CPU_TRADE_PARTICIPANT_REQUIRED','CPU team must participate');
  if(controlled!=null&&input.teamIds.map(String).includes(String(controlled)))fail('CPU_TRADE_HUMAN_TEAM_PROTECTED','Human-controlled franchise cannot be traded by CPU integration');
  // Reject ambiguous source records before the underlying candidate mover selects the first match.
@@ -31,6 +42,15 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
  const financeRowsForTrade=Array.isArray(state.finances)?state.finances:Object.values(state.finances||{});
  const playerMoves=result.gate.verification.candidate.legs.flatMap(leg=>leg.assets.filter(asset=>asset.type==='player'||asset.type==='prospect'));
  const participantIds=result.gate.verification.candidate.teamIds.map(String);
+ if(new Set(participantIds).size!==participantIds.length)
+  fail('CPU_TRADE_DUPLICATE_PARTICIPANT','CPU trade participant team IDs must be unique');
+ for(const leg of result.gate.verification.candidate.legs){
+  if(!participantIds.includes(leg.fromTeamId)||!participantIds.includes(leg.toTeamId))
+   fail('CPU_TRADE_UNLISTED_PARTICIPANT','Every sending and receiving team must be declared');
+  if(leg.fromTeamId===leg.toTeamId)
+   fail('CPU_TRADE_SELF_TRANSFER','CPU trade cannot send an asset to its existing team');
+ }
+
  const hasFinances=financeRowsForTrade.some(row=>row&&participantIds.includes(String(row.teamId)));
  const deltas=new Map(participantIds.map(id=>[id,0]));
  if(hasFinances){
