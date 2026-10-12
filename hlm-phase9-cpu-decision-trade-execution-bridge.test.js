@@ -17,7 +17,7 @@ assert.throws(()=>run(),e=>e.code==='CPU_DECISION_TRADE_PREFLIGHT_FAILED');
 assert.equal(repo.count(),1);
 assert.equal(serializeGameState(repo.load('human').state),before);
 const {prepareApprovedCPUTradeBatch}=require('./hlm-phase9-cpu-trade-batch-preview');
-const decisionOptions={prioritization:{evaluation:{identification:{problems:[{id:'need-trade',category:'roster',severity:'high'}]},options:[{id:'trade-option',problemId:'need-trade',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]},priorityId:'first',authorized:true,execute:true};
+const decisionOptions={prioritization:{evaluation:{identification:{problems:[{id:'need-trade',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'need-trade',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]},priorityId:'first',authorized:true,execute:true};
 const reviewedPreview=prepareApprovedCPUTradeBatch({repository:repo,sourceSlotId:'human',steps,expectedSourceFingerprint:before});
 const success=run({decisionOptions,reviewedPreview});
 assert.equal(success.decisionPreflightVerified,true);
