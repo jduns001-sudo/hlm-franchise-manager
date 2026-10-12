@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createPhase10FromFrontOffice}=require('./hlm-phase10-front-office-import');
+const legacy={teams:[{id:1,name:'A'},{id:2,name:'B'}],players:[{id:3,name:'Skater',teamId:1}],contracts:[{contractId:'c',playerId:3,teamId:1,status:'active'}],draftPicks:[{pickId:'p',currentOwnerId:1}],transactions:[{id:'t'}]};
+const original=JSON.stringify(legacy);
+const {nextState,summary}=createPhase10FromFrontOffice(legacy,{controlledTeamId:1,currentDate:'2026-10-12'});
+assert.equal(summary.playerCount,1);
+assert.equal(nextState.universe.players[0].name,'Skater');
+assert.equal(nextState.assets.contracts.length,1);
+assert.equal(nextState.assets.draftPicks.length,1);
+nextState.universe.players[0].name='Changed';
+assert.equal(JSON.stringify(legacy),original);
+assert.throws(()=>createPhase10FromFrontOffice(legacy,{controlledTeamId:99,currentDate:'2026-10-12'}),/Controlled team/);
+assert.throws(()=>createPhase10FromFrontOffice(legacy,{controlledTeamId:1,currentDate:'bad'}),/currentDate/);
+assert.throws(()=>createPhase10FromFrontOffice({...legacy,players:null},{controlledTeamId:1,currentDate:'2026-10-12'}),/players array/);
+console.log('Phase 10 Front Office import bridge tests passed');
