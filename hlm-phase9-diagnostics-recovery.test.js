@@ -808,6 +808,39 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(download.disabled,false,'fresh inspection restores approval');
   console.log('Mission 647 manifest recovery and approval revocation passed');
 
+  // Mission 648: a non-object diagnostics JSON payload must fail validity checks.
+  const mission648=JSON.parse(validPackage);
+  mission648.files['diagnostics.json']='null';
+  mission648.manifest.jsonFingerprint=fingerprint(mission648.files['diagnostics.json']);
+  inspect(JSON.stringify(mission648));
+  assert.equal(download.disabled,true,'null diagnostics cannot be approved');
+  assert.match(result.textContent,/Diagnostics or manifest validity does not match package/);
+  console.log('Mission 648 null diagnostics structure passed');
+
+  // Mission 649: malformed diagnostics JSON must not be approved, even with matching fingerprint.
+  const mission649=JSON.parse(validPackage);
+  mission649.files['diagnostics.json']='{"valid":';
+  mission649.manifest.jsonFingerprint=fingerprint(mission649.files['diagnostics.json']);
+  inspect(JSON.stringify(mission649));
+  assert.equal(download.disabled,true,'malformed diagnostics JSON cannot be approved');
+  assert.match(result.textContent,/Inspection failed/);
+  console.log('Mission 649 malformed diagnostics structure passed');
+
+  // Mission 650: a matching fingerprint does not replace the required validity declaration.
+  const mission650=JSON.parse(validPackage);
+  mission650.files['diagnostics.json']='{}';
+  mission650.manifest.jsonFingerprint=fingerprint(mission650.files['diagnostics.json']);
+  inspect(JSON.stringify(mission650));
+  assert.equal(download.disabled,true,'missing diagnostics validity blocks approval');
+  assert.match(result.textContent,/Diagnostics or manifest validity does not match package/);
+  console.log('Mission 650 missing diagnostics validity passed');
+
+  // Mission 651: a valid package can recover after three structural failures.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package recovers after structural failures');
+  assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
+  console.log('Mission 651 diagnostics structural recovery passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
