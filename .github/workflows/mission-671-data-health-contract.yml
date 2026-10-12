@@ -1,0 +1,25 @@
+name: Mission 671 Data Health Contract Tests
+on:
+  push:
+    branches:
+      - mission-671-data-health-contract-tests
+  pull_request:
+    paths:
+      - 'hlm-franchise-data-health-contract.test.js'
+      - '.github/workflows/mission-671-data-health-contract.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-canonical-franchise-bridge.test.js
+      - run: node hlm-classified-canonical-bridge.test.js
+      - run: node hlm-simulation-roster-eligibility.test.js
+      - run: node hlm-simulation-roster-readiness.test.js
+      - run: node hlm-simulation-roster-readiness-pipeline.test.js
+      - run: node hlm-roster-readiness-validation-summary.test.js
+      - run: node hlm-franchise-data-health-report.test.js
+      - run: node hlm-franchise-data-health-contract.test.js
