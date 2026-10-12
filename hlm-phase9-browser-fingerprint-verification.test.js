@@ -1,0 +1,22 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const html=fs.readFileSync('phase9-diagnostics.html','utf8');
+const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const controls={};
+function element(){return {value:'',disabled:true,textContent:'',handlers:{},addEventListener(type,fn){this.handlers[type]=fn;}};}
+const document={getElementById(id){return controls[id]??(controls[id]=element());}};
+vm.runInNewContext(script,{document,TextEncoder,Math,JSON,URL,Blob,setTimeout},{timeout:3000});
+const {fingerprintGameBatchAuditReview:fingerprint}=require('./hlm-phase9-batch-audit-review-manifest');
+const files={'diagnostics.json':JSON.stringify({valid:true}),'diagnostics.csv':'name,value\nA,1','diagnostics.txt':'valid'};
+const manifest={jsonFingerprint:fingerprint(files['diagnostics.json']),csvFingerprint:fingerprint(files['diagnostics.csv']),textFingerprint:fingerprint(files['diagnostics.txt'])};
+const data={kind:'phase9-game-batch-audit-review-diagnostics-package',version:1,valid:true,files,manifest};
+controls.payload.value=JSON.stringify(data);
+controls.inspect.handlers.click();
+assert.match(controls.result.textContent,/PACKAGE FINGERPRINTS VERIFIED/);
+assert.equal(controls.download.disabled,false);
+data.files['diagnostics.csv']='tampered';
+controls.payload.value=JSON.stringify(data);
+controls.inspect.handlers.click();
+assert.match(controls.result.textContent,/Integrity fingerprint mismatch: diagnostics.csv/);
+assert.equal(controls.download.disabled,true);
+console.log('Mission 559 browser fingerprint verification tests passed');
