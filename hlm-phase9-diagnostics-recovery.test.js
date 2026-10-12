@@ -222,6 +222,41 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   inspect(validPackage);
   assert.equal(download.disabled,false,'valid package still works after invalid inputs');
   console.log('Mission 583 validity mismatch and recovery checks passed');
+  // Mission 584: missing and incorrect package versions are rejected.
+  const wrongVersion=JSON.parse(validPackage);
+  wrongVersion.version=2;
+  inspect(JSON.stringify(wrongVersion));
+  assert.equal(download.disabled,true,'unsupported version rejected');
+  assert.match(result.textContent,/Not a recognized/);
+  console.log('Mission 584 package version checks passed');
+
+  // Mission 585: required file entries must be strings.
+  const nonStringFile=JSON.parse(validPackage);
+  nonStringFile.files['diagnostics.json']={valid:true};
+  inspect(JSON.stringify(nonStringFile));
+  assert.equal(download.disabled,true,'non-string diagnostics JSON rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics.json/);
+  console.log('Mission 585 diagnostics artifact type checks passed');
+
+  // Mission 586: a missing or incorrect fingerprint cannot be accepted.
+  const missingFingerprint=JSON.parse(validPackage);
+  delete missingFingerprint.manifest.csvFingerprint;
+  inspect(JSON.stringify(missingFingerprint));
+  assert.equal(download.disabled,true,'missing CSV fingerprint rejected');
+  assert.match(result.textContent,/Integrity fingerprint mismatch: diagnostics.csv/);
+  console.log('Mission 586 fingerprint metadata checks passed');
+
+  // Mission 587: syntactically broken nested JSON must not approve a download.
+  const brokenNested=JSON.parse(validPackage);
+  brokenNested.files['diagnostics.json']='{broken';
+  brokenNested.manifest.jsonFingerprint=fingerprint(brokenNested.files['diagnostics.json']);
+  inspect(JSON.stringify(brokenNested));
+  assert.equal(download.disabled,true,'invalid nested diagnostics JSON rejected');
+  assert.match(result.textContent,/Inspection failed/);
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package recovers after nested JSON failure');
+  console.log('Mission 587 nested JSON recovery checks passed');
+
 
 
 
