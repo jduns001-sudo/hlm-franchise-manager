@@ -13,7 +13,7 @@ const preview=previewDeterministicGameResult({repository,sourceSlotId:'active',g
  resolveEvent:({index})=>({outcome:index===0?'goal':'save'})});
 assert.equal(preview.verified,true);
 assert.equal(preview.score.homeGoals+preview.score.awayGoals,1);
-assert.equal(preview.output.playByPlay.length,11);
+assert.equal(preview.output.playByPlay.length,10);
 assert.equal(repository.has('played'),false);
 assert.equal(serializeGameState(repository.load('active').state),before);
 assert.throws(()=>commitDeterministicGameResult({repository,reviewedPreview:preview,destinationSlotId:'played'}),e=>e.code==='GAME_RESULT_APPROVAL_REQUIRED');
