@@ -326,19 +326,19 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   // Mission 596: a boolean root cannot be inspected as a package.
   inspect('true');
   assert.equal(download.disabled,true,'boolean root rejected');
-  assert.match(result.textContent,/Not a recognized/);
+  assert.match(result.textContent,/Expected a JSON object/);
   console.log('Mission 596 boolean root checks passed');
 
   // Mission 597: a number root cannot be inspected as a package.
   inspect('42');
   assert.equal(download.disabled,true,'number root rejected');
-  assert.match(result.textContent,/Not a recognized/);
+  assert.match(result.textContent,/Expected a JSON object/);
   console.log('Mission 597 numeric root checks passed');
 
   // Mission 598: a string root cannot be inspected as a package.
   inspect('"not a package"');
   assert.equal(download.disabled,true,'string root rejected');
-  assert.match(result.textContent,/Not a recognized/);
+  assert.match(result.textContent,/Expected a JSON object/);
   console.log('Mission 598 string root checks passed');
 
   // Mission 599: whitespace-only input must revoke previous approval.
