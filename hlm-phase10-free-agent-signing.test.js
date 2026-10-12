@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {signOffseasonFreeAgent}=require('./hlm-phase10-free-agent-signing');
+const state=createGameStateEnvelope({teams:[{id:1,name:'Wolves'}],players:[{id:10,name:'Available'},{id:11,name:'Signed'}],contracts:[{contractId:'old',playerId:10,teamId:1,status:'expired',aav:2},{contractId:'live',playerId:11,teamId:1,status:'active',aav:5}]});
+const before=JSON.stringify(state);
+const offer={playerId:10,teamId:1,contractId:'new',aav:3,years:2,season:'2027-28',capLimit:10};
+const {nextState,summary}=signOffseasonFreeAgent(state,offer);
+assert.equal(summary.projectedPayroll,8);
+assert.equal(summary.capSpace,2);
+assert.equal(nextState.assets.contracts[2].status,'active');
+assert.equal(JSON.stringify(state),before);
+assert.throws(()=>signOffseasonFreeAgent(nextState,offer),/not an eligible free agent/);
+assert.throws(()=>signOffseasonFreeAgent(state,{...offer,aav:6}),/exceeds salary cap/);
+assert.throws(()=>signOffseasonFreeAgent(state,{...offer,contractId:'live'}),/already exists/);
+assert.throws(()=>signOffseasonFreeAgent(state,{...offer,years:0}),/Invalid salary or term/);
+assert.throws(()=>signOffseasonFreeAgent(state,{...offer,teamId:99}),/Team not found/);
+console.log('Phase 10 free agent signing tests passed');
