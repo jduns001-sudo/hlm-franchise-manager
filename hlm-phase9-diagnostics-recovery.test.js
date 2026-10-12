@@ -103,6 +103,20 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/File loaded/,'stale failure does not replace success message');
   assert.equal(download.disabled,true,'latest payload requires inspection');
   console.log('Mission 572 stale file failure recovery checks passed');
+  // Clearing during a pending file read must keep the workspace empty.
+  let resolveAfterClear;
+  const pendingClear=new Promise(resolve=>{resolveAfterClear=resolve;});
+  elements['package-file'].files=[{size:100,text:()=>pendingClear}];
+  const clearRead=elements['package-file'].handlers.change();
+  elements.clear.click();
+  assert.equal(payload.value,'','clear empties workspace immediately');
+  resolveAfterClear(validPackage);
+  await clearRead;
+  assert.equal(payload.value,'','late file read cannot repopulate cleared workspace');
+  assert.equal(result.textContent,'No package inspected.','clear status remains visible');
+  assert.equal(download.disabled,true,'cleared workspace cannot download');
+  console.log('Mission 573 clear-during-read checks passed');
+
 
 
 })().catch(error=>{console.error(error);process.exitCode=1;});
