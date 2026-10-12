@@ -20,6 +20,14 @@ function createCPUSeasonTransitionCandidate(state,{fromSeasonId,toSeasonId,nextD
   fail('CPU_SEASON_TRANSITION_INVALID_DATE','Valid next date required');
  if(typeof state.meta.currentDate!=='string'||nextDate<=state.meta.currentDate)
   fail('CPU_SEASON_TRANSITION_DATE_ORDER','Next date must follow current date');
+ if(old[0].completedAt!==undefined){
+  const completedAt=old[0].completedAt;
+  if(typeof completedAt!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(completedAt)||
+     !Number.isFinite(Date.parse(completedAt))||
+     new Date(completedAt).toISOString().slice(0,10)!==completedAt||
+     completedAt>state.meta.currentDate||completedAt>=nextDate)
+   fail('CPU_SEASON_TRANSITION_COMPLETION_CHRONOLOGY','Completed source season must end no later than current date and before next season');
+ }
  const fingerprint=serializeGameState(state);
  const sequence=steps.length?createSequentialIsolatedCPUTradeCandidates(state,steps):null;
  const candidate=JSON.parse(JSON.stringify(sequence?.candidateState??state));
