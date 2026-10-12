@@ -16,7 +16,7 @@ function executeReviewedCPUDecisionTrade({repository,sourceSlotId,destinationSlo
  if(!Array.isArray(steps)||!steps.length||steps.some(s=>String(s.teamId)!==String(teamId)))
   fail('CPU_DECISION_TRADE_TEAM_MISMATCH','All approved trade steps must originate from selected CPU organization');
  const advisory=verifyCPUActionExecutionPackage(source,teamId,decisionOptions||{});
- if(advisory.preflightPackage?.requestPackage?.readinessPackage?.authorizationPackage?.candidate?.action?.type!=='trades')
+ if(advisory.preflightPackage?.requestPackage?.readinessPackage?.authorizationPackage?.candidate?.action?.type!=='trades'&&advisory.verification.verified===true)
   fail('CPU_DECISION_TRADE_ACTION_MISMATCH','Authorized CPU action must be a trade');
  if(advisory.verification.verified!==true||advisory.checks.humanAuthorized!==true)
   fail('CPU_DECISION_TRADE_PREFLIGHT_FAILED','CPU decision must pass human-authorized advisory preflight');
