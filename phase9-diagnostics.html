@@ -12,6 +12,12 @@
 'use strict';
 const payload=document.getElementById('payload'),result=document.getElementById('result'),download=document.getElementById('download');
 let approved=null;
+function fingerprint(value){
+ const bytes=new TextEncoder().encode(value);
+ let hash=2166136261;
+ for(const b of bytes){hash^=b;hash=Math.imul(hash,16777619);}
+ return (hash>>>0).toString(16).padStart(8,'0')+'-'+bytes.length;
+}
 function reset(){approved=null;download.disabled=true;}
 payload.addEventListener('input',reset);
 document.getElementById('clear').addEventListener('click',()=>{payload.value='';reset();result.textContent='No package inspected.';});
@@ -24,11 +30,13 @@ document.getElementById('inspect').addEventListener('click',()=>{
   for(const name of ['diagnostics.json','diagnostics.csv','diagnostics.txt']){
    if(typeof parsed.files[name]!=='string')throw Error('Missing required file: '+name);
   }
+  for(const [name,key] of [['diagnostics.json','jsonFingerprint'],['diagnostics.csv','csvFingerprint'],['diagnostics.txt','textFingerprint']]){
+   if(typeof parsed.manifest[key]!=='string'||fingerprint(parsed.files[name])!==parsed.manifest[key])throw Error('Integrity fingerprint mismatch: '+name);
+  }
   const details=JSON.parse(parsed.files['diagnostics.json']);
   if(typeof details!=='object'||details===null||details.valid!==parsed.valid)throw Error('Diagnostics validity does not match package.');
-  // This page performs structural checks only. Cryptographic/fingerprint verification requires the full diagnostics verifier.
   approved=payload.value;download.disabled=false;
-  result.textContent='STRUCTURE VALID. Package declares valid='+String(parsed.valid)+'. Integrity fingerprints have NOT been verified. Use the Phase 9 verifier for full verification.';
+  result.textContent='PACKAGE FINGERPRINTS VERIFIED. Package declares valid='+String(parsed.valid)+'. Fingerprints detect accidental changes, not malicious forgery. Source franchise save and GM receipt have NOT been verified on this page.';
  }catch(error){result.textContent='Inspection failed: '+error.message;}
 });
 download.addEventListener('click',()=>{
