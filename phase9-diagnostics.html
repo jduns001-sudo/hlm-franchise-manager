@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 9 Diagnostics | Hockey Franchise Manager</title>
+<style>body{font:16px system-ui,sans-serif;max-width:860px;margin:auto;padding:24px;background:#07111f;color:#f1f5f9}a{color:#93c5fd}textarea{box-sizing:border-box;width:100%;min-height:240px;background:#101e32;color:white;border:1px solid #64748b;border-radius:8px;padding:12px}button{background:#2563eb;color:white;border:0;border-radius:6px;padding:12px;margin:8px 8px 8px 0;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101e32;padding:16px;border-radius:8px}label{display:block;margin:18px 0 8px;font-weight:bold}</style></head>
+<body><nav><a href="./app.html">← Front Office</a></nav><h1>Phase 9 Diagnostics</h1>
+<p>Read-only offline diagnostics workspace. Paste a saved diagnostics JSON package to inspect and export it. This page does not access or replace your active franchise save.</p>
+<label for="payload">Diagnostics JSON package</label><textarea id="payload" spellcheck="false" placeholder="Paste exported diagnostics JSON here"></textarea>
+<div><button id="inspect">Inspect package</button><button id="download" disabled>Download JSON copy</button><button id="clear">Clear</button></div>
+<h2>Verification</h2><pre id="result" role="status" aria-live="polite">No package inspected.</pre>
+<script>
+(function(){
+'use strict';
+const payload=document.getElementById('payload'),result=document.getElementById('result'),download=document.getElementById('download');
+let approved=null;
+function reset(){approved=null;download.disabled=true;}
+payload.addEventListener('input',reset);
+document.getElementById('clear').addEventListener('click',()=>{payload.value='';reset();result.textContent='No package inspected.';});
+document.getElementById('inspect').addEventListener('click',()=>{
+ reset();
+ try{
+  const parsed=JSON.parse(payload.value);
+  if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('Expected a JSON object.');
+  if(parsed.kind!=='phase9-game-batch-audit-review-diagnostics-package'||parsed.version!==1||!parsed.files||!parsed.manifest)throw Error('Not a recognized Phase 9 diagnostics package.');
+  for(const name of ['diagnostics.json','diagnostics.csv','diagnostics.txt']){
+   if(typeof parsed.files[name]!=='string')throw Error('Missing required file: '+name);
+  }
+  const details=JSON.parse(parsed.files['diagnostics.json']);
+  if(typeof details!=='object'||details===null||details.valid!==parsed.valid)throw Error('Diagnostics validity does not match package.');
+  // This page performs structural checks only. Cryptographic/fingerprint verification requires the full diagnostics verifier.
+  approved=payload.value;download.disabled=false;
+  result.textContent='STRUCTURE VALID. Package declares valid='+String(parsed.valid)+'. Integrity fingerprints have NOT been verified. Use the Phase 9 verifier for full verification.';
+ }catch(error){result.textContent='Inspection failed: '+error.message;}
+});
+download.addEventListener('click',()=>{
+ if(approved===null)return;
+ const url=URL.createObjectURL(new Blob([approved],{type:'application/json'}));
+ const a=document.createElement('a');a.href=url;a.download='phase9-diagnostics-copy.json';document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+})();
+</script></body></html>
