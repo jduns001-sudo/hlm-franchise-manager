@@ -8,7 +8,7 @@ const document={getElementById(id){return controls[id]??(controls[id]=element())
 vm.runInNewContext(script,{document,TextEncoder,Math,JSON,URL,Blob,setTimeout},{timeout:3000});
 const {fingerprintGameBatchAuditReview:fingerprint}=require('./hlm-phase9-batch-audit-review-manifest');
 const files={'diagnostics.json':JSON.stringify({valid:true}),'diagnostics.csv':'name,value\nA,1','diagnostics.txt':'valid'};
-const manifest={jsonFingerprint:fingerprint(files['diagnostics.json']),csvFingerprint:fingerprint(files['diagnostics.csv']),textFingerprint:fingerprint(files['diagnostics.txt'])};
+const manifest={valid:true,jsonFingerprint:fingerprint(files['diagnostics.json']),csvFingerprint:fingerprint(files['diagnostics.csv']),textFingerprint:fingerprint(files['diagnostics.txt'])};
 const data={kind:'phase9-game-batch-audit-review-diagnostics-package',version:1,valid:true,files,manifest};
 controls.payload.value=JSON.stringify(data);
 controls.inspect.handlers.click();
