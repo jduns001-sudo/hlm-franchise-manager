@@ -774,6 +774,40 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
   console.log('Mission 643 required file and fingerprint recovery passed');
 
+  // Mission 644: a missing JSON fingerprint cannot approve otherwise intact content.
+  const mission644=JSON.parse(validPackage);
+  delete mission644.manifest.jsonFingerprint;
+  inspect(JSON.stringify(mission644));
+  assert.equal(download.disabled,true,'missing JSON fingerprint blocks download');
+  assert.match(result.textContent,/Integrity fingerprint mismatch: diagnostics.json/);
+  console.log('Mission 644 missing JSON fingerprint passed');
+
+  // Mission 645: a missing text fingerprint cannot approve otherwise intact content.
+  const mission645=JSON.parse(validPackage);
+  delete mission645.manifest.textFingerprint;
+  inspect(JSON.stringify(mission645));
+  assert.equal(download.disabled,true,'missing text fingerprint blocks download');
+  assert.match(result.textContent,/Integrity fingerprint mismatch: diagnostics.txt/);
+  console.log('Mission 645 missing text fingerprint passed');
+
+  // Mission 646: the manifest validity must agree with the package and diagnostics.
+  const mission646=JSON.parse(validPackage);
+  mission646.manifest.valid=false;
+  inspect(JSON.stringify(mission646));
+  assert.equal(download.disabled,true,'contradictory manifest validity blocks download');
+  assert.match(result.textContent,/Diagnostics or manifest validity does not match package/);
+  console.log('Mission 646 contradictory manifest validity passed');
+
+  // Mission 647: approval can recover only after a fresh valid inspection.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package can recover from manifest failures');
+  payload.value=validPackage+' ';
+  download.click();
+  assert.equal(download.disabled,true,'silent payload change revokes approval');
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'fresh inspection restores approval');
+  console.log('Mission 647 manifest recovery and approval revocation passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
