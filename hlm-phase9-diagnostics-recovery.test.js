@@ -174,6 +174,21 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(download.disabled,true,'canceled selection revokes download approval');
   assert.match(result.textContent,/Select a diagnostics file to inspect/,'cancel displays neutral status');
   console.log('Mission 578 file picker cancellation checks passed');
+  // Canceling a subsequent selection must invalidate an earlier pending read.
+  let resolveCanceledRead;
+  const pendingCanceledRead=new Promise(resolve=>{resolveCanceledRead=resolve;});
+  payload.value='{"keep":true}';
+  elements['package-file'].files=[{size:100,text:()=>pendingCanceledRead}];
+  const firstCanceledRead=elements['package-file'].handlers.change();
+  elements['package-file'].files=[];
+  await elements['package-file'].handlers.change();
+  resolveCanceledRead('{"outdated":true}');
+  await firstCanceledRead;
+  assert.equal(payload.value,'{"keep":true}','cancellation blocks previous pending read');
+  assert.match(result.textContent,/Select a diagnostics file to inspect/);
+  assert.equal(download.disabled,true,'canceled pending read cannot approve download');
+  console.log('Mission 579 cancel-pending-read checks passed');
+
 
 
 
