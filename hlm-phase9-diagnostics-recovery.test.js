@@ -129,6 +129,22 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/Package changed/,'edit message remains visible');
   assert.equal(download.disabled,true,'manual edits require inspection');
   console.log('Mission 574 edit-during-read checks passed');
+  // Inspection while a read is pending invalidates that read's revision.
+  let resolveAfterInspect;
+  const pendingInspect=new Promise(resolve=>{resolveAfterInspect=resolve;});
+  payload.value=validPackage;
+  elements['package-file'].files=[{size:100,text:()=>pendingInspect}];
+  const inspectRead=elements['package-file'].handlers.change();
+  elements.inspect.click();
+  assert.equal(download.disabled,false,'current valid payload can be inspected');
+  assert.match(result.textContent,/PACKAGE FINGERPRINTS VERIFIED/);
+  resolveAfterInspect('{"outdated":true}');
+  await inspectRead;
+  assert.equal(payload.value,validPackage,'late read cannot replace inspected payload');
+  assert.equal(download.disabled,false,'stale read cannot revoke current approval');
+  assert.match(result.textContent,/PACKAGE FINGERPRINTS VERIFIED/,'verified status remains');
+  console.log('Mission 575 inspect-during-read checks passed');
+
 
 
 
