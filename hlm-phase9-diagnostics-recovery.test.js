@@ -1078,6 +1078,85 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
   console.log('Missions 680–687 malformed file type recovery passed');
 
+
+  // Missions 688–700: required diagnostics files reject malformed values and recover.
+  const mission688=JSON.parse(validPackage);
+  mission688.files["diagnostics.json"]=0;
+  inspect(JSON.stringify(mission688));
+  assert.equal(download.disabled,true,'Mission 688: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+
+  const mission689=JSON.parse(validPackage);
+  mission689.files["diagnostics.txt"]=42;
+  inspect(JSON.stringify(mission689));
+  assert.equal(download.disabled,true,'Mission 689: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.txt/);
+
+  const mission690=JSON.parse(validPackage);
+  mission690.files["diagnostics.csv"]=null;
+  inspect(JSON.stringify(mission690));
+  assert.equal(download.disabled,true,'Mission 690: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+
+  const mission691=JSON.parse(validPackage);
+  mission691.files["diagnostics.json"]={"unexpected":1};
+  inspect(JSON.stringify(mission691));
+  assert.equal(download.disabled,true,'Mission 691: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+
+  const mission692=JSON.parse(validPackage);
+  mission692.files["diagnostics.txt"]=["text"];
+  inspect(JSON.stringify(mission692));
+  assert.equal(download.disabled,true,'Mission 692: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.txt/);
+
+  const mission693=JSON.parse(validPackage);
+  mission693.files["diagnostics.csv"]=false;
+  inspect(JSON.stringify(mission693));
+  assert.equal(download.disabled,true,'Mission 693: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+
+  const mission694=JSON.parse(validPackage);
+  mission694.files["diagnostics.json"]=true;
+  inspect(JSON.stringify(mission694));
+  assert.equal(download.disabled,true,'Mission 694: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+
+  const mission695=JSON.parse(validPackage);
+  mission695.files["diagnostics.txt"]=null;
+  inspect(JSON.stringify(mission695));
+  assert.equal(download.disabled,true,'Mission 695: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.txt/);
+
+  const mission696=JSON.parse(validPackage);
+  mission696.files["diagnostics.csv"]={"content":"csv"};
+  inspect(JSON.stringify(mission696));
+  assert.equal(download.disabled,true,'Mission 696: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+
+  const mission697=JSON.parse(validPackage);
+  mission697.files["diagnostics.json"]=["json"];
+  inspect(JSON.stringify(mission697));
+  assert.equal(download.disabled,true,'Mission 697: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+
+  const mission698=JSON.parse(validPackage);
+  mission698.files["diagnostics.txt"]=false;
+  inspect(JSON.stringify(mission698));
+  assert.equal(download.disabled,true,'Mission 698: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.txt/);
+
+  const mission699=JSON.parse(validPackage);
+  mission699.files["diagnostics.csv"]=123;
+  inspect(JSON.stringify(mission699));
+  assert.equal(download.disabled,true,'Mission 699: invalid required file rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'Mission 700: valid package restores approval');
+  assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
+  console.log('Missions 688–700 final Phase 9 diagnostics regression batch passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
