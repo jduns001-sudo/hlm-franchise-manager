@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {runOffseasonContractWindow}=require('./hlm-phase10-offseason-workflow');
+const state=createGameStateEnvelope({teams:[{id:1,name:'Wolves'}],players:[{id:10,name:'A'},{id:11,name:'B'}],contracts:[{contractId:'old',playerId:10,teamId:1,status:'active',aav:2},{contractId:'other',playerId:11,teamId:1,status:'active',aav:5}]});
+const original=JSON.stringify(state);
+const input={expiredContractIds:['old'],signings:[{playerId:10,teamId:1,contractId:'new',aav:3,years:2,season:'2027-28',capLimit:10}]};
+const {nextState,summary}=runOffseasonContractWindow(state,input);
+assert.equal(summary.expiredCount,1);
+assert.equal(summary.freeAgentsBefore,1);
+assert.equal(summary.freeAgentsAfter,0);
+assert.equal(summary.signings.length,1);
+assert.equal(nextState.assets.contracts.length,3);
+assert.equal(JSON.stringify(state),original);
+assert.throws(()=>runOffseasonContractWindow(state,{...input,signings:[{...input.signings[0],aav:100}]}),/salary cap/);
+assert.equal(JSON.stringify(state),original);
+assert.throws(()=>runOffseasonContractWindow(nextState,input),/already expired/);
+console.log('Phase 10 offseason workflow tests passed');
