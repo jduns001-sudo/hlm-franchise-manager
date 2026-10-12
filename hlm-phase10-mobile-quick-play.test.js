@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('phase10-demo.html','utf8');
+assert.match(html,/id="nextgame"/);
+assert.match(html,/id="season-progress"/);
+assert.match(html,/min-height:44px/);
+assert.match(html,/max-width:560px/);
+assert.match(html,/while\(state\.meta\.currentDate<target\)/);
+assert.match(html,/days\+\+>=366/);
+assert.match(html,/store\.advanceAndSave/);
+console.log('Phase 10 mobile quick play controls smoke tests passed');
