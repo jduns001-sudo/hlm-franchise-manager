@@ -34,6 +34,7 @@ function persistReviewedCPUSimulationCandidate({storage,sourceSlotId,destination
  return Object.freeze({kind:'phase9-reviewed-cpu-simulation-browser-save',version:1,
   sourceSlotId:sourceSlotId.trim(),destinationSlotId:destinationSlotId.trim(),
   fromDate:review.fromDate,toDate:review.toDate,teamCount:review.teamCount,
+  sourceFingerprint:review.sourceFingerprint,candidateFingerprint:review.candidateFingerprint,
   leagueReview:review.leagueReview,verified:true,sourcePreserved:true,
   activeFranchiseSlotReplaced:false,eventsProcessed:false,gamesSimulated:false,cpuActionsExecuted:false});
 }
