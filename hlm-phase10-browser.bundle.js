@@ -520,7 +520,7 @@ function simulateNextPlayoffGame(state,seed=0) {
 }
 module.exports={simulateNextPlayoffGame};
 
-}
+},
 "hlm-phase10-complete-offseason.js":function(module,exports,require){
 'use strict';
 const {validateGameStateEnvelope}=require('./hlm-game-state');
