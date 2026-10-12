@@ -1,0 +1,22 @@
+name: Mission 664 Organization Classification Tests
+on:
+  push:
+    branches:
+      - mission-664-organization-reference-classification
+  pull_request:
+    paths:
+      - 'hlm-organization-reference-classifier.js'
+      - 'hlm-organization-reference-classifier.test.js'
+      - '.github/workflows/mission-664-organization-classification.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-team-reference-registry.test.js
+      - run: node hlm-franchise-simulation-data-bridge.test.js
+      - run: node hlm-canonical-franchise-bridge.test.js
+      - run: node hlm-organization-reference-classifier.test.js
