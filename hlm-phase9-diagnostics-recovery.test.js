@@ -256,6 +256,43 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   inspect(validPackage);
   assert.equal(download.disabled,false,'valid package recovers after nested JSON failure');
   console.log('Mission 587 nested JSON recovery checks passed');
+  // Mission 588: reject mismatched JSON content validity even with a valid fingerprint.
+  const detailMismatch=JSON.parse(validPackage);
+  detailMismatch.files['diagnostics.json']=JSON.stringify({valid:false});
+  detailMismatch.manifest.jsonFingerprint=fingerprint(detailMismatch.files['diagnostics.json']);
+  inspect(JSON.stringify(detailMismatch));
+  assert.equal(download.disabled,true,'nested validity mismatch rejected');
+  assert.match(result.textContent,/validity does not match package/);
+  console.log('Mission 588 nested validity mismatch checks passed');
+
+  // Mission 589: every required artifact fingerprint is checked.
+  for(const [name,expected] of [['diagnostics.json','jsonFingerprint'],['diagnostics.csv','csvFingerprint'],['diagnostics.txt','textFingerprint']]){
+    const altered=JSON.parse(validPackage);
+    altered.manifest[expected]='00000000-0';
+    inspect(JSON.stringify(altered));
+    assert.equal(download.disabled,true,name+' altered fingerprint rejected');
+    assert.match(result.textContent,/Integrity fingerprint mismatch/);
+  }
+  console.log('Mission 589 all artifact fingerprint checks passed');
+
+  // Mission 590: non-object nested JSON cannot be treated as valid diagnostics.
+  const nullDetails=JSON.parse(validPackage);
+  nullDetails.files['diagnostics.json']='null';
+  nullDetails.manifest.jsonFingerprint=fingerprint('null');
+  inspect(JSON.stringify(nullDetails));
+  assert.equal(download.disabled,true,'null diagnostics details rejected');
+  assert.match(result.textContent,/validity does not match package/);
+  console.log('Mission 590 null nested diagnostics checks passed');
+
+  // Mission 591: invalid input after valid approval revokes download immediately.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package approved before invalid reinspection');
+  inspect('{');
+  assert.equal(download.disabled,true,'failed reinspection revokes previous approval');
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'successful reinspection restores approval');
+  console.log('Mission 591 approval revocation and recovery checks passed');
+
 
 
 
