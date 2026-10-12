@@ -742,6 +742,38 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
 
 
 
+  // Mission 640: missing diagnostics.json must invalidate prior approval.
+  inspect(validPackage);
+  assert.equal(download.disabled,false);
+  const mission640=JSON.parse(validPackage);
+  delete mission640.files['diagnostics.json'];
+  inspect(JSON.stringify(mission640));
+  assert.equal(download.disabled,true,'missing JSON revokes approval');
+  assert.match(result.textContent,/Missing required file: diagnostics.json/);
+  console.log('Mission 640 missing JSON guard passed');
+
+  // Mission 641: missing diagnostics.txt must not be approved.
+  const mission641=JSON.parse(validPackage);
+  delete mission641.files['diagnostics.txt'];
+  inspect(JSON.stringify(mission641));
+  assert.equal(download.disabled,true,'missing text revokes approval');
+  assert.match(result.textContent,/Missing required file: diagnostics.txt/);
+  console.log('Mission 641 missing text guard passed');
+
+  // Mission 642: a missing CSV fingerprint is rejected even if file contents are intact.
+  const mission642=JSON.parse(validPackage);
+  delete mission642.manifest.csvFingerprint;
+  inspect(JSON.stringify(mission642));
+  assert.equal(download.disabled,true,'missing fingerprint blocks approval');
+  assert.match(result.textContent,/Integrity fingerprint mismatch: diagnostics.csv/);
+  console.log('Mission 642 missing CSV fingerprint guard passed');
+
+  // Mission 643: a valid package can be approved after all three failures.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package restores approval');
+  assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
+  console.log('Mission 643 required file and fingerprint recovery passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
