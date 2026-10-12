@@ -67,12 +67,6 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   elements.clear.click();
   assert.equal(download.disabled,true,'clear revokes approval after file selection');
   console.log('Mission 570 file selection recovery checks passed');
-})().catch(error=>{console.error(error);process.exitCode=1;});
-
-
-
-// Two overlapping reads: the earlier result must never replace the latest file.
-(async () => {
   let finishOld, finishNew;
   const oldRead=new Promise(resolve=>{finishOld=resolve;});
   const newRead=new Promise(resolve=>{finishNew=resolve;});
@@ -88,4 +82,8 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(payload.value,'{"new":true}','older read ignored');
   assert.equal(download.disabled,true,'new file remains unapproved');
   console.log('Mission 571 out-of-order file read checks passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+
+
