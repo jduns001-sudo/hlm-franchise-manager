@@ -790,4 +790,68 @@ function finalizeChampionshipSeason(state,seasonId){
 module.exports={finalizeChampionshipSeason};
 
 },
-};var cache={};function load(name){if(cache[name])return cache[name].exports;if(!modules[name])throw Error('Missing module '+name);var module={exports:{}};cache[name]=module;function localRequire(request){if(request.slice(0,2)!=='./')throw Error('Unsupported require '+request);return load(request.slice(2)+'.js')}modules[name](module,module.exports,localRequire);return module.exports;}var api={};for(var name of ['hlm-phase10-browser-storage.js','hlm-phase10-standings.js','hlm-master-calendar.js','hlm-game-state.js','hlm-phase10-season-playoffs.js','hlm-phase10-playoff-simulation.js','hlm-phase10-complete-offseason.js','hlm-phase10-season-finalization.js'])Object.assign(api,load(name));global.HLMPhase10=api;})(typeof window!=='undefined'?window:globalThis);
+"hlm-phase10-front-office-import.js":function(module,exports,require){
+'use strict';
+const {createGameStateEnvelope,validateGameStateEnvelope}=require('./hlm-game-state');
+/** Explicit, non-destructive import from legacy Front Office records into an isolated Phase 10 save. */
+function createPhase10FromFrontOffice(legacy,{controlledTeamId,currentDate,saveId='phase10-import'}={}){
+ if(!legacy||typeof legacy!=='object'||Array.isArray(legacy))throw new TypeError('Front Office data must be an object');
+ if(!Array.isArray(legacy.teams)||legacy.teams.length<2)throw new Error('Front Office requires at least two teams');
+ if(!Array.isArray(legacy.players))throw new Error('Front Office players array required');
+ if(controlledTeamId==null||!legacy.teams.some(t=>t&&String(t.id)===String(controlledTeamId)))throw new Error('Controlled team not found');
+ if(typeof currentDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(currentDate)||!Number.isFinite(Date.parse(currentDate+'T00:00:00Z')))throw new Error('Valid currentDate required');
+ const state=createGameStateEnvelope({
+  meta:{saveId,controlledTeamId,currentDate},
+  teams:legacy.teams,players:legacy.players,
+  contracts:Array.isArray(legacy.contracts)?legacy.contracts:[],
+  prospects:Array.isArray(legacy.prospects)?legacy.prospects:[],
+  draftPicks:Array.isArray(legacy.draftPicks)?legacy.draftPicks:[],
+  transactions:Array.isArray(legacy.transactions)?legacy.transactions:[]
+ });
+ if(!validateGameStateEnvelope(state).valid)throw new Error('Imported franchise state invalid');
+ return {nextState:state,summary:{teamCount:state.universe.teams.length,playerCount:state.universe.players.length,contractCount:state.assets.contracts.length,controlledTeamId}};
+}
+module.exports={createPhase10FromFrontOffice};
+
+},
+"hlm-phase10-season-schedule.js":function(module,exports,require){
+'use strict';
+const {assertIsoDate,addCalendarDays}=require('./hlm-master-calendar');
+
+/**
+ * Deterministic round-robin schedule generator.
+ * Every distinct pair plays once per cycle; reverse home/away each second cycle.
+ */
+function generateRoundRobinSchedule(teams,startDate,cycles=2) {
+  assertIsoDate(startDate);
+  if (!Array.isArray(teams) || teams.length<2) throw new TypeError('At least two teams required');
+  if (!Number.isSafeInteger(cycles) || cycles<1 || cycles>20) throw new RangeError('Cycles must be 1 through 20');
+  const ids=teams.map(team=>team && team.id);
+  if(ids.some(id=>id==null)||new Set(ids.map(String)).size!==ids.length)throw new Error('Team IDs must be unique and present');
+  const entries=ids.slice();
+  if(entries.length%2)entries.push(null);
+  const rounds=entries.length-1;
+  const half=entries.length/2;
+  const games=[];
+  let day=1;
+  for(let cycle=0;cycle<cycles;cycle++){
+    const rotation=entries.slice();
+    for(let round=0;round<rounds;round++){
+      const date=addCalendarDays(startDate,day++);
+      for(let i=0;i<half;i++){
+        const first=rotation[i],second=rotation[rotation.length-1-i];
+        if(first==null||second==null)continue;
+        const flip=(round+i+cycle)%2===1;
+        const homeTeamId=flip?second:first;
+        const awayTeamId=flip?first:second;
+        games.push({id:'S'+cycle+'-R'+round+'-G'+i,date,status:'scheduled',homeTeamId,awayTeamId});
+      }
+      rotation.splice(1,0,rotation.pop());
+    }
+  }
+  return games;
+}
+module.exports={generateRoundRobinSchedule};
+
+},
+};var cache={};function load(name){if(cache[name])return cache[name].exports;if(!modules[name])throw Error('Missing module '+name);var module={exports:{}};cache[name]=module;function localRequire(request){if(request.slice(0,2)!=='./')throw Error('Unsupported require '+request);return load(request.slice(2)+'.js')}modules[name](module,module.exports,localRequire);return module.exports;}var api={};for(var name of ['hlm-phase10-browser-storage.js','hlm-phase10-standings.js','hlm-master-calendar.js','hlm-game-state.js','hlm-phase10-season-playoffs.js','hlm-phase10-playoff-simulation.js','hlm-phase10-complete-offseason.js','hlm-phase10-season-finalization.js','hlm-phase10-front-office-import.js','hlm-phase10-season-schedule.js'])Object.assign(api,load(name));global.HLMPhase10=api;})(typeof window!=='undefined'?window:globalThis);
