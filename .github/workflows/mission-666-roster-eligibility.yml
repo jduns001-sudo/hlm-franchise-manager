@@ -1,0 +1,21 @@
+name: Mission 666 Roster Eligibility Tests
+on:
+  push:
+    branches:
+      - mission-666-readonly-roster-eligibility
+  pull_request:
+    paths:
+      - 'hlm-simulation-roster-eligibility.js'
+      - 'hlm-simulation-roster-eligibility.test.js'
+      - '.github/workflows/mission-666-roster-eligibility.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-canonical-franchise-bridge.test.js
+      - run: node hlm-classified-canonical-bridge.test.js
+      - run: node hlm-simulation-roster-eligibility.test.js
