@@ -1,0 +1,22 @@
+name: Mission 665 Classified Canonical Bridge Tests
+on:
+  push:
+    branches:
+      - mission-665-classified-canonical-bridge
+  pull_request:
+    paths:
+      - 'hlm-canonical-franchise-bridge.js'
+      - 'hlm-classified-canonical-bridge.test.js'
+      - 'hlm-organization-reference-classifier.js'
+      - '.github/workflows/mission-665-classified-bridge.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-canonical-franchise-bridge.test.js
+      - run: node hlm-organization-reference-classifier.test.js
+      - run: node hlm-classified-canonical-bridge.test.js
