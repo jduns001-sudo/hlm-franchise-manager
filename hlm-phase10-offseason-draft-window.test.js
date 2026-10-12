@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {runOffseasonDraftWindow}=require('./hlm-phase10-offseason-draft-window');
+const state=createGameStateEnvelope({teams:[{id:1,name:'Wolves'}],prospects:[{id:'p1'},{id:'p2'}],draftPicks:[{pickId:'pick1',currentOwnerId:1},{pickId:'pick2',currentOwnerId:1}]});
+const before=JSON.stringify(state);
+const picks=[{pickId:'pick1',prospectId:'p1',teamId:1},{pickId:'pick2',prospectId:'p2',teamId:1}];
+const {nextState,summary}=runOffseasonDraftWindow(state,picks);
+assert.equal(summary.selectedCount,2);
+assert.equal(summary.remainingPicks,0);
+assert.equal(nextState.universe.prospects[1].draftedByTeamId,1);
+assert.equal(JSON.stringify(state),before);
+assert.throws(()=>runOffseasonDraftWindow(state,[picks[0],picks[0]]),/already used/);
+assert.equal(JSON.stringify(state),before);
+assert.throws(()=>runOffseasonDraftWindow(state,[picks[0],{...picks[1],prospectId:'p1'}]),/already drafted/);
+assert.throws(()=>runOffseasonDraftWindow(state,null),/array/);
+assert.equal(runOffseasonDraftWindow(state,[]).summary.selectedCount,0);
+console.log('Phase 10 offseason draft window tests passed');
