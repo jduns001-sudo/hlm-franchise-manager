@@ -14,15 +14,18 @@ const decisionOptions={prioritization:{evaluation:{identification:{problems:[{id
 assert.throws(()=>createBrowserCPUTradeWorkflow({storage,sourceSlotId:'human',teamId:'PIT',steps,decisionOptions}),e=>e.code==='CPU_BROWSER_HUMAN_PROTECTED');
 const {prepareApprovedCPUTradeBatch}=require('./hlm-phase9-cpu-trade-batch-preview');
 const preview=prepareApprovedCPUTradeBatch({repository,sourceSlotId:'human',steps,expectedSourceFingerprint:before});
-const boundDecision={...decisionOptions,approvedTradeSourceFingerprint:preview.sourceFingerprint,
- approvedTradeCandidateFingerprint:preview.candidateFingerprint,approvedTradeTransactionIds:[...preview.transactionIds]};
-const workflow=createBrowserCPUTradeWorkflow({storage,sourceSlotId:'human',teamId:'BUF',steps,decisionOptions:boundDecision});
+const workflow=createBrowserCPUTradeWorkflow({storage,sourceSlotId:'human',teamId:'BUF',steps,decisionOptions});
 assert.equal(workflow.preview.stepCount,1);
 assert.throws(()=>workflow.execute({destinationSlotId:'reviewed'}),e=>e.code==='CPU_BROWSER_EXECUTION_APPROVAL_REQUIRED');
 assert.equal(repository.list().length,1);
-const result=workflow.execute({destinationSlotId:'reviewed',confirmExecution:true});
+assert.throws(()=>workflow.execute({destinationSlotId:'reviewed',confirmExecution:true}),e=>e.code==='CPU_BROWSER_EXACT_APPROVAL_REQUIRED');
+assert.throws(()=>workflow.approveReviewedTrade({preview:workflow.preview}),e=>e.code==='CPU_BROWSER_REVIEW_APPROVAL_REQUIRED');
+assert.throws(()=>workflow.approveReviewedTrade({preview:{...workflow.preview},confirmApproval:true}),e=>e.code==='CPU_BROWSER_REVIEW_MISMATCH');
+const approval=workflow.approveReviewedTrade({preview:workflow.preview,confirmApproval:true});
+assert.equal(approval.humanGMApproved,true);
+const result=workflow.execute({destinationSlotId:'reviewed',confirmExecution:true,approval});
 assert.equal(result.verified,true);
 assert.equal(repository.load('reviewed').state.universe.players[0].teamId,'NYR');
 assert.equal(serializeGameState(repository.load('human').state),before);
-assert.throws(()=>workflow.execute({destinationSlotId:'reviewed',confirmExecution:true}),e=>e.code==='CPU_COMMIT_DESTINATION_OCCUPIED');
+assert.throws(()=>workflow.execute({destinationSlotId:'reviewed',confirmExecution:true,approval}),e=>e.code==='CPU_COMMIT_DESTINATION_OCCUPIED');
 console.log('Phase 9 browser CPU approved decision-to-trade workflow tests passed');
