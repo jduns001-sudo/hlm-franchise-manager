@@ -13,6 +13,15 @@ function createIsolatedCPUTradeCandidate(state,teamId,input={}){
  if(input.humanGMApproved!==true)fail('CPU_TRADE_APPROVAL_REQUIRED','Explicit human approval required for this isolated trade path');
  if(Array.isArray(input.teamIds)&&new Set(input.teamIds.map(String)).size!==input.teamIds.length)
   fail('CPU_TRADE_DUPLICATE_PARTICIPANT','CPU trade participant team IDs must be unique');
+ if(Array.isArray(input.teamIds)&&Array.isArray(input.legs)){
+  const declared=new Set(input.teamIds.map(String));
+  for(const leg of input.legs){
+   if(!leg||!declared.has(String(leg.fromTeamId))||!declared.has(String(leg.toTeamId)))
+    fail('CPU_TRADE_UNLISTED_PARTICIPANT','Trade legs must use declared participant teams');
+   if(String(leg.fromTeamId)===String(leg.toTeamId))
+    fail('CPU_TRADE_SELF_TRANSFER','Trade cannot transfer assets within the same team');
+  }
+ }
  if(!Array.isArray(input.teamIds)||!input.teamIds.map(String).includes(id))fail('CPU_TRADE_PARTICIPANT_REQUIRED','CPU team must participate');
  if(controlled!=null&&input.teamIds.map(String).includes(String(controlled)))fail('CPU_TRADE_HUMAN_TEAM_PROTECTED','Human-controlled franchise cannot be traded by CPU integration');
  // Reject ambiguous source records before the underlying candidate mover selects the first match.
