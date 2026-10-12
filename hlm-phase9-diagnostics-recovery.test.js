@@ -655,6 +655,34 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   inspect(payload.value);
   assert.equal(download.disabled,false,'reinspection restores approval');
   console.log('Mission 631 repeated inspection approval passed');
+  // Mission 632: malformed JSON does not enable the download.
+  inspect('{"kind":');
+  assert.equal(download.disabled,true,'malformed JSON remains unapproved');
+  assert.match(result.textContent,/Inspection failed/);
+  console.log('Mission 632 malformed JSON guard passed');
+
+  // Mission 633: malformed input cannot preserve an earlier valid approval.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package approved');
+  inspect('[]');
+  assert.equal(download.disabled,true,'array root revokes approval');
+  assert.match(result.textContent,/Expected a JSON object/);
+  console.log('Mission 633 malformed reinspection revocation passed');
+
+  // Mission 634: missing required diagnostics file fails integrity validation.
+  const missingCsv=JSON.parse(validPackage);
+  delete missingCsv.files['diagnostics.csv'];
+  inspect(JSON.stringify(missingCsv));
+  assert.equal(download.disabled,true,'missing CSV cannot be approved');
+  assert.match(result.textContent,/Missing required file: diagnostics.csv/);
+  console.log('Mission 634 missing CSV guard passed');
+
+  // Mission 635: a valid package recovers after consecutive rejected inspections.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package restores approval after failures');
+  assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
+  console.log('Mission 635 recovery after invalid inspections passed');
+
 
 
 
