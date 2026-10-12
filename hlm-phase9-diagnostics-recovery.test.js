@@ -165,6 +165,16 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(download.disabled,true,'boundary file still requires inspection');
   assert.match(result.textContent,/File loaded/);
   console.log('Mission 577 exact file size boundary checks passed');
+  // Canceling the picker invalidates approval without altering existing text.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'fixture approved before picker cancellation');
+  elements['package-file'].files=[];
+  await elements['package-file'].handlers.change();
+  assert.equal(payload.value,validPackage,'canceled selection preserves current text');
+  assert.equal(download.disabled,true,'canceled selection revokes download approval');
+  assert.match(result.textContent,/Select a diagnostics file to inspect/,'cancel displays neutral status');
+  console.log('Mission 578 file picker cancellation checks passed');
+
 
 
 
