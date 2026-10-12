@@ -1,1 +1,15 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0; url=./app.html"><title>HLM 27 Front Office</title></head><body style="background:#07111f;color:white;font-family:system-ui;padding:40px">🏒 Loading HLM 27 Front Office...</body></html>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hockey Franchise Manager</title>
+<style>body{background:#07111f;color:#f1f5f9;font:16px system-ui,sans-serif;max-width:700px;margin:auto;padding:32px}a{color:#93c5fd}nav a{display:block;padding:18px;border:1px solid #334155;border-radius:12px;margin:12px 0;text-decoration:none}nav a:focus-visible{outline:3px solid #60a5fa}p{color:#cbd5e1}</style>
+<script>
+(function(){
+ const tools=new URLSearchParams(location.search).get('tools')==='1';
+ if(!tools)location.replace('./app.html');
+})();
+</script></head>
+<body><h1>🏒 Hockey Franchise Manager</h1>
+<p>Choose a workspace. Visiting this page normally still opens the Front Office automatically.</p>
+<nav><a href="./app.html"><strong>Open Front Office</strong><p>Continue managing your franchise</p></a>
+<a href="./phase9-diagnostics.html"><strong>Phase 9 Diagnostics</strong><p>Read-only diagnostics package inspection and export</p></a></nav>
+</body></html>
