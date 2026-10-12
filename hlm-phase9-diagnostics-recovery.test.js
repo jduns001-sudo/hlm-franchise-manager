@@ -573,6 +573,41 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   inspect(payload.value);
   assert.equal(download.disabled,false,'explicit inspection approves fresh selection');
   console.log('Mission 623 post-cancel valid selection guard passed');
+  // Mission 624: a file at the size limit remains eligible for reading.
+  let boundaryReadInvoked=false;
+  elements['package-file'].files=[{size:5*1024*1024,text:()=>{boundaryReadInvoked=true;return Promise.resolve(validPackage);}}];
+  await elements['package-file'].handlers.change();
+  assert.equal(boundaryReadInvoked,true,'exact 5 MB file is read');
+  assert.equal(payload.value,validPackage,'boundary file content loaded');
+  assert.equal(download.disabled,true,'boundary file still needs inspection');
+  console.log('Mission 624 exact size limit passed');
+
+  // Mission 625: a file one byte over the limit is not read.
+  let overBoundaryReadInvoked=false;
+  elements['package-file'].files=[{size:5*1024*1024+1,text:()=>{overBoundaryReadInvoked=true;return Promise.resolve('bad');}}];
+  await elements['package-file'].handlers.change();
+  assert.equal(overBoundaryReadInvoked,false,'one-byte oversized file is blocked');
+  assert.equal(payload.value,validPackage,'oversized file retains previous text');
+  assert.match(result.textContent,/File exceeds 5 MB limit/);
+  console.log('Mission 625 one-byte oversize limit passed');
+
+  // Mission 626: a selected file with an empty body cannot pass inspection.
+  elements['package-file'].files=[{size:0,text:()=>Promise.resolve('')}];
+  await elements['package-file'].handlers.change();
+  inspect(payload.value);
+  assert.equal(download.disabled,true,'empty file cannot pass inspection');
+  assert.match(result.textContent,/Inspection failed/);
+  console.log('Mission 626 empty file inspection passed');
+
+  // Mission 627: a valid file can be loaded after a rejected oversized selection.
+  elements['package-file'].files=[{size:validPackage.length,text:()=>Promise.resolve(validPackage)}];
+  await elements['package-file'].handlers.change();
+  assert.equal(payload.value,validPackage,'valid file loads after oversize rejection');
+  assert.equal(download.disabled,true,'valid file awaits inspection');
+  inspect(payload.value);
+  assert.equal(download.disabled,false,'valid file approved by inspection');
+  console.log('Mission 627 post-oversize recovery passed');
+
 
 
 
