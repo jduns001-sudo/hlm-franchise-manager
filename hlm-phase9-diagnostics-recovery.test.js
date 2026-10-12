@@ -144,6 +144,19 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(download.disabled,false,'stale read cannot revoke current approval');
   assert.match(result.textContent,/PACKAGE FINGERPRINTS VERIFIED/,'verified status remains');
   console.log('Mission 575 inspect-during-read checks passed');
+  // Oversized local files must be rejected before any read or download approval.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package approved before oversize selection');
+  let oversizedReadCalled=false;
+  elements['package-file'].files=[{size:5*1024*1024+1,text:()=>{oversizedReadCalled=true;return Promise.resolve('bad');}}];
+  await elements['package-file'].handlers.change();
+  assert.equal(oversizedReadCalled,false,'oversized file is never read');
+  assert.equal(download.disabled,true,'oversized selection revokes prior approval');
+  assert.match(result.textContent,/File exceeds 5 MB limit/,'size limit explained');
+  assert.equal(elements['package-file'].value,'','oversized file picker cleared');
+  assert.equal(payload.value,validPackage,'oversized selection does not overwrite text');
+  console.log('Mission 576 oversized file guard checks passed');
+
 
 
 
