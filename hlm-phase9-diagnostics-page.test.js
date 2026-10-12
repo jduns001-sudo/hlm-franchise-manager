@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('phase9-diagnostics.html','utf8');
+assert.match(html,/<title>Phase 9 Diagnostics/);
+assert.match(html,/role="status" aria-live="polite"/);
+assert.match(html,/Integrity fingerprints have NOT been verified/);
+assert.match(html,/download\.disabled=true/);
+assert.match(html,/URL\.revokeObjectURL/);
+assert.doesNotMatch(html,/localStorage|sessionStorage|indexedDB/);
+console.log('Mission 557 standalone diagnostics page tests passed');
