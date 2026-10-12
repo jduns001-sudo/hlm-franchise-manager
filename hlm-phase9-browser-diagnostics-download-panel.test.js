@@ -23,4 +23,8 @@ const buttons=panel.children.filter(child=>child.tag==='button');
 assert.equal(buttons.length,4);
 assert.ok(buttons.every(button=>button.type==='button'&&button.disabled===true));
 for(const button of buttons)button.click();
+assert.equal(result.dispose(),true);
+assert.equal(result.dispose(),false);
+assert.ok(buttons.every(button=>button.disabled));
+for(const button of buttons)button.click();
 console.log('Mission 547 diagnostics panel safety tests passed');
