@@ -7,9 +7,14 @@ function createGameBatchDiagnosticsPanelController(browser){
  let state='idle';
  return Object.freeze({
   open(diagnosticsArgs){
-   const panel=host.mount(diagnosticsArgs);
-   state=panel.valid?'ready':'attention';
-   return Object.freeze({state,valid:panel.valid,buttonCount:panel.buttonCount});
+   try{
+    const panel=host.mount(diagnosticsArgs);
+    state=panel.valid?'ready':'attention';
+    return Object.freeze({state,valid:panel.valid,buttonCount:panel.buttonCount});
+   }catch(error){
+    state=host.isMounted?state:'error';
+    throw error;
+   }
   },
   close(){
    const removed=host.unmount();
