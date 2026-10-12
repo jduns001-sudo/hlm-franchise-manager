@@ -529,6 +529,51 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(download.disabled,true,'download guard detects silent edits');
   assert.match(result.textContent,/Package changed or is not verified/);
   console.log('Mission 619 silent edit download guard passed');
+  // Mission 620: an empty file selection cannot approve a download.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'fixture approved before canceled selection');
+  elements['package-file'].files=[];
+  await elements['package-file'].handlers.change();
+  assert.equal(download.disabled,true,'empty selection revokes approval');
+  assert.equal(payload.value,validPackage,'empty selection retains existing text');
+  assert.match(result.textContent,/Select a diagnostics file to inspect/);
+  console.log('Mission 620 empty selection approval guard passed');
+
+  // Mission 621: a read that resolves after clear cannot restore removed text.
+  let finishAfterClear;
+  const pendingAfterClear=new Promise(resolve=>{finishAfterClear=resolve;});
+  elements['package-file'].files=[{size:100,text:()=>pendingAfterClear}];
+  const clearRaceRead=elements['package-file'].handlers.change();
+  elements.clear.click();
+  finishAfterClear(validPackage);
+  await clearRaceRead;
+  assert.equal(payload.value,'','clear wins over pending read');
+  assert.equal(download.disabled,true,'clear keeps download disabled');
+  console.log('Mission 621 clear-during-read guard passed');
+
+  // Mission 622: canceled selection blocks a late rejection from an older read.
+  let rejectAfterCancel;
+  const pendingReject=new Promise((resolve,reject)=>{rejectAfterCancel=reject;});
+  payload.value='retained';
+  elements['package-file'].files=[{size:100,text:()=>pendingReject}];
+  const canceledRejectRead=elements['package-file'].handlers.change();
+  elements['package-file'].files=[];
+  await elements['package-file'].handlers.change();
+  rejectAfterCancel(new Error('obsolete failure'));
+  await canceledRejectRead;
+  assert.equal(payload.value,'retained','canceled stale rejection preserves text');
+  assert.match(result.textContent,/Select a diagnostics file to inspect/);
+  console.log('Mission 622 canceled stale rejection guard passed');
+
+  // Mission 623: a valid selection after cancellation loads without approving.
+  elements['package-file'].files=[{size:validPackage.length,text:()=>Promise.resolve(validPackage)}];
+  await elements['package-file'].handlers.change();
+  assert.equal(payload.value,validPackage,'fresh selection loads after cancellation');
+  assert.equal(download.disabled,true,'fresh selection still requires inspection');
+  inspect(payload.value);
+  assert.equal(download.disabled,false,'explicit inspection approves fresh selection');
+  console.log('Mission 623 post-cancel valid selection guard passed');
+
 
 
 
