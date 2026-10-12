@@ -462,6 +462,41 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(download.disabled,true,'oversized selection revokes previous approval');
   assert.match(result.textContent,/File exceeds 5 MB limit/);
   console.log('Mission 611 invalid selection approval revocation passed');
+  // Mission 612: changing text after approval revokes the download.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid fixture approved');
+  payload.value=validPackage+' ';
+  payload.handlers.input();
+  assert.equal(download.disabled,true,'typing invalidates approval');
+  assert.match(result.textContent,/Package changed/);
+  console.log('Mission 612 text edit approval guard passed');
+
+  // Mission 613: clearing an approved package erases it and revokes download.
+  inspect(validPackage);
+  elements.clear.click();
+  assert.equal(payload.value,'','clear erases payload');
+  assert.equal(download.disabled,true,'clear revokes approval');
+  assert.match(result.textContent,/No package inspected/);
+  console.log('Mission 613 clear approval guard passed');
+
+  // Mission 614: a failed inspection must not leave a previous approval active.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid fixture approved');
+  const badManifest=JSON.parse(validPackage);
+  badManifest.manifest.textFingerprint='not-the-real-hash';
+  inspect(JSON.stringify(badManifest));
+  assert.equal(download.disabled,true,'failed inspection revokes approval');
+  assert.match(result.textContent,/Integrity fingerprint mismatch/);
+  console.log('Mission 614 failed reinspection approval guard passed');
+
+  // Mission 615: approval can only return through explicit valid inspection.
+  payload.value=validPackage;
+  payload.handlers.input();
+  assert.equal(download.disabled,true,'replacing text alone cannot approve');
+  inspect(payload.value);
+  assert.equal(download.disabled,false,'explicit valid inspection restores approval');
+  console.log('Mission 615 explicit reinspection guard passed');
+
 
 
 
