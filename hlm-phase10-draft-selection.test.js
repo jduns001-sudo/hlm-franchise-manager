@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {selectDraftProspect}=require('./hlm-phase10-draft-selection');
+const state=createGameStateEnvelope({teams:[{id:1,name:'Wolves'},{id:2,name:'Falcons'}],prospects:[{id:'p1'},{id:'p2'}],draftPicks:[{pickId:'pick1',originalTeamId:2,currentOwnerId:1},{pickId:'pick2',originalTeamId:2,currentOwnerId:2}]});
+const before=JSON.stringify(state);
+const input={pickId:'pick1',prospectId:'p1',teamId:1};
+const {nextState,selection}=selectDraftProspect(state,input);
+assert.deepEqual(selection,input);
+assert.equal(nextState.assets.draftPicks[0].status,'used');
+assert.equal(nextState.universe.prospects[0].draftedByTeamId,1);
+assert.equal(JSON.stringify(state),before);
+assert.throws(()=>selectDraftProspect(nextState,input),/already used/);
+assert.throws(()=>selectDraftProspect(state,{...input,teamId:2}),/does not own/);
+assert.throws(()=>selectDraftProspect(state,{...input,prospectId:'missing'}),/missing or ambiguous/);
+assert.throws(()=>selectDraftProspect(state,{...input,pickId:'missing'}),/missing or ambiguous/);
+assert.throws(()=>selectDraftProspect(state,{...input,prospectId:null}),/required/);
+console.log('Phase 10 draft selection tests passed');
