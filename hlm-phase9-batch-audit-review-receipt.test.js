@@ -1,0 +1,34 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createBrowserSaveAdapter}=require('./hlm-browser-save-adapter');
+const {previewGameBatch}=require('./hlm-phase9-game-batch-preview');
+const {persistAuditedGameBatch}=require('./hlm-phase9-batch-audit');
+const {packageGameBatchAudit}=require('./hlm-phase9-batch-audit-package');
+const {createGameBatchAuditReviewReceipt}=require('./hlm-phase9-batch-audit-review-receipt');
+const map=new Map(),storage={getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};
+const repo=createBrowserSaveAdapter(storage);
+repo.save('active',createGameStateEnvelope({meta:{controlledTeamId:'PIT',currentDate:'2027-04-18'},
+ teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'}],
+ games:[{id:'g1',homeTeamId:'BUF',awayTeamId:'NYR',date:'2027-04-18',status:'Scheduled'}],
+ players:[{id:'p1',teamId:'BUF',position:'C'},{id:'p2',teamId:'BUF',position:'D'},{id:'p3',teamId:'BUF',position:'G'},
+ {id:'p4',teamId:'NYR',position:'C'},{id:'p5',teamId:'NYR',position:'D'},{id:'p6',teamId:'NYR',position:'G'}]}));
+const resolveEvent=x=>({outcome:x.unit<0.4?'goal':'save',danger:'medium'});
+const args={storage,sourceSlotId:'active',destinationSlotId:'audited',
+ games:[{gameId:'g1',deterministicSeed:'audit-seed',eventCount:12}],resolveEvent};
+const preview=previewGameBatch(args);
+const {receipt}=persistAuditedGameBatch({...args,preview,confirmSimulation:true});
+const packaged=packageGameBatchAudit({storage,receipt});
+const before=map.get(repo.storageKey);
+assert.throws(()=>createGameBatchAuditReviewReceipt({storage,json:packaged.json,reviewerId:'gm'}),e=>e.code==='GAME_BATCH_AUDIT_REVIEW_NOT_ACCEPTED');
+assert.throws(()=>createGameBatchAuditReviewReceipt({storage,json:packaged.json,confirmReview:true}),e=>e.code==='GAME_BATCH_AUDIT_REVIEWER_REQUIRED');
+const reviewed=createGameBatchAuditReviewReceipt({storage,json:packaged.json,confirmReview:true,reviewerId:' GM-01 '});
+assert.equal(reviewed.verified,true);
+assert.equal(reviewed.reviewerId,'GM-01');
+assert.equal(reviewed.gameCount,1);
+assert.equal(reviewed.persistencePerformed,false);
+assert.equal(Object.isFrozen(reviewed),true);
+const altered=JSON.parse(packaged.json);altered.files['audit.txt']+='tamper';
+assert.throws(()=>createGameBatchAuditReviewReceipt({storage,json:JSON.stringify(altered),confirmReview:true,reviewerId:'GM-01'}));
+assert.equal(map.get(repo.storageKey),before);
+console.log('Mission 528 audit review receipt tests passed');
