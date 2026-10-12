@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const html=fs.readFileSync('app.html','utf8');
+const html=fs.readFileSync('phase10-demo.html','utf8');
 const bundle=fs.readFileSync('hlm-phase10-browser.bundle.js','utf8');
 assert.match(html,/hlm-phase10-browser\.bundle\.js/);
 assert.match(html,/Advance One Day/);
