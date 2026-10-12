@@ -16,4 +16,14 @@ const recovery = fs.readFileSync(path.join(root,'hlm-phase9-diagnostics-recovery
 assert.match(recovery,/valid package enables download/,'valid approval has regression coverage');
 assert.match(recovery,/download refuses changed package/,'stale download has regression coverage');
 assert.match(recovery,/reinspection restores approval/,'recovery has regression coverage');
-console.log('Mission 568 main integration smoke checks passed');
+
+// The standalone diagnostics tool must not silently acquire save or network access.
+assert.match(html,/This page does not access or replace your active franchise save/);
+assert.doesNotMatch(html,/(?:localStorage|sessionStorage|indexedDB)\s*\./,
+  'diagnostics page must not access browser save stores');
+assert.doesNotMatch(html,/\bfetch\s*\(|\bXMLHttpRequest\b/,
+  'diagnostics page must not send network requests');
+assert.doesNotMatch(html,/\b(?:put|post|patch|delete)\s*\(/i,
+  'diagnostics page must not invoke write operations');
+
+console.log('Mission 569 diagnostics integration and isolation checks passed');
