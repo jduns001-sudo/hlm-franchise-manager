@@ -16,4 +16,13 @@ assert.throws(()=>run({teamId:'NYR'}),e=>e.code==='CPU_DECISION_TRADE_TEAM_MISMA
 assert.throws(()=>run(),e=>e.code==='CPU_DECISION_TRADE_PREFLIGHT_FAILED');
 assert.equal(repo.count(),1);
 assert.equal(serializeGameState(repo.load('human').state),before);
-console.log('Phase 9 CPU decision trade execution bridge fail-closed tests passed');
+const {prepareApprovedCPUTradeBatch}=require('./hlm-phase9-cpu-trade-batch-preview');
+const decisionOptions={prioritization:{evaluation:{identification:{problems:[{id:'need-trade',category:'roster',severity:'high'}]},options:[{id:'trade-option',problemId:'need-trade',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]},priorityId:'first',authorized:true,execute:true};
+const reviewedPreview=prepareApprovedCPUTradeBatch({repository:repo,sourceSlotId:'human',steps,expectedSourceFingerprint:before});
+const success=run({decisionOptions,reviewedPreview});
+assert.equal(success.decisionPreflightVerified,true);
+assert.equal(success.reviewedTradeExecuted,true);
+assert.equal(success.persisted,true);
+assert.equal(repo.load('candidate').state.universe.players[0].teamId,'NYR');
+assert.equal(serializeGameState(repo.load('human').state),before);
+console.log('Phase 9 CPU decision trade execution bridge positive and fail-closed tests passed');
