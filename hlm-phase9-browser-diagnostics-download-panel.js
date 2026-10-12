@@ -12,6 +12,8 @@ function mountGameBatchDiagnosticsDownloadPanel({container,documentRef,urlRef,Bl
  panel.appendChild(heading);
  const status=documentRef.createElement('p');
  status.textContent=prepared.valid?'Review diagnostics ready':'Review diagnostics need attention';
+ status.setAttribute('role','status');
+ status.setAttribute('aria-live','polite');
  panel.appendChild(status);
  const buttons=[];
  for(const file of prepared.files){
@@ -21,7 +23,12 @@ function mountGameBatchDiagnosticsDownloadPanel({container,documentRef,urlRef,Bl
   button.textContent='Download '+file.filename;
   button.addEventListener('click',()=>{
    if(!prepared.valid)return;
-   downloadPreparedDiagnosticsFile(file,{documentRef,urlRef,BlobCtor});
+   try{
+    downloadPreparedDiagnosticsFile(file,{documentRef,urlRef,BlobCtor});
+    status.textContent='Downloaded '+file.filename;
+   }catch(error){
+    status.textContent='Download failed: '+(error&&error.message?error.message:'Unknown browser error');
+   }
   });
   panel.appendChild(button);buttons.push(button);
  }
