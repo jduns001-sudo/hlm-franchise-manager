@@ -496,6 +496,40 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   inspect(payload.value);
   assert.equal(download.disabled,false,'explicit valid inspection restores approval');
   console.log('Mission 615 explicit reinspection guard passed');
+  // Mission 616: unknown package versions remain blocked even when fingerprints match.
+  const unsupportedVersion=JSON.parse(validPackage);
+  unsupportedVersion.version=999;
+  inspect(JSON.stringify(unsupportedVersion));
+  assert.equal(download.disabled,true,'future version is not implicitly trusted');
+  assert.match(result.textContent,/Not a recognized/);
+  console.log('Mission 616 unsupported future version passed');
+
+  // Mission 617: nested diagnostics validity cannot differ from the package.
+  const conflictingDetails=JSON.parse(validPackage);
+  conflictingDetails.files['diagnostics.json']=JSON.stringify({valid:false});
+  conflictingDetails.manifest.jsonFingerprint=fingerprint(conflictingDetails.files['diagnostics.json']);
+  inspect(JSON.stringify(conflictingDetails));
+  assert.equal(download.disabled,true,'conflicting nested validity rejected');
+  assert.match(result.textContent,/validity does not match package/);
+  console.log('Mission 617 conflicting nested validity passed');
+
+  // Mission 618: package and manifest validity must match exactly.
+  const conflictingManifest=JSON.parse(validPackage);
+  conflictingManifest.valid=false;
+  inspect(JSON.stringify(conflictingManifest));
+  assert.equal(download.disabled,true,'conflicting manifest validity rejected');
+  assert.match(result.textContent,/validity does not match package/);
+  console.log('Mission 618 conflicting manifest validity passed');
+
+  // Mission 619: a rejected package must not prevent later valid approval.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package restores approval after rejected cases');
+  payload.value='changed after approval';
+  download.click();
+  assert.equal(download.disabled,true,'download guard detects silent edits');
+  assert.match(result.textContent,/Package changed or is not verified/);
+  console.log('Mission 619 silent edit download guard passed');
+
 
 
 
