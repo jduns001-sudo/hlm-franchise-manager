@@ -3,6 +3,7 @@
 // A generic advisory action is not a trade authorization: both gates are required.
 const {serializeGameState}=require('./hlm-game-state-serialization');
 const {verifyCPUActionExecutionPackage}=require('./hlm-cpu-action-execution-verification');
+const {prepareApprovedCPUTradeBatch}=require('./hlm-phase9-cpu-trade-batch-preview');
 const {executeApprovedCPUTradeBatch}=require('./hlm-phase9-cpu-approved-trade-persistent-executor');
 function fail(code,message){const e=new Error(message);e.code=code;throw e;}
 function executeReviewedCPUDecisionTrade({repository,sourceSlotId,destinationSlotId,teamId,decisionOptions,steps,reviewedPreview,confirmExecution=false}={}){
@@ -20,6 +21,17 @@ function executeReviewedCPUDecisionTrade({repository,sourceSlotId,destinationSlo
   fail('CPU_DECISION_TRADE_ACTION_MISMATCH','Authorized CPU action must be a trade');
  if(advisory.verification.verified!==true||advisory.checks.humanAuthorized!==true)
   fail('CPU_DECISION_TRADE_PREFLIGHT_FAILED','CPU decision must pass human-authorized advisory preflight');
+ if(!reviewedPreview||reviewedPreview.kind!=='phase9-approved-cpu-trade-batch-preview')
+  fail('CPU_DECISION_TRADE_REVIEW_REQUIRED','Exact reviewed trade preview required');
+ if(decisionOptions?.approvedTradeCandidateFingerprint!==reviewedPreview.candidateFingerprint||
+    decisionOptions?.approvedTradeSourceFingerprint!==reviewedPreview.sourceFingerprint||
+    decisionOptions?.approvedTradeTransactionIds?.length!==reviewedPreview.transactionIds.length||
+    decisionOptions.approvedTradeTransactionIds.some((id,i)=>id!==reviewedPreview.transactionIds[i]))
+  fail('CPU_DECISION_TRADE_APPROVAL_BINDING_REQUIRED','Human approval must identify exact trade candidate, source and transactions');
+ const freshPreview=prepareApprovedCPUTradeBatch({repository,sourceSlotId,steps,expectedSourceFingerprint:reviewedPreview.sourceFingerprint});
+ if(freshPreview.candidateFingerprint!==reviewedPreview.candidateFingerprint||
+    JSON.stringify(freshPreview.transactionIds)!==JSON.stringify(reviewedPreview.transactionIds))
+  fail('CPU_DECISION_TRADE_APPROVAL_STALE','Trade changed since exact approval');
  if(before!==serializeGameState(source))
   fail('CPU_DECISION_TRADE_SOURCE_MUTATED','CPU advisory preflight mutated source state');
  const result=executeApprovedCPUTradeBatch({repository,sourceSlotId,destinationSlotId,steps,reviewedPreview,confirmExecution:true});
