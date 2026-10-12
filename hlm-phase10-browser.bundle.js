@@ -521,4 +521,273 @@ function simulateNextPlayoffGame(state,seed=0) {
 module.exports={simulateNextPlayoffGame};
 
 }
-};var cache={};function load(name){if(cache[name])return cache[name].exports;if(!modules[name])throw Error('Missing module '+name);var module={exports:{}};cache[name]=module;function localRequire(request){if(request.slice(0,2)!=='./')throw Error('Unsupported require '+request);return load(request.slice(2)+'.js')}modules[name](module,module.exports,localRequire);return module.exports;}var api={};for(var name of ['hlm-phase10-browser-storage.js','hlm-phase10-standings.js','hlm-master-calendar.js','hlm-game-state.js','hlm-phase10-season-playoffs.js','hlm-phase10-playoff-simulation.js'])Object.assign(api,load(name));global.HLMPhase10=api;})(typeof window!=='undefined'?window:globalThis);
+"hlm-phase10-complete-offseason.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {runOffseasonContractWindow}=require('./hlm-phase10-offseason-workflow');
+const {selectDraftProspect}=require('./hlm-phase10-draft-selection');
+const {beginNextSeason}=require('./hlm-phase10-next-season');
+/** Execute approved offseason contracts, draft selections, and next season scheduling atomically. */
+function completeOffseasonAndStartSeason(state,{contracts={},draftSelections=[],nextSeason}={}){
+  if(!validateGameStateEnvelope(state).valid)throw new Error('Invalid franchise game state');
+  if(!Array.isArray(draftSelections))throw new TypeError('Draft selections must be an array');
+  if(!nextSeason||typeof nextSeason!=='object')throw new TypeError('Next season configuration required');
+  let current=runOffseasonContractWindow(state,contracts).nextState;
+  const selections=[];
+  for(const input of draftSelections){
+    const result=selectDraftProspect(current,input);
+    current=result.nextState;
+    selections.push(result.selection);
+  }
+  const {nextState,summary}=beginNextSeason(current,nextSeason);
+  return {nextState,summary:{season:summary,expiredContracts:contracts.expiredContractIds?.length??0,signings:contracts.signings?.length??0,draftSelections:selections}};
+}
+module.exports={completeOffseasonAndStartSeason};
+
+},
+"hlm-phase10-offseason-workflow.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {expireOffseasonContracts}=require('./hlm-phase10-offseason-contracts');
+const {listOffseasonFreeAgents}=require('./hlm-phase10-free-agency');
+const {signOffseasonFreeAgent}=require('./hlm-phase10-free-agent-signing');
+/** Apply explicit offseason operations atomically to a cloned franchise save. */
+function runOffseasonContractWindow(state,{expiredContractIds=[],signings=[]}={}){
+  if(!validateGameStateEnvelope(state).valid)throw new Error('Invalid franchise game state');
+  if(!Array.isArray(expiredContractIds)||!Array.isArray(signings))throw new TypeError('Offseason operations must be arrays');
+  let current=expireOffseasonContracts(state,expiredContractIds).nextState;
+  const freeAgentsBefore=listOffseasonFreeAgents(current).count;
+  const executed=[];
+  for(const signing of signings){
+    const result=signOffseasonFreeAgent(current,signing);
+    current=result.nextState;
+    executed.push(result.summary);
+  }
+  return {nextState:current,summary:{expiredCount:expiredContractIds.length,freeAgentsBefore,signings:executed,freeAgentsAfter:listOffseasonFreeAgents(current).count}};
+}
+module.exports={runOffseasonContractWindow};
+
+},
+"hlm-phase10-offseason-contracts.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+/**
+ * Explicit offseason expiration transaction.
+ * Call only with verified expiring contract IDs from the season rules engine.
+ * Does not guess expiry from ambiguous years/season fields.
+ */
+function expireOffseasonContracts(state,contractIds){
+  if(!validateGameStateEnvelope(state).valid)throw new Error('Invalid franchise game state');
+  if(!Array.isArray(contractIds))throw new TypeError('Contract IDs must be an array');
+  const ids=contractIds.map(String);
+  if(new Set(ids).size!==ids.length)throw new Error('Duplicate contract IDs');
+  const contracts=state.assets.contracts;
+  for(const id of ids){
+    const matches=contracts.filter(c=>c&&(c.contractId??c.id)!=null&&String(c.contractId??c.id)===id);
+    if(matches.length!==1)throw new Error('Contract ID missing or ambiguous: '+id);
+    if(matches[0].status==='expired')throw new Error('Contract already expired: '+id);
+  }
+  const selected=new Set(ids);
+  const nextState=JSON.parse(JSON.stringify(state));
+  const expired=[];
+  for(const contract of nextState.assets.contracts){
+    if(contract&&(contract.contractId??contract.id)!=null&&selected.has(String(contract.contractId??contract.id))){
+      contract.status='expired';
+      expired.push(String(contract.contractId??contract.id));
+    }
+  }
+  return {nextState,summary:{expiredContractIds:expired,expiredCount:expired.length,unchangedCount:contracts.length-expired.length}};
+}
+module.exports={expireOffseasonContracts};
+
+},
+"hlm-phase10-free-agency.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+/** Read-only free-agent pool based on explicitly expired contract records. */
+function listOffseasonFreeAgents(state){
+  if(!validateGameStateEnvelope(state).valid)throw new Error('Invalid franchise game state');
+  const players=new Map(state.universe.players.filter(p=>p&&p.id!=null).map(p=>[String(p.id),p]));
+  const activePlayers=new Set(state.assets.contracts.filter(c=>c&&c.status!=='expired'&&c.playerId!=null).map(c=>String(c.playerId)));
+  const freeAgents=new Map();
+  for(const c of state.assets.contracts){
+    if(!c||c.status!=='expired'||c.playerId==null)continue;
+    const key=String(c.playerId);
+    if(activePlayers.has(key)||!players.has(key))continue;
+    const p=players.get(key);
+    freeAgents.set(key,{playerId:p.id,name:p.name??null,previousTeamId:c.teamId??null});
+  }
+  return {freeAgents:[...freeAgents.values()].sort((a,b)=>String(a.playerId).localeCompare(String(b.playerId))),count:freeAgents.size};
+}
+module.exports={listOffseasonFreeAgents};
+
+},
+"hlm-phase10-free-agent-signing.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+/** Sign a free agent to a team using explicit cap room and canonical contract fields. */
+function signOffseasonFreeAgent(state,{playerId,teamId,contractId,aav,years,season,capLimit}={}){
+  if(!validateGameStateEnvelope(state).valid)throw new Error('Invalid franchise game state');
+  if(playerId==null||teamId==null||typeof contractId!=='string'||!contractId.trim())throw new TypeError('Player, team and contract ID required');
+  if(!state.universe.teams.some(t=>String(t.id)===String(teamId)))throw new Error('Team not found');
+  const hasExpired=state.assets.contracts.some(c=>c&&c.status==='expired'&&String(c.playerId)===String(playerId));
+  const hasActive=state.assets.contracts.some(c=>c&&c.status!=='expired'&&String(c.playerId)===String(playerId));
+  if(!hasExpired||hasActive||!state.universe.players.some(p=>String(p.id)===String(playerId)))throw new Error('Player is not an eligible free agent');
+  if(state.assets.contracts.some(c=>String(c.contractId??c.id)===contractId))throw new Error('Contract ID already exists');
+  if(!Number.isFinite(aav)||aav<0||!Number.isSafeInteger(years)||years<1||years>15)throw new RangeError('Invalid salary or term');
+  if(typeof season!=='string'||!season.trim())throw new TypeError('Season is required');
+  if(!Number.isFinite(capLimit)||capLimit<0)throw new RangeError('Valid cap limit required');
+  const activePayroll=state.assets.contracts.filter(c=>String(c.teamId)===String(teamId)&&c.status!=='expired').reduce((sum,c)=>sum+Number(c.aav||0),0);
+  if(state.assets.contracts.some(c=>String(c.teamId)===String(teamId)&&c.status!=='expired'&&(!Number.isFinite(Number(c.aav))||Number(c.aav)<0)))throw new Error('Existing payroll has invalid salaries');
+  if(activePayroll+aav>capLimit)throw new Error('Signing exceeds salary cap');
+  const nextState=JSON.parse(JSON.stringify(state));
+  const contract={contractId,playerId,teamId,aav,years,season,status:'active'};
+  nextState.assets.contracts.push(contract);
+  return {nextState,contract,summary:{playerId,teamId,contractId,projectedPayroll:activePayroll+aav,capSpace:capLimit-activePayroll-aav}};
+}
+module.exports={signOffseasonFreeAgent};
+
+},
+"hlm-phase10-draft-selection.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+/** Execute a single verified draft selection; no automatic lottery or trade resolution. */
+function selectDraftProspect(state,{pickId,prospectId,teamId}={}){
+  if(!validateGameStateEnvelope(state).valid)throw new Error('Invalid franchise game state');
+  if(pickId==null||prospectId==null||teamId==null)throw new TypeError('Pick, prospect and team required');
+  const picks=state.assets.draftPicks.filter(p=>p&&String(p.pickId??p.id)===String(pickId));
+  if(picks.length!==1)throw new Error('Draft pick missing or ambiguous');
+  const pick=picks[0];
+  if(String(pick.currentOwnerId)!==String(teamId))throw new Error('Team does not own pick');
+  if(pick.selectedProspectId!=null||pick.status==='used')throw new Error('Draft pick already used');
+  if(!state.universe.teams.some(t=>String(t.id)===String(teamId)))throw new Error('Team not found');
+  const prospects=state.universe.prospects.filter(p=>p&&String(p.id)===String(prospectId));
+  if(prospects.length!==1)throw new Error('Prospect missing or ambiguous');
+  if(prospects[0].draftedByTeamId!=null||prospects[0].draftPickId!=null)throw new Error('Prospect already drafted');
+  const nextState=JSON.parse(JSON.stringify(state));
+  const nextPick=nextState.assets.draftPicks.find(p=>String(p.pickId??p.id)===String(pickId));
+  const nextProspect=nextState.universe.prospects.find(p=>String(p.id)===String(prospectId));
+  nextPick.selectedProspectId=nextProspect.id;
+  nextPick.status='used';
+  nextProspect.draftedByTeamId=teamId;
+  nextProspect.draftPickId=pickId;
+  return {nextState,selection:{pickId,prospectId,teamId}};
+}
+module.exports={selectDraftProspect};
+
+},
+"hlm-phase10-next-season.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {assertIsoDate}=require('./hlm-master-calendar');
+const {generateRoundRobinSchedule}=require('./hlm-phase10-season-schedule');
+/**
+ * Start a new regular season only after the prior championship has been archived.
+ * Preserves rosters, contracts, franchise history and the input save unchanged.
+ * Does not perform draft, free agency or contract expiration.
+ */
+function beginNextSeason(state,{completedSeasonId,nextSeasonId,startDate,cycles=2}={}){
+  if(!validateGameStateEnvelope(state).valid)throw new Error('Invalid franchise game state');
+  if(typeof completedSeasonId!=='string'||!completedSeasonId.trim())throw new TypeError('Completed season ID is required');
+  if(typeof nextSeasonId!=='string'||!nextSeasonId.trim()||nextSeasonId===completedSeasonId)throw new TypeError('Distinct next season ID is required');
+  assertIsoDate(startDate);
+  if(!state.history.seasons.some(s=>s.seasonId===completedSeasonId))throw new Error('Previous championship must be archived');
+  if(state.history.seasons.some(s=>s.seasonId===nextSeasonId))throw new Error('Next season already archived');
+  if(state.extensions.phase10CurrentSeasonId===nextSeasonId)throw new Error('Next season already initialized');
+  if(state.activity.games.some(g=>g.status!=='final'))throw new Error('Previous regular season is unfinished');
+  if(!state.extensions.phase10Playoffs||state.extensions.phase10Playoffs.status!=='complete')throw new Error('Previous playoffs are unfinished');
+  if(state.meta.currentDate&&startDate<=state.meta.currentDate)throw new Error('Next season must begin after championship date');
+  const schedule=generateRoundRobinSchedule(state.universe.teams,startDate,cycles);
+  const nextState=JSON.parse(JSON.stringify(state));
+  nextState.activity.games=schedule;
+  nextState.meta.currentDate=startDate;
+  delete nextState.extensions.phase10Playoffs;
+  nextState.extensions.phase10CurrentSeasonId=nextSeasonId;
+  return {nextState,summary:{completedSeasonId,nextSeasonId,startDate,scheduledGames:schedule.length,archivedSeasons:nextState.history.seasons.length}};
+}
+module.exports={beginNextSeason};
+
+},
+"hlm-phase10-season-schedule.js":function(module,exports,require){
+'use strict';
+const {assertIsoDate,addCalendarDays}=require('./hlm-master-calendar');
+
+/**
+ * Deterministic round-robin schedule generator.
+ * Every distinct pair plays once per cycle; reverse home/away each second cycle.
+ */
+function generateRoundRobinSchedule(teams,startDate,cycles=2) {
+  assertIsoDate(startDate);
+  if (!Array.isArray(teams) || teams.length<2) throw new TypeError('At least two teams required');
+  if (!Number.isSafeInteger(cycles) || cycles<1 || cycles>20) throw new RangeError('Cycles must be 1 through 20');
+  const ids=teams.map(team=>team && team.id);
+  if(ids.some(id=>id==null)||new Set(ids.map(String)).size!==ids.length)throw new Error('Team IDs must be unique and present');
+  const entries=ids.slice();
+  if(entries.length%2)entries.push(null);
+  const rounds=entries.length-1;
+  const half=entries.length/2;
+  const games=[];
+  let day=1;
+  for(let cycle=0;cycle<cycles;cycle++){
+    const rotation=entries.slice();
+    for(let round=0;round<rounds;round++){
+      const date=addCalendarDays(startDate,day++);
+      for(let i=0;i<half;i++){
+        const first=rotation[i],second=rotation[rotation.length-1-i];
+        if(first==null||second==null)continue;
+        const flip=(round+i+cycle)%2===1;
+        const homeTeamId=flip?second:first;
+        const awayTeamId=flip?first:second;
+        games.push({id:'S'+cycle+'-R'+round+'-G'+i,date,status:'scheduled',homeTeamId,awayTeamId});
+      }
+      rotation.splice(1,0,rotation.pop());
+    }
+  }
+  return games;
+}
+module.exports={generateRoundRobinSchedule};
+
+},
+"hlm-phase10-season-history.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {calculateStandings}=require('./hlm-phase10-standings');
+/** Archive a completed championship season once without modifying the input. */
+function archiveCompletedSeason(state,seasonId){
+  const validation=validateGameStateEnvelope(state);
+  if(!validation.valid)throw new Error('Invalid franchise game state');
+  if(typeof seasonId!=='string'||!seasonId.trim())throw new TypeError('Season ID is required');
+  const bracket=state.extensions.phase10Playoffs;
+  if(!bracket||bracket.status!=='complete'||bracket.championTeamId==null)throw new Error('Championship is not complete');
+  if(state.activity.games.some(g=>g.status!=='final'))throw new Error('Regular season is not complete');
+  if(state.history.seasons.some(s=>s.seasonId===seasonId))throw new Error('Season already archived');
+  const standings=calculateStandings(state.universe.teams,state.activity.games);
+  const record={seasonId,championTeamId:bracket.championTeamId,completedDate:state.meta.currentDate,standings,playoffRounds:JSON.parse(JSON.stringify(bracket.rounds)),regularSeasonGames:state.activity.games.length};
+  const nextState=JSON.parse(JSON.stringify(state));
+  nextState.history.seasons.push(record);
+  return {nextState,record};
+}
+module.exports={archiveCompletedSeason};
+
+},
+"hlm-phase10-season-finalization.js":function(module,exports,require){
+'use strict';
+const {archiveCompletedSeason}=require('./hlm-phase10-season-history');
+/** Safely archive the finished season and return a compact, display-ready summary. */
+function finalizeChampionshipSeason(state,seasonId){
+  const {nextState,record}=archiveCompletedSeason(state,seasonId);
+  const standings=record.standings;
+  return {nextState,summary:{
+    seasonId:record.seasonId,
+    championTeamId:record.championTeamId,
+    completedDate:record.completedDate,
+    regularSeasonGames:record.regularSeasonGames,
+    playoffRoundCount:record.playoffRounds.length,
+    standingsCount:standings.length,
+    archivedSeasonCount:nextState.history.seasons.length
+  }};
+}
+module.exports={finalizeChampionshipSeason};
+
+},
+};var cache={};function load(name){if(cache[name])return cache[name].exports;if(!modules[name])throw Error('Missing module '+name);var module={exports:{}};cache[name]=module;function localRequire(request){if(request.slice(0,2)!=='./')throw Error('Unsupported require '+request);return load(request.slice(2)+'.js')}modules[name](module,module.exports,localRequire);return module.exports;}var api={};for(var name of ['hlm-phase10-browser-storage.js','hlm-phase10-standings.js','hlm-master-calendar.js','hlm-game-state.js','hlm-phase10-season-playoffs.js','hlm-phase10-playoff-simulation.js','hlm-phase10-complete-offseason.js','hlm-phase10-season-finalization.js'])Object.assign(api,load(name));global.HLMPhase10=api;})(typeof window!=='undefined'?window:globalThis);
