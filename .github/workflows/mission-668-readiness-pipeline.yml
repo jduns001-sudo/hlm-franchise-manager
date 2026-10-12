@@ -1,0 +1,23 @@
+name: Mission 668 Readiness Pipeline Tests
+on:
+  push:
+    branches:
+      - mission-668-readonly-readiness-pipeline
+  pull_request:
+    paths:
+      - 'hlm-simulation-roster-readiness-pipeline.js'
+      - 'hlm-simulation-roster-readiness-pipeline.test.js'
+      - '.github/workflows/mission-668-readiness-pipeline.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-canonical-franchise-bridge.test.js
+      - run: node hlm-classified-canonical-bridge.test.js
+      - run: node hlm-simulation-roster-eligibility.test.js
+      - run: node hlm-simulation-roster-readiness.test.js
+      - run: node hlm-simulation-roster-readiness-pipeline.test.js
