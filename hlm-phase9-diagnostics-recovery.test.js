@@ -350,6 +350,38 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   inspect(validPackage);
   assert.equal(download.disabled,false,'valid inspection recovers after whitespace');
   console.log('Mission 599 whitespace input recovery checks passed');
+  // Mission 600: null root is rejected with a specific object requirement.
+  inspect('null');
+  assert.equal(download.disabled,true,'null root rejected');
+  assert.match(result.textContent,/Expected a JSON object/);
+  console.log('Mission 600 null root guard passed');
+
+  // Mission 601: missing required text artifact is rejected.
+  const missingText=JSON.parse(validPackage);
+  delete missingText.files['diagnostics.txt'];
+  inspect(JSON.stringify(missingText));
+  assert.equal(download.disabled,true,'missing text artifact rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics.txt/);
+  console.log('Mission 601 missing text artifact guard passed');
+
+  // Mission 602: missing JSON fingerprint fails inspection.
+  const missingJsonHash=JSON.parse(validPackage);
+  delete missingJsonHash.manifest.jsonFingerprint;
+  inspect(JSON.stringify(missingJsonHash));
+  assert.equal(download.disabled,true,'missing JSON fingerprint rejected');
+  assert.match(result.textContent,/Integrity fingerprint mismatch: diagnostics.json/);
+  console.log('Mission 602 missing JSON fingerprint guard passed');
+
+  // Mission 603: malformed JSON after approval revokes access, then recovers.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'fixture approved');
+  inspect('{"kind":');
+  assert.equal(download.disabled,true,'malformed JSON revokes approval');
+  assert.match(result.textContent,/Inspection failed/);
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid reinspection restores approval');
+  console.log('Mission 603 malformed JSON recovery passed');
+
 
 
 
