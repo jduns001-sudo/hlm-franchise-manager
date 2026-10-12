@@ -3,10 +3,11 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Hockey Franchise Manager | Prototype</title>
 <style>
-:root{color-scheme:dark}body{font:16px system-ui,sans-serif;background:#091525;color:#f0f6ff;max-width:850px;margin:0 auto;padding:24px}h1{font-size:1.8rem}button{background:#3b82f6;color:white;border:0;border-radius:8px;padding:12px 16px;font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.panel{background:#15263b;border:1px solid #354860;border-radius:12px;padding:18px;margin:14px 0}a{color:#a7d1ff}table{border-collapse:collapse;width:100%}td,th{text-align:left;border-bottom:1px solid #354860;padding:8px}#status{white-space:pre-wrap}small{color:#bac9d9}button{min-height:44px;margin:4px 3px 4px 0}button:focus-visible{outline:3px solid #f9d56e;outline-offset:2px}@media(max-width:560px){body{padding:12px}.panel{padding:12px}button{width:100%;margin:5px 0}h1{font-size:1.5rem}table{font-size:.9rem}td,th{padding:6px 3px}}
+:root{color-scheme:dark}body{font:16px system-ui,sans-serif;background:#091525;color:#f0f6ff;max-width:850px;margin:0 auto;padding:24px}h1{font-size:1.8rem}button{background:#3b82f6;color:white;border:0;border-radius:8px;padding:12px 16px;font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.panel{background:#15263b;border:1px solid #354860;border-radius:12px;padding:18px;margin:14px 0}a{color:#a7d1ff}table{border-collapse:collapse;width:100%}td,th{text-align:left;border-bottom:1px solid #354860;padding:8px}#status{white-space:pre-wrap}small{color:#bac9d9}select{background:#091525;color:#fff;border:1px solid #62738a;padding:10px;border-radius:8px;max-width:100%}button{min-height:44px;margin:4px 3px 4px 0}button:focus-visible{outline:3px solid #f9d56e;outline-offset:2px}@media(max-width:560px){body{padding:12px}.panel{padding:12px}button{width:100%;margin:5px 0}h1{font-size:1.5rem}table{font-size:.9rem}td,th{padding:6px 3px}}
 </style></head>
 <body><h1>🏒 Hockey Franchise Manager</h1><p>Phase 10 playable engine prototype. Uses a separate browser save key and does not import or alter older Front Office saves.</p>
 <div class="panel"><h2>Franchise</h2><p id="franchise">Loading…</p><button id="new">Create Demo Franchise</button> <button id="advance" disabled>Advance One Day</button> <button id="nextgame" disabled>Simulate Until Next Game Day</button><p id="season-progress" aria-live="polite"></p><p id="status" role="status"></p><button id="playoffs" disabled>Start Playoffs</button> <button id="playgame" disabled>Simulate Playoff Game</button><p id="playoff-status"></p><button id="offseason" disabled>Finalize Championship & Start Next Season</button></div>
+<div class="panel"><h2>Import Existing Front Office</h2><p><small>Copies the existing local Front Office save into this separate Phase 10 demo. Your old save is never changed. Import replaces only the Phase 10 demo after confirmation.</small></p><button id="find-front-office">Find Front Office Teams</button><label for="import-team">Control team:</label> <select id="import-team" disabled><option value="">Choose a team</option></select> <button id="import-front-office" disabled>Import Team & Start Season</button></div>
 <div class="panel"><h2>Standings</h2><table><thead><tr><th>Team</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>PTS</th></tr></thead><tbody id="standings"></tbody></table></div>
 <div class="panel"><h2>Recent Results</h2><ul id="results"></ul></div>
 <p><small>This is a demo simulation with fictional teams and generated scores. Demo playoff series are supported. Real roster integration, contracts and player statistics remain future work.</small></p>
@@ -17,7 +18,7 @@
 const api=window.HLMPhase10;
 const status=document.getElementById('status'),franchise=document.getElementById('franchise');
 const store=api.createBrowserFranchiseSaveStore(window.localStorage,'hlm-phase10-demo-v1');
-let state=null;
+let state=null,legacyData=null;
 function render(){
   document.getElementById('advance').disabled=!state||!!state.extensions.phase10Playoffs;
   document.getElementById('nextgame').disabled=!state||!!state.extensions.phase10Playoffs||!state.activity.games.some(g=>g.status==='scheduled');
@@ -44,6 +45,42 @@ function render(){
     return li;
   }));
 }
+document.getElementById('find-front-office').addEventListener('click',()=>{
+ try{
+   const raw=window.localStorage.getItem('hlm_tracker_v3');
+   if(!raw)throw new Error('No Front Office save found on this browser');
+   const data=JSON.parse(raw);
+   if(!Array.isArray(data.teams)||data.teams.length<2||!Array.isArray(data.players))throw new Error('Front Office data has no usable teams or players');
+   const select=document.getElementById('import-team');
+   select.replaceChildren();
+   const blank=document.createElement('option');blank.value='';blank.textContent='Choose a team';select.append(blank);
+   for(const team of data.teams){
+     if(team.id==null)continue;
+     const option=document.createElement('option');option.value=String(team.id);option.textContent=team.name||String(team.id);select.append(option);
+   }
+   legacyData=data;select.disabled=false;
+   document.getElementById('import-front-office').disabled=true;
+   status.textContent='Found '+data.teams.length+' Front Office teams. Choose your team.';
+ }catch(e){legacyData=null;document.getElementById('import-team').disabled=true;document.getElementById('import-front-office').disabled=true;status.textContent='Import discovery failed: '+e.message;}
+});
+document.getElementById('import-team').addEventListener('change',()=>{
+ document.getElementById('import-front-office').disabled=!legacyData||!document.getElementById('import-team').value;
+});
+document.getElementById('import-front-office').addEventListener('click',()=>{
+ try{
+   if(!legacyData)throw new Error('Find Front Office teams first');
+   const id=document.getElementById('import-team').value;
+   const team=legacyData.teams.find(t=>String(t.id)===id);
+   if(!team)throw new Error('Select a valid team');
+   if(!confirm('Import '+(team.name||id)+' into Phase 10? This replaces your Phase 10 demo save, but does not change the original Front Office.'))return;
+   const start='2026-10-12';
+   const imported=api.createPhase10FromFrontOffice(legacyData,{controlledTeamId:team.id,currentDate:start,saveId:'phase10-import'});
+   imported.nextState.activity.games=api.generateRoundRobinSchedule(imported.nextState.universe.teams,start,2);
+   imported.nextState.extensions.phase10CurrentSeasonId='2026-27';
+   store.save(imported.nextState);state=store.load();
+   status.textContent='Imported '+imported.summary.playerCount+' players and scheduled '+state.activity.games.length+' games. Original save unchanged.';render();
+ }catch(e){status.textContent='Import failed: '+e.message;}
+});
 document.getElementById('new').addEventListener('click',()=>{
   if(state&&!confirm('Replace your Phase 10 demo franchise?'))return;
   try{
