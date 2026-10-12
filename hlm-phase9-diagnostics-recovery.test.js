@@ -982,6 +982,54 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
   console.log('Missions 664–671 file schema and recovery passed');
 
+  // Missions 672–679: unexpected file value types never approve an export.
+  const mission672=JSON.parse(validPackage);
+  mission672.files["diagnostics.json"]=17;
+  inspect(JSON.stringify(mission672));
+  assert.equal(download.disabled,true,'Mission 672: invalid diagnostics.json blocked');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+
+  const mission673=JSON.parse(validPackage);
+  mission673.files["diagnostics.txt"]=0;
+  inspect(JSON.stringify(mission673));
+  assert.equal(download.disabled,true,'Mission 673: invalid diagnostics.txt blocked');
+  assert.match(result.textContent,/Missing required file: diagnostics\.txt/);
+
+  const mission674=JSON.parse(validPackage);
+  mission674.files["diagnostics.csv"]={};
+  inspect(JSON.stringify(mission674));
+  assert.equal(download.disabled,true,'Mission 674: invalid diagnostics.csv blocked');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+
+  const mission675=JSON.parse(validPackage);
+  mission675.files["diagnostics.json"]=[];
+  inspect(JSON.stringify(mission675));
+  assert.equal(download.disabled,true,'Mission 675: invalid diagnostics.json blocked');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+
+  const mission676=JSON.parse(validPackage);
+  mission676.files["diagnostics.txt"]={};
+  inspect(JSON.stringify(mission676));
+  assert.equal(download.disabled,true,'Mission 676: invalid diagnostics.txt blocked');
+  assert.match(result.textContent,/Missing required file: diagnostics\.txt/);
+
+  const mission677=JSON.parse(validPackage);
+  mission677.files["diagnostics.csv"]=true;
+  inspect(JSON.stringify(mission677));
+  assert.equal(download.disabled,true,'Mission 677: invalid diagnostics.csv blocked');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+
+  const mission678=JSON.parse(validPackage);
+  mission678.files["diagnostics.json"]=true;
+  inspect(JSON.stringify(mission678));
+  assert.equal(download.disabled,true,'Mission 678: invalid diagnostics.json blocked');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'Mission 679: valid package restores approval');
+  assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
+  console.log('Missions 672–679 diagnostics value type matrix passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
