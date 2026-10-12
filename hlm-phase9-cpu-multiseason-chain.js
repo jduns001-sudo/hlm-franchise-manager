@@ -19,6 +19,14 @@ function createSequentialCPUSeasonTransitionCandidates(state,transitions){
    if(!completion||completion.seasonId!==transition.fromSeasonId||
       typeof completion.championTeamId!=='string'||!completion.championTeamId.trim())
     fail('CPU_MULTI_SEASON_COMPLETION_REQUIRED','Explicit completed-season result required for subsequent transition');
+   if(completion.completedAt!==undefined){
+    const date=completion.completedAt;
+    if(typeof date!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(date)||
+       !Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date||
+       typeof current.meta.currentDate!=='string'||date<current.meta.currentDate||
+       typeof transition.nextDate!=='string'||date>=transition.nextDate)
+     fail('CPU_MULTI_SEASON_COMPLETION_DATE','Season completion date must be valid and precede next season');
+   }
    if(!current.universe.teams.some(t=>String(t.id)===completion.championTeamId))
     fail('CPU_MULTI_SEASON_CHAMPION_UNKNOWN','Champion team must exist');
    const active=current.history.seasons.filter(s=>String(s.id??s.seasonId)===completion.seasonId&&s.status==='active');
@@ -27,6 +35,7 @@ function createSequentialCPUSeasonTransitionCandidates(state,transitions){
    const season=current.history.seasons.find(s=>String(s.id??s.seasonId)===completion.seasonId);
    season.status='completed';
    season.champion=completion.championTeamId;
+   if(completion.completedAt!==undefined)season.completedAt=completion.completedAt;
   }
   const result=createCPUSeasonTransitionCandidate(current,transition);
   current=result.candidateState;
