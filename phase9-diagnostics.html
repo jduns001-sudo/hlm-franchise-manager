@@ -12,16 +12,26 @@
 (function(){
 'use strict';
 const payload=document.getElementById('payload'),result=document.getElementById('result'),download=document.getElementById('download');
-let approved=null;
+let approved=null,revision=0;
 const packageFile=document.getElementById('package-file');
 packageFile.addEventListener('change',async()=>{
+ const ticket=++revision;
  reset();
  const file=packageFile.files&&packageFile.files[0];
  if(!file)return;
  if(file.size>5*1024*1024){result.textContent='File exceeds 5 MB limit.';packageFile.value='';return;}
- try{payload.value=await file.text();result.textContent='File loaded. Select Inspect package to verify fingerprints.';}
- catch(error){payload.value='';result.textContent='Unable to read file: '+error.message;}
- packageFile.value='';
+ result.textContent='Reading local file...';
+ try{
+  const contents=await file.text();
+  if(ticket!==revision)return;
+  payload.value=contents;
+  result.textContent='File loaded. Select Inspect package to verify fingerprints.';
+ }catch(error){
+  if(ticket!==revision)return;
+  payload.value='';
+  result.textContent='Unable to read file: '+error.message;
+ }
+ if(ticket===revision)packageFile.value='';
 });
 function fingerprint(value){
  const bytes=new TextEncoder().encode(value);
@@ -30,10 +40,10 @@ function fingerprint(value){
  return (hash>>>0).toString(16).padStart(8,'0')+'-'+bytes.length;
 }
 function reset(){approved=null;download.disabled=true;}
-payload.addEventListener('input',reset);
-document.getElementById('clear').addEventListener('click',()=>{payload.value='';packageFile.value='';reset();result.textContent='No package inspected.';});
+payload.addEventListener('input',()=>{revision++;reset();});
+document.getElementById('clear').addEventListener('click',()=>{revision++;payload.value='';packageFile.value='';reset();result.textContent='No package inspected.';});
 document.getElementById('inspect').addEventListener('click',()=>{
- reset();
+ revision++;reset();
  try{
   const parsed=JSON.parse(payload.value);
   if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('Expected a JSON object.');
