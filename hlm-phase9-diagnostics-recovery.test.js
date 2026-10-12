@@ -82,6 +82,28 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(payload.value,'{"new":true}','older read ignored');
   assert.equal(download.disabled,true,'new file remains unapproved');
   console.log('Mission 571 out-of-order file read checks passed');
+  // A failed current read reports an error without approving or retaining stale content.
+  elements['package-file'].files=[{size:100,text:()=>Promise.reject(new Error('disk unavailable'))}];
+  const failed=elements['package-file'].handlers.change();
+  await failed;
+  assert.equal(payload.value,'','failed latest read clears stale payload');
+  assert.match(result.textContent,/Unable to read file: disk unavailable/);
+  assert.equal(download.disabled,true,'failed read cannot be downloaded');
+  // A stale rejected read cannot clear a newer successfully loaded package.
+  let rejectOld;
+  const staleFailure=new Promise((resolve,reject)=>{rejectOld=reject;});
+  elements['package-file'].files=[{size:100,text:()=>staleFailure}];
+  const oldFailure=elements['package-file'].handlers.change();
+  elements['package-file'].files=[{size:100,text:()=>Promise.resolve('{"latest":true}')}];
+  const latest=elements['package-file'].handlers.change();
+  await latest;
+  rejectOld(new Error('old read failed'));
+  await oldFailure;
+  assert.equal(payload.value,'{"latest":true}','stale read failure leaves newer payload intact');
+  assert.match(result.textContent,/File loaded/,'stale failure does not replace success message');
+  assert.equal(download.disabled,true,'latest payload requires inspection');
+  console.log('Mission 572 stale file failure recovery checks passed');
+
 
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
