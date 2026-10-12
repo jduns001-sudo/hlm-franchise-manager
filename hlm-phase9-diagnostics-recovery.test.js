@@ -116,6 +116,20 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(result.textContent,'No package inspected.','clear status remains visible');
   assert.equal(download.disabled,true,'cleared workspace cannot download');
   console.log('Mission 573 clear-during-read checks passed');
+  // Manual edits during a pending read take precedence over the delayed file.
+  let resolveAfterEdit;
+  const pendingEdit=new Promise(resolve=>{resolveAfterEdit=resolve;});
+  elements['package-file'].files=[{size:100,text:()=>pendingEdit}];
+  const editRead=elements['package-file'].handlers.change();
+  payload.value='{"manual":true}';
+  payload.handlers.input();
+  resolveAfterEdit(validPackage);
+  await editRead;
+  assert.equal(payload.value,'{"manual":true}','delayed read cannot overwrite manual edit');
+  assert.match(result.textContent,/Package changed/,'edit message remains visible');
+  assert.equal(download.disabled,true,'manual edits require inspection');
+  console.log('Mission 574 edit-during-read checks passed');
+
 
 
 
