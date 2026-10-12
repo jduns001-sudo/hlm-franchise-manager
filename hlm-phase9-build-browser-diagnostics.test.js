@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+require('./hlm-phase9-build-browser-diagnostics');
+const bundle=fs.readFileSync(path.join(__dirname,'hlm-phase9-diagnostics-browser.bundle.js'),'utf8');
+const context={};vm.runInNewContext(bundle,context,{timeout:3000});
+assert.equal(typeof context.HLMPhase9Diagnostics.createFrontOfficeDiagnosticsExportSession,'function');
+assert.ok(bundle.includes('hlm-phase9-browser-diagnostics-panel-controller.js'));
+assert.ok(!bundle.includes('require("node:'));
+console.log('Mission 556 browser bundle build tests passed');
