@@ -1,0 +1,23 @@
+name: Mission 663 Canonical Bridge Tests
+on:
+  push:
+    branches:
+      - mission-663-canonical-player-bridge
+  pull_request:
+    paths:
+      - 'hlm-canonical-franchise-bridge.js'
+      - 'hlm-canonical-franchise-bridge.test.js'
+      - 'hlm-canonical-player-snapshot.js'
+      - 'hlm-franchise-simulation-data-bridge.js'
+      - '.github/workflows/mission-663-canonical-bridge.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-canonical-player-snapshot.test.js
+      - run: node hlm-franchise-simulation-data-bridge.test.js
+      - run: node hlm-canonical-franchise-bridge.test.js
