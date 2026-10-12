@@ -1030,6 +1030,54 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
   console.log('Missions 672–679 diagnostics value type matrix passed');
 
+  // Missions 680–687: malformed required file payload types revoke approval.
+  const mission680=JSON.parse(validPackage);
+  mission680.files["diagnostics.csv"]=42;
+  inspect(JSON.stringify(mission680));
+  assert.equal(download.disabled,true,'Mission 680: malformed file value rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+
+  const mission681=JSON.parse(validPackage);
+  mission681.files["diagnostics.json"]=false;
+  inspect(JSON.stringify(mission681));
+  assert.equal(download.disabled,true,'Mission 681: malformed file value rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+
+  const mission682=JSON.parse(validPackage);
+  mission682.files["diagnostics.txt"]=[];
+  inspect(JSON.stringify(mission682));
+  assert.equal(download.disabled,true,'Mission 682: malformed file value rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.txt/);
+
+  const mission683=JSON.parse(validPackage);
+  mission683.files["diagnostics.csv"]=["row"];
+  inspect(JSON.stringify(mission683));
+  assert.equal(download.disabled,true,'Mission 683: malformed file value rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+
+  const mission684=JSON.parse(validPackage);
+  mission684.files["diagnostics.json"]=["valid"];
+  inspect(JSON.stringify(mission684));
+  assert.equal(download.disabled,true,'Mission 684: malformed file value rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.json/);
+
+  const mission685=JSON.parse(validPackage);
+  mission685.files["diagnostics.txt"]={"text":"bad"};
+  inspect(JSON.stringify(mission685));
+  assert.equal(download.disabled,true,'Mission 685: malformed file value rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.txt/);
+
+  const mission686=JSON.parse(validPackage);
+  mission686.files["diagnostics.csv"]={"csv":"bad"};
+  inspect(JSON.stringify(mission686));
+  assert.equal(download.disabled,true,'Mission 686: malformed file value rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics\.csv/);
+
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'Mission 687: valid package restores approval');
+  assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
+  console.log('Missions 680–687 malformed file type recovery passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
