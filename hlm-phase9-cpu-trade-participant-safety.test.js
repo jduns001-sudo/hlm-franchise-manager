@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createIsolatedCPUTradeCandidate}=require('./hlm-phase9-cpu-isolated-trade-candidate');
+const state=createGameStateEnvelope({meta:{controlledTeamId:'PIT'},teams:[{id:'PIT'},{id:'BUF'},{id:'NYR'},{id:'BOS'}],players:[{id:'p1',teamId:'BUF'}],contracts:[{playerId:'p1',teamId:'BUF',aav:1000000}],finances:{buf:{teamId:'BUF',seasonId:2030,payroll:10000000,capLimit:20000000},nyr:{teamId:'NYR',seasonId:2030,payroll:10000000,capLimit:20000000}}});
+const base={teamIds:['BUF','NYR'],legs:[{fromTeamId:'BUF',toTeamId:'NYR',assets:[{type:'player',id:'p1',ownerTeamId:'BUF'}]}],humanGMApproved:true,playerProtectionVerified:true,leagueRulesVerified:true,capRulesVerified:true,transactionId:'participant-check'};
+const before=JSON.stringify(state);
+assert.equal(createIsolatedCPUTradeCandidate(state,'BUF',base).candidateState.universe.players[0].teamId,'NYR');
+assert.throws(()=>createIsolatedCPUTradeCandidate(state,'BUF',{...base,teamIds:['BUF','NYR','NYR']}),e=>e.code==='CPU_TRADE_DUPLICATE_PARTICIPANT');
+assert.throws(()=>createIsolatedCPUTradeCandidate(state,'BUF',{...base,teamIds:['BUF','BOS']}),e=>e.code==='CPU_TRADE_UNLISTED_PARTICIPANT');
+assert.throws(()=>createIsolatedCPUTradeCandidate(state,'BUF',{...base,legs:[{fromTeamId:'BUF',toTeamId:'BUF',assets:[{type:'player',id:'p1',ownerTeamId:'BUF'}]}]}),e=>e.code==='CPU_TRADE_SELF_TRANSFER');
+assert.equal(JSON.stringify(state),before);
+console.log('Phase 9 CPU trade participant safety tests passed');
