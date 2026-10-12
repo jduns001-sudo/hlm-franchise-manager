@@ -21,8 +21,17 @@ function persistApprovedCPUMultiSeasonCandidate({repository,sourceSlotId,destina
     !repository.has(sourceId)||serializeGameState(repository.load(sourceId).state)!==sourceFingerprint)
   fail('CPU_MULTI_SEASON_SAVE_SOURCE_CHANGED','Source changed during candidate generation');
  if(repository.has(destinationId))fail('CPU_MULTI_SEASON_SAVE_DESTINATION_OCCUPIED','Destination slot occupied');
- repository.save(destinationId,result.candidateState,{saveId:destinationId},{replace:false});
- if(serializeGameState(repository.load(destinationId).state)!==result.candidateFingerprint)
+ try{
+  repository.save(destinationId,result.candidateState,{saveId:destinationId},{replace:false});
+ }catch(error){
+  // A storage adapter can write successfully and then throw. Never remove a slot
+  // that may now contain an unverified franchise save.
+  throw error;
+ }
+ let loaded;
+ try{loaded=repository.load(destinationId).state;}
+ catch(error){fail('CPU_MULTI_SEASON_SAVE_RELOAD_FAILED','Saved candidate could not be reloaded; retain destination for recovery');}
+ if(serializeGameState(loaded)!==result.candidateFingerprint)
   fail('CPU_MULTI_SEASON_SAVE_VERIFY_FAILED','Persisted candidate mismatch; retain destination for recovery');
  if(serializeGameState(repository.load(sourceId).state)!==sourceFingerprint)
   fail('CPU_MULTI_SEASON_SAVE_SOURCE_CHANGED','Source changed during persistence; retain destination for recovery');
