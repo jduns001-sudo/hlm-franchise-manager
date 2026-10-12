@@ -607,6 +607,55 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   inspect(payload.value);
   assert.equal(download.disabled,false,'valid file approved by inspection');
   console.log('Mission 627 post-oversize recovery passed');
+  // Mission 628: a later file selection wins even if the first read resolves last.
+  let finishOldRead;
+  const oldRead=new Promise(resolve=>{finishOldRead=resolve;});
+  elements['package-file'].files=[{size:10,text:()=>oldRead}];
+  const firstRead=elements['package-file'].handlers.change();
+  elements['package-file'].files=[{size:validPackage.length,text:()=>Promise.resolve(validPackage)}];
+  await elements['package-file'].handlers.change();
+  finishOldRead('obsolete file contents');
+  await firstRead;
+  assert.equal(payload.value,validPackage,'newer file selection wins');
+  assert.equal(download.disabled,true,'newer loaded file requires inspection');
+  console.log('Mission 628 newer file selection race passed');
+
+  // Mission 629: a stale rejected read cannot overwrite a successful newer read.
+  let rejectOldRead;
+  const oldRejectedRead=new Promise((resolve,reject)=>{rejectOldRead=reject;});
+  elements['package-file'].files=[{size:10,text:()=>oldRejectedRead}];
+  const rejectedRead=elements['package-file'].handlers.change();
+  elements['package-file'].files=[{size:validPackage.length,text:()=>Promise.resolve(validPackage)}];
+  await elements['package-file'].handlers.change();
+  rejectOldRead(new Error('outdated read error'));
+  await rejectedRead;
+  assert.equal(payload.value,validPackage,'newer read survives stale rejection');
+  assert.match(result.textContent,/File loaded/);
+  console.log('Mission 629 stale rejected read race passed');
+
+  // Mission 630: user edits during a pending read cannot be overwritten.
+  let finishPendingEditRead;
+  const pendingEditRead=new Promise(resolve=>{finishPendingEditRead=resolve;});
+  elements['package-file'].files=[{size:10,text:()=>pendingEditRead}];
+  const editRead=elements['package-file'].handlers.change();
+  payload.value='my manual changes';
+  payload.handlers.input();
+  finishPendingEditRead(validPackage);
+  await editRead;
+  assert.equal(payload.value,'my manual changes','manual edits override stale file');
+  assert.equal(download.disabled,true,'manual edit cannot approve download');
+  console.log('Mission 630 manual edit race passed');
+
+  // Mission 631: valid reinspection restores approval after competing reads.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'reinspection approves valid package');
+  elements['package-file'].files=[{size:validPackage.length,text:()=>Promise.resolve(validPackage)}];
+  await elements['package-file'].handlers.change();
+  assert.equal(download.disabled,true,'new selection revokes earlier approval');
+  inspect(payload.value);
+  assert.equal(download.disabled,false,'reinspection restores approval');
+  console.log('Mission 631 repeated inspection approval passed');
+
 
 
 
