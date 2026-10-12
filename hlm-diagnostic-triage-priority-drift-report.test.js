@@ -36,7 +36,7 @@ const before = JSON.stringify(matrix);
 const baselineBefore = JSON.stringify(PRIORITY_EXPECTED_BASELINE_V1);
 const drift = createDiagnosticTriagePriorityDriftReport(matrix);
 assert.equal(drift.hasDrift, true);
-assert.equal(drift.findingCount, 12);
+assert.equal(drift.findingCount, 11);
 assert.deepEqual(drift.findings.map(f => [f.scenario, f.field]), [
   [null, 'version'],
   [null, 'simulationAuthorized'],
@@ -49,7 +49,7 @@ assert.deepEqual(drift.findings.map(f => [f.scenario, f.field]), [
   ['orderingChange', 'categoryNames'],
   ['mixedPriority', 'findingCount'],
   ['mixedPriority', 'categoryCount']
-].slice(0, 11));
+]);
 assert.equal(drift.findingCount, drift.findings.length);
 assert.equal(drift.findings[1].code, 'PRIORITY_SAFETY_INVARIANT_CHANGED');
 assert.equal(drift.findings[6].code, 'PRIORITY_SEVERITY_COUNT_CHANGED');
