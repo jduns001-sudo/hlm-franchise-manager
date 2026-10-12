@@ -49,6 +49,11 @@ const decisionOptions={prioritization:{evaluation:{identification:{problems:[{id
  priorityId:'first',authorized:true,execute:true};
 const handoff=prepareCPUTradeAfterReviewedSimulation({storage,simulationSaveResult:result,teamId:'BUF',steps,decisionOptions});
 assert.equal(handoff.simulationDate,'2027-04-18');
+assert.equal(result.candidateFingerprint,serializeGameState(repository.load('next').state));
+assert.equal(result.sourceFingerprint,before);
+assert.throws(()=>prepareCPUTradeAfterReviewedSimulation({storage,simulationSaveResult:{...result,candidateFingerprint:'forged'},teamId:'BUF',steps,decisionOptions}),e=>e.code==='CPU_SIMULATION_TRADE_CANDIDATE_MISMATCH');
+assert.throws(()=>prepareCPUTradeAfterReviewedSimulation({storage,simulationSaveResult:{...result,sourceFingerprint:'forged'},teamId:'BUF',steps,decisionOptions}),e=>e.code==='CPU_SIMULATION_TRADE_SOURCE_MISMATCH');
+assert.throws(()=>prepareCPUTradeAfterReviewedSimulation({storage,simulationSaveResult:{...result,sourceSlotId:'missing'},teamId:'BUF',steps,decisionOptions}),e=>e.code==='CPU_SIMULATION_TRADE_SOURCE_MISMATCH');
 assert.equal(handoff.workflow.preview.stepCount,1);
 assert.throws(()=>prepareCPUTradeAfterReviewedSimulation({storage,simulationSaveResult:result,teamId:'PIT',steps,decisionOptions}),e=>e.code==='CPU_SIMULATION_TRADE_HUMAN_PROTECTED');
 assert.throws(()=>prepareCPUTradeAfterReviewedSimulation({storage,simulationSaveResult:{...result,verified:false},teamId:'BUF',steps,decisionOptions}),e=>e.code==='CPU_SIMULATION_TRADE_UNVERIFIED');
