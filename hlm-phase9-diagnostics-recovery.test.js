@@ -609,8 +609,8 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   console.log('Mission 627 post-oversize recovery passed');
   // Mission 628: a later file selection wins even if the first read resolves last.
   let finishOldRead;
-  const oldRead=new Promise(resolve=>{finishOldRead=resolve;});
-  elements['package-file'].files=[{size:10,text:()=>oldRead}];
+  const mission628OldRead=new Promise(resolve=>{finishOldRead=resolve;});
+  elements['package-file'].files=[{size:10,text:()=>mission628OldRead}];
   const firstRead=elements['package-file'].handlers.change();
   elements['package-file'].files=[{size:validPackage.length,text:()=>Promise.resolve(validPackage)}];
   await elements['package-file'].handlers.change();
