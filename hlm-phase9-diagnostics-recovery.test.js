@@ -47,3 +47,25 @@ payload.handlers.input();
 assertBlocked('editing previously approved package disables download');
 
 console.log('Mission 566 diagnostics recovery positive and negative checks passed');
+
+// Local file selection invalidates prior approval before its asynchronous read completes.
+(async () => {
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'fixture approved before file selection');
+  let resolveRead;
+  const pending = new Promise(resolve => { resolveRead=resolve; });
+  elements['package-file'].files=[{size:validPackage.length,text:()=>pending}];
+  const change=elements['package-file'].handlers.change();
+  assert.equal(download.disabled,true,'new file selection revokes approval immediately');
+  assert.match(result.textContent,/Reading local file/);
+  resolveRead(validPackage);
+  await change;
+  assert.equal(payload.value,validPackage,'file content loaded');
+  assert.equal(download.disabled,true,'loaded file still requires explicit inspection');
+  inspect(payload.value);
+  assert.equal(download.disabled,false,'inspection restores download after loading');
+  elements.clear.click();
+  assert.equal(download.disabled,true,'clear revokes approval after file selection');
+  console.log('Mission 570 file selection recovery checks passed');
+})().catch(error=>{console.error(error);process.exitCode=1;});
+
