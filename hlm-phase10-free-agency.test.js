@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {listOffseasonFreeAgents}=require('./hlm-phase10-free-agency');
+const state=createGameStateEnvelope({players:[{id:1,name:'A'},{id:2,name:'B'},{id:3,name:'C'}],contracts:[{contractId:'c1',playerId:1,teamId:5,status:'expired'},{contractId:'c2',playerId:2,teamId:6,status:'expired'},{contractId:'c3',playerId:2,teamId:7,status:'active'},{contractId:'c4',playerId:3,teamId:8,status:'active'}]});
+const before=JSON.stringify(state);
+const pool=listOffseasonFreeAgents(state);
+assert.equal(pool.count,1);
+assert.deepEqual(pool.freeAgents,[{playerId:1,name:'A',previousTeamId:5}]);
+assert.equal(JSON.stringify(state),before);
+assert.equal(listOffseasonFreeAgents(createGameStateEnvelope()).count,0);
+assert.throws(()=>listOffseasonFreeAgents(null),/Invalid/);
+console.log('Phase 10 free agency pool tests passed');
