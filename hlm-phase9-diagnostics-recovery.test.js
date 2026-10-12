@@ -188,6 +188,41 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/Select a diagnostics file to inspect/);
   assert.equal(download.disabled,true,'canceled pending read cannot approve download');
   console.log('Mission 579 cancel-pending-read checks passed');
+  // Mission 580: malformed file structures cannot be approved.
+  inspect('[]');
+  assert.equal(download.disabled,true,'array package rejected');
+  assert.match(result.textContent,/Expected a JSON object/);
+  inspect(JSON.stringify({...JSON.parse(validPackage),files:null}));
+  assert.equal(download.disabled,true,'missing files rejected');
+  assert.match(result.textContent,/Not a recognized/);
+  console.log('Mission 580 malformed package structure checks passed');
+
+  // Mission 581: a missing required diagnostics artifact is rejected.
+  const missingFile=JSON.parse(validPackage);
+  delete missingFile.files['diagnostics.csv'];
+  inspect(JSON.stringify(missingFile));
+  assert.equal(download.disabled,true,'missing diagnostics CSV rejected');
+  assert.match(result.textContent,/Missing required file: diagnostics.csv/);
+  console.log('Mission 581 missing diagnostics artifact checks passed');
+
+  // Mission 582: content tampering must fail fingerprint verification.
+  const tampered=JSON.parse(validPackage);
+  tampered.files['diagnostics.txt']='altered after export';
+  inspect(JSON.stringify(tampered));
+  assert.equal(download.disabled,true,'tampered content rejected');
+  assert.match(result.textContent,/Integrity fingerprint mismatch: diagnostics.txt/);
+  console.log('Mission 582 tampered fingerprint checks passed');
+
+  // Mission 583: inconsistent validity declarations cannot pass verification.
+  const mismatch=JSON.parse(validPackage);
+  mismatch.manifest.valid=false;
+  inspect(JSON.stringify(mismatch));
+  assert.equal(download.disabled,true,'validity mismatch rejected');
+  assert.match(result.textContent,/validity does not match package/);
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package still works after invalid inputs');
+  console.log('Mission 583 validity mismatch and recovery checks passed');
+
 
 
 
