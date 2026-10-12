@@ -11,7 +11,7 @@ function exportVerifiedGameBatchAudit({storage,receipt}={}){
   verification:{valid:true,gamesChecked:verification.gamesChecked,sourcePreserved:true}
  };
  const json=JSON.stringify(payload);
- return Object.freeze({kind:payload.kind,version:1,json,bytes:Buffer.byteLength(json,'utf8'),
+ return Object.freeze({kind:payload.kind,version:1,json,bytes:new TextEncoder().encode(json).length,
   gamesChecked:verification.gamesChecked,persistencePerformed:false,verified:true});
 }
 function parseGameBatchAuditExport(json){
