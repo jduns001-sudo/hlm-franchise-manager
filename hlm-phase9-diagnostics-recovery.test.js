@@ -841,6 +841,38 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
   console.log('Mission 651 diagnostics structural recovery passed');
 
+  // Mission 652: a wrong package kind cannot reuse an earlier approval.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'baseline package approved');
+  const mission652=JSON.parse(validPackage);
+  mission652.kind='unrelated-package';
+  inspect(JSON.stringify(mission652));
+  assert.equal(download.disabled,true,'unrecognized package kind revokes approval');
+  assert.match(result.textContent,/Not a recognized Phase 9 diagnostics package/);
+  console.log('Mission 652 package kind boundary passed');
+
+  // Mission 653: a future package version must not silently pass version-one inspection.
+  const mission653=JSON.parse(validPackage);
+  mission653.version=2;
+  inspect(JSON.stringify(mission653));
+  assert.equal(download.disabled,true,'unsupported package version rejected');
+  assert.match(result.textContent,/Not a recognized Phase 9 diagnostics package/);
+  console.log('Mission 653 package version boundary passed');
+
+  // Mission 654: a missing manifest is rejected before any download.
+  const mission654=JSON.parse(validPackage);
+  delete mission654.manifest;
+  inspect(JSON.stringify(mission654));
+  assert.equal(download.disabled,true,'missing manifest rejected');
+  assert.match(result.textContent,/Not a recognized Phase 9 diagnostics package/);
+  console.log('Mission 654 missing manifest boundary passed');
+
+  // Mission 655: only a fresh valid inspection restores download approval.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package recovers after boundary failures');
+  assert.match(result.textContent,/FINGERPRINTS VERIFIED/);
+  console.log('Mission 655 package boundary recovery passed');
+
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 
