@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const {createGameStateEnvelope}=require('./hlm-game-state');
 const {expireOffseasonContracts}=require('./hlm-phase10-offseason-contracts');
-const state=createGameStateEnvelope({contracts:[{id:'a',teamId:1,status:'active'},{id:'b',teamId:2,status:'active'}]});
+const state=createGameStateEnvelope({contracts:[{contractId:'a',teamId:1,status:'active'},{id:'b',teamId:2,status:'active'}]});
 const before=JSON.stringify(state);
 const {nextState,summary}=expireOffseasonContracts(state,['a']);
 assert.equal(summary.expiredCount,1);
