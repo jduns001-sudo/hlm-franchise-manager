@@ -12,7 +12,11 @@ const trade={teamIds:['BUF','NYR'],legs:[{fromTeamId:'BUF',toTeamId:'NYR',assets
 const steps=[{teamId:'BUF',trade}];
 const decisionOptions={prioritization:{evaluation:{identification:{problems:[{id:'need-trade',category:'cap',severity:'high'}]},options:[{id:'trade-option',problemId:'need-trade',type:'trades'}]},priorities:[{id:'first',optionId:'trade-option',tier:'high',order:1}]},priorityId:'first',authorized:true,execute:true};
 assert.throws(()=>createBrowserCPUTradeWorkflow({storage,sourceSlotId:'human',teamId:'PIT',steps,decisionOptions}),e=>e.code==='CPU_BROWSER_HUMAN_PROTECTED');
-const workflow=createBrowserCPUTradeWorkflow({storage,sourceSlotId:'human',teamId:'BUF',steps,decisionOptions});
+const {prepareApprovedCPUTradeBatch}=require('./hlm-phase9-cpu-trade-batch-preview');
+const preview=prepareApprovedCPUTradeBatch({repository,sourceSlotId:'human',steps,expectedSourceFingerprint:before});
+const boundDecision={...decisionOptions,approvedTradeSourceFingerprint:preview.sourceFingerprint,
+ approvedTradeCandidateFingerprint:preview.candidateFingerprint,approvedTradeTransactionIds:[...preview.transactionIds]};
+const workflow=createBrowserCPUTradeWorkflow({storage,sourceSlotId:'human',teamId:'BUF',steps,decisionOptions:boundDecision});
 assert.equal(workflow.preview.stepCount,1);
 assert.throws(()=>workflow.execute({destinationSlotId:'reviewed'}),e=>e.code==='CPU_BROWSER_EXECUTION_APPROVAL_REQUIRED');
 assert.equal(repository.list().length,1);
