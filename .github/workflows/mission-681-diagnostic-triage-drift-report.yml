@@ -1,0 +1,36 @@
+name: Mission 681 Diagnostic Triage Drift Report Tests
+on:
+  push:
+    branches:
+      - mission-681-diagnostic-triage-drift-reporter
+  pull_request:
+    paths:
+      - 'hlm-diagnostic-triage-drift-report.js'
+      - 'hlm-diagnostic-triage-drift-report.test.js'
+      - '.github/workflows/mission-681-diagnostic-triage-drift-report.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-canonical-franchise-bridge.test.js
+      - run: node hlm-classified-canonical-bridge.test.js
+      - run: node hlm-simulation-roster-eligibility.test.js
+      - run: node hlm-simulation-roster-readiness.test.js
+      - run: node hlm-simulation-roster-readiness-pipeline.test.js
+      - run: node hlm-roster-readiness-validation-summary.test.js
+      - run: node hlm-franchise-data-health-report.test.js
+      - run: node hlm-franchise-data-health-contract.test.js
+      - run: node hlm-franchise-diagnostic-fixtures.test.js
+      - run: node hlm-franchise-diagnostic-regression-matrix.test.js
+      - run: node hlm-franchise-diagnostic-baseline-v1.test.js
+      - run: node hlm-franchise-diagnostic-drift-report.test.js
+      - run: node hlm-diagnostic-drift-severity.test.js
+      - run: node hlm-diagnostic-triage-summary.test.js
+      - run: node hlm-diagnostic-triage-contract.test.js
+      - run: node hlm-diagnostic-triage-fixture-matrix.test.js
+      - run: node hlm-diagnostic-triage-baseline-v1.test.js
+      - run: node hlm-diagnostic-triage-drift-report.test.js
