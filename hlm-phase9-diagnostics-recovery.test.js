@@ -382,11 +382,11 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   assert.equal(download.disabled,false,'valid reinspection restores approval');
   console.log('Mission 603 malformed JSON recovery passed');
   // Mission 604: an oversized file never invokes its text reader.
-  let oversizedReadCalled=false;
+  let mission604OversizedReadCalled=false;
   payload.value='{"preserve":true}';
-  elements['package-file'].files=[{size:5*1024*1024+1,text:()=>{oversizedReadCalled=true;return Promise.resolve('bad');}}];
+  elements['package-file'].files=[{size:5*1024*1024+1,text:()=>{mission604OversizedReadCalled=true;return Promise.resolve('bad');}}];
   await elements['package-file'].handlers.change();
-  assert.equal(oversizedReadCalled,false,'oversized file reader not invoked');
+  assert.equal(mission604OversizedReadCalled,false,'oversized file reader not invoked');
   assert.equal(payload.value,'{"preserve":true}','oversized file preserves input');
   assert.match(result.textContent,/File exceeds 5 MB limit/);
   assert.equal(download.disabled,true,'oversized file cannot approve download');
