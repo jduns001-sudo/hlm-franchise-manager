@@ -9,6 +9,7 @@
 const { buildCanonicalPlayerSnapshot, validateCanonicalPlayerSnapshot } = require('./hlm-canonical-player-snapshot');
 const { createGameStateEnvelope } = require('./hlm-game-state');
 const { createFranchiseSimulationSnapshot } = require('./hlm-franchise-simulation-data-bridge');
+const { createOrganizationReferenceClassifier } = require('./hlm-organization-reference-classifier');
 
 function createCanonicalFranchiseBridgeSnapshot(universe, roster, options = {}) {
   const canonical = buildCanonicalPlayerSnapshot(universe, roster, {
@@ -40,13 +41,21 @@ function createCanonicalFranchiseBridgeSnapshot(universe, roster, options = {}) 
     players: canonical.players
   });
   const bridge = createFranchiseSimulationSnapshot(state);
+  const organizationClassifier = createOrganizationReferenceClassifier(state.universe.teams);
+  // Classification is informational: it never changes teamId, membership,
+  // free-agent eligibility, or the existing validation gate.
+  const classifiedPlayers = bridge.players.map(player => ({
+    ...player,
+    organizationReference: organizationClassifier.classify(player.teamId)
+  }));
   return {
     kind: 'canonical-franchise-bridge-snapshot',
     version: 1,
     teams: bridge.teams,
-    players: bridge.players,
+    players: classifiedPlayers,
     provenanceByPlayerId: new Map([...canonical.provenanceByPlayerId].map(([id, provenance]) => [id, JSON.parse(JSON.stringify(provenance))])),
     canonicalSummary: { ...canonical.summary },
+    organizationDiagnostics: organizationClassifier.diagnostics.map(issue => ({ ...issue })),
     diagnostics: [...diagnostics, ...bridge.diagnostics.map(issue => ({ ...issue, stage: 'bridge' }))],
     validation: {
       valid: diagnostics.length === 0 && bridge.validation.valid,
