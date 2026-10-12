@@ -16,13 +16,14 @@ function mountGameBatchDiagnosticsDownloadPanel({container,documentRef,urlRef,Bl
  status.setAttribute('aria-live','polite');
  panel.appendChild(status);
  const buttons=[];
+ let disposed=false;
  for(const file of prepared.files){
   const button=documentRef.createElement('button');
   button.type='button';
   button.disabled=!prepared.valid;
   button.textContent='Download '+file.filename;
   button.addEventListener('click',()=>{
-   if(!prepared.valid)return;
+   if(!prepared.valid||disposed)return;
    try{
     downloadPreparedDiagnosticsFile(file,{documentRef,urlRef,BlobCtor});
     status.textContent='Downloaded '+file.filename;
@@ -34,6 +35,14 @@ function mountGameBatchDiagnosticsDownloadPanel({container,documentRef,urlRef,Bl
  }
  container.appendChild(panel);
  return Object.freeze({valid:prepared.valid,buttonCount:buttons.length,
+  dispose(){
+   if(disposed)return false;
+   disposed=true;
+   for(const button of buttons)button.disabled=true;
+   if(typeof panel.remove==='function')panel.remove();
+   else if(typeof container.removeChild==='function')container.removeChild(panel);
+   return true;
+  },
   persistencePerformed:false,activeFranchiseSlotReplaced:false});
 }
 module.exports={mountGameBatchDiagnosticsDownloadPanel};
