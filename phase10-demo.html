@@ -3,10 +3,10 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Hockey Franchise Manager | Prototype</title>
 <style>
-:root{color-scheme:dark}body{font:16px system-ui,sans-serif;background:#091525;color:#f0f6ff;max-width:850px;margin:0 auto;padding:24px}h1{font-size:1.8rem}button{background:#3b82f6;color:white;border:0;border-radius:8px;padding:12px 16px;font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.panel{background:#15263b;border:1px solid #354860;border-radius:12px;padding:18px;margin:14px 0}a{color:#a7d1ff}table{border-collapse:collapse;width:100%}td,th{text-align:left;border-bottom:1px solid #354860;padding:8px}#status{white-space:pre-wrap}small{color:#bac9d9}
+:root{color-scheme:dark}body{font:16px system-ui,sans-serif;background:#091525;color:#f0f6ff;max-width:850px;margin:0 auto;padding:24px}h1{font-size:1.8rem}button{background:#3b82f6;color:white;border:0;border-radius:8px;padding:12px 16px;font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.panel{background:#15263b;border:1px solid #354860;border-radius:12px;padding:18px;margin:14px 0}a{color:#a7d1ff}table{border-collapse:collapse;width:100%}td,th{text-align:left;border-bottom:1px solid #354860;padding:8px}#status{white-space:pre-wrap}small{color:#bac9d9}button{min-height:44px;margin:4px 3px 4px 0}button:focus-visible{outline:3px solid #f9d56e;outline-offset:2px}@media(max-width:560px){body{padding:12px}.panel{padding:12px}button{width:100%;margin:5px 0}h1{font-size:1.5rem}table{font-size:.9rem}td,th{padding:6px 3px}}
 </style></head>
 <body><h1>🏒 Hockey Franchise Manager</h1><p>Phase 10 playable engine prototype. Uses a separate browser save key and does not import or alter older Front Office saves.</p>
-<div class="panel"><h2>Franchise</h2><p id="franchise">Loading…</p><button id="new">Create Demo Franchise</button> <button id="advance" disabled>Advance One Day</button><p id="status" role="status"></p><button id="playoffs" disabled>Start Playoffs</button> <button id="playgame" disabled>Simulate Playoff Game</button><p id="playoff-status"></p><button id="offseason" disabled>Finalize Championship & Start Next Season</button></div>
+<div class="panel"><h2>Franchise</h2><p id="franchise">Loading…</p><button id="new">Create Demo Franchise</button> <button id="advance" disabled>Advance One Day</button> <button id="nextgame" disabled>Simulate Until Next Game Day</button><p id="season-progress" aria-live="polite"></p><p id="status" role="status"></p><button id="playoffs" disabled>Start Playoffs</button> <button id="playgame" disabled>Simulate Playoff Game</button><p id="playoff-status"></p><button id="offseason" disabled>Finalize Championship & Start Next Season</button></div>
 <div class="panel"><h2>Standings</h2><table><thead><tr><th>Team</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>PTS</th></tr></thead><tbody id="standings"></tbody></table></div>
 <div class="panel"><h2>Recent Results</h2><ul id="results"></ul></div>
 <p><small>This is a demo simulation with fictional teams and generated scores. Demo playoff series are supported. Real roster integration, contracts and player statistics remain future work.</small></p>
@@ -20,6 +20,9 @@ const store=api.createBrowserFranchiseSaveStore(window.localStorage,'hlm-phase10
 let state=null;
 function render(){
   document.getElementById('advance').disabled=!state||!!state.extensions.phase10Playoffs;
+  document.getElementById('nextgame').disabled=!state||!!state.extensions.phase10Playoffs||!state.activity.games.some(g=>g.status==='scheduled');
+  const total=state?state.activity.games.length:0,completed=state?state.activity.games.filter(g=>g.status==='final').length:0;
+  document.getElementById('season-progress').textContent=state?'Regular season: '+completed+' / '+total+' games complete':'';
   const hasPlayoffs=!!(state&&state.extensions.phase10Playoffs);
   const pending=state&&state.activity.games.some(g=>g.status==='scheduled');
   document.getElementById('playoffs').disabled=!state||pending||hasPlayoffs;
@@ -65,6 +68,21 @@ document.getElementById('advance').addEventListener('click',()=>{
     status.textContent='Advanced to '+advanced.toDate+'; games simulated: '+advanced.results.length+'.';
     render();
   }catch(e){status.textContent='Advance failed: '+e.message;}
+});
+document.getElementById('nextgame').addEventListener('click',()=>{
+ try{
+   const scheduled=state.activity.games.filter(g=>g.status==='scheduled'&&g.date>state.meta.currentDate).sort((a,b)=>a.date.localeCompare(b.date));
+   if(!scheduled.length)throw new Error('No future scheduled games');
+   const target=scheduled[0].date;
+   let days=0,games=0;
+   while(state.meta.currentDate<target){
+     if(days++>=366)throw new Error('Next game exceeds advance limit');
+     const date=api.addCalendarDays(state.meta.currentDate,1);
+     const advanced=store.advanceAndSave(Number(date.replaceAll('-','')));
+     state=advanced.nextState;games+=advanced.results.length;
+   }
+   status.textContent='Advanced '+days+' day(s) to '+target+'; games simulated: '+games+'.';render();
+ }catch(e){status.textContent='Next game failed: '+e.message;}
 });
 document.getElementById('playoffs').addEventListener('click',()=>{
  try{const next=api.startSeasonPlayoffs(state,4);store.save(next.nextState);state=next.nextState;status.textContent='Playoffs started!';render();}
