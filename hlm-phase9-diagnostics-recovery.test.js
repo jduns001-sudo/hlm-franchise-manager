@@ -292,6 +292,38 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   inspect(validPackage);
   assert.equal(download.disabled,false,'successful reinspection restores approval');
   console.log('Mission 591 approval revocation and recovery checks passed');
+  // Mission 592: unsupported package kind is never accepted.
+  const wrongKind=JSON.parse(validPackage);
+  wrongKind.kind='unrelated-package';
+  inspect(JSON.stringify(wrongKind));
+  assert.equal(download.disabled,true,'unsupported package kind rejected');
+  assert.match(result.textContent,/Not a recognized/);
+  console.log('Mission 592 package kind checks passed');
+
+  // Mission 593: absent manifest is rejected before fingerprint checks.
+  const missingManifest=JSON.parse(validPackage);
+  delete missingManifest.manifest;
+  inspect(JSON.stringify(missingManifest));
+  assert.equal(download.disabled,true,'missing manifest rejected');
+  assert.match(result.textContent,/Not a recognized/);
+  console.log('Mission 593 missing manifest checks passed');
+
+  // Mission 594: arrays cannot stand in for a diagnostics package object.
+  inspect('[1,2,3]');
+  assert.equal(download.disabled,true,'array package rejected');
+  assert.match(result.textContent,/Expected a JSON object/);
+  console.log('Mission 594 array root checks passed');
+
+  // Mission 595: an empty payload cannot inherit prior verification approval.
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'fixture approved before empty input');
+  inspect('');
+  assert.equal(download.disabled,true,'empty payload rejects prior approval');
+  assert.match(result.textContent,/Inspection failed/);
+  inspect(validPackage);
+  assert.equal(download.disabled,false,'valid package recovers after empty input');
+  console.log('Mission 595 empty payload recovery checks passed');
+
 
 
 
