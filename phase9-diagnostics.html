@@ -45,7 +45,7 @@ document.getElementById('inspect').addEventListener('click',()=>{
    if(typeof parsed.manifest[key]!=='string'||fingerprint(parsed.files[name])!==parsed.manifest[key])throw Error('Integrity fingerprint mismatch: '+name);
   }
   const details=JSON.parse(parsed.files['diagnostics.json']);
-  if(typeof details!=='object'||details===null||details.valid!==parsed.valid)throw Error('Diagnostics validity does not match package.');
+  if(typeof details!=='object'||details===null||details.valid!==parsed.valid||parsed.manifest.valid!==parsed.valid)throw Error('Diagnostics or manifest validity does not match package.');
   approved=payload.value;download.disabled=false;
   result.textContent='PACKAGE FINGERPRINTS VERIFIED. Package declares valid='+String(parsed.valid)+'. Fingerprints detect accidental changes, not malicious forgery. Source franchise save and GM receipt have NOT been verified on this page.';
  }catch(error){result.textContent='Inspection failed: '+error.message;}
