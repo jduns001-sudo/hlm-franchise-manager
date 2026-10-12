@@ -637,11 +637,11 @@ console.log('Mission 566 diagnostics recovery positive and negative checks passe
   let finishPendingEditRead;
   const pendingEditRead=new Promise(resolve=>{finishPendingEditRead=resolve;});
   elements['package-file'].files=[{size:10,text:()=>pendingEditRead}];
-  const editRead=elements['package-file'].handlers.change();
+  const pendingManualEditRead=elements['package-file'].handlers.change();
   payload.value='my manual changes';
   payload.handlers.input();
   finishPendingEditRead(validPackage);
-  await editRead;
+  await pendingManualEditRead;
   assert.equal(payload.value,'my manual changes','manual edits override stale file');
   assert.equal(download.disabled,true,'manual edit cannot approve download');
   console.log('Mission 630 manual edit race passed');
