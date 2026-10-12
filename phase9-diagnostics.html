@@ -23,16 +23,6 @@ packageFile.addEventListener('change',async()=>{
  catch(error){payload.value='';result.textContent='Unable to read file: '+error.message;}
  packageFile.value='';
 });
-const packageFile=document.getElementById('package-file');
-packageFile.addEventListener('change',async()=>{
- reset();
- const file=packageFile.files&&packageFile.files[0];
- if(!file)return;
- if(file.size>5*1024*1024){result.textContent='File exceeds 5 MB limit.';packageFile.value='';return;}
- try{payload.value=await file.text();result.textContent='File loaded. Select Inspect package to verify fingerprints.';}
- catch(error){payload.value='';result.textContent='Unable to read file: '+error.message;}
- packageFile.value='';
-});
 function fingerprint(value){
  const bytes=new TextEncoder().encode(value);
  let hash=2166136261;
