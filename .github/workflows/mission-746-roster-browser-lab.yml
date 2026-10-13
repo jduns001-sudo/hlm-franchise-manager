@@ -27,7 +27,7 @@ jobs:
       - name: Commit generated bundle on development branch
         if: github.event_name == 'push'
         run: |
-          if ! git diff --quiet -- hlm-phase10-roster-lab.bundle.js || [ ! -f hlm-phase10-roster-lab.bundle.js ]; then
+          if [ -n "$(git status --porcelain -- hlm-phase10-roster-lab.bundle.js)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add hlm-phase10-roster-lab.bundle.js
