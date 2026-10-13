@@ -1,0 +1,42 @@
+name: Phase 11 Mobile Roster Import UI
+on:
+  push:
+    branches: [mission-764-phase11-mobile-import-screen]
+  pull_request:
+    paths:
+      - 'phase11-roster-import.html'
+      - 'hlm-phase11-roster-import-entry.js'
+      - 'hlm-phase11-roster-import-browser.test.js'
+      - 'hlm-phase11-roster-import.bundle.js'
+      - 'build-phase11-roster-import.js'
+      - '.github/workflows/phase11-mobile-import-ui.yml'
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node build-phase11-roster-import.js
+      - run: node hlm-phase11-roster-import.test.js
+      - run: node hlm-phase11-roster-mapping.test.js
+      - run: node hlm-phase11-roster-import-browser.test.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - name: Commit generated browser bundle on development branch
+        if: github.event_name == 'push'
+        run: |
+          if [ -n "$(git status --porcelain -- hlm-phase11-roster-import.bundle.js)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add hlm-phase11-roster-import.bundle.js
+            git diff --cached --quiet || git commit -m "build: sync Phase 11 import browser bundle"
+            git push
+          fi
+      - name: Verify committed bundle matches source
+        if: github.event_name == 'pull_request'
+        run: git diff --exit-code -- hlm-phase11-roster-import.bundle.js
