@@ -1,0 +1,20 @@
+name: Batch 933-940 Experimental Highlight Recap Audit
+on:
+  push:
+    branches:
+      - batch-933-940-experimental-highlight-recap-audit
+  pull_request:
+    paths:
+      - 'hlm-experimental-highlight-recap-audit.js'
+      - 'hlm-experimental-highlight-recap-audit.test.js'
+      - 'docs/BATCH_933_940_EXPERIMENTAL_HIGHLIGHT_RECAP_AUDIT.md'
+      - '.github/workflows/batch-933-940-highlight-recap-audit.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-highlight-recap-audit.test.js
