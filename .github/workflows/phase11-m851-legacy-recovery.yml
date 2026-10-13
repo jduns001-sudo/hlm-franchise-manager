@@ -1,0 +1,22 @@
+name: Phase 11 Mission 851 Legacy Recovery Fixtures
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m851-legacy-fixtures.js'
+      - 'hlm-phase11-m851-legacy-fixtures.test.js'
+      - '.github/workflows/phase11-m851-legacy-recovery.yml'
+  push:
+    branches: [phase11-m851-legacy-recovery-fixtures]
+permissions:
+  contents: read
+jobs:
+  fixture-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m851-legacy-fixtures.test.js
+      - run: node hlm-phase11-legacy-migration-assessment.test.js
+      - run: npm test
