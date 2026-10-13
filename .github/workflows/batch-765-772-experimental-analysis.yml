@@ -1,0 +1,20 @@
+name: Batch 765-772 Experimental Season Analysis
+on:
+  push:
+    branches:
+      - batch-765-772-experimental-season-analysis
+  pull_request:
+    paths:
+      - 'hlm-experimental-season-analysis.js'
+      - 'hlm-experimental-season-analysis.test.js'
+      - 'docs/BATCH_765_772_EXPERIMENTAL_SEASON_ANALYSIS.md'
+      - '.github/workflows/batch-765-772-experimental-analysis.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-season-analysis.test.js
