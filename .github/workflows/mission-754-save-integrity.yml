@@ -1,0 +1,19 @@
+name: Mission 754 Roster Save Integrity
+on:
+  push:
+    branches: [mission-754-roster-save-integrity-v2]
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-lab-season-store.js'
+      - 'hlm-phase10-roster-save-integrity.test.js'
+      - '.github/workflows/mission-754-save-integrity.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: node hlm-phase10-roster-lab-e2e.test.js
