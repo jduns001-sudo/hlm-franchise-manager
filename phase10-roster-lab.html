@@ -4,9 +4,9 @@
 <style>body{font:16px system-ui,sans-serif;background:#0a1727;color:#edf4ff;max-width:850px;margin:auto;padding:20px}button{background:#2872d9;border:0;border-radius:8px;color:white;padding:12px 16px;min-height:44px;margin:5px;cursor:pointer}button:disabled{opacity:.5}section{background:#152b43;border:1px solid #34506b;border-radius:12px;padding:18px;margin:15px 0}table{width:100%;border-collapse:collapse}td,th{text-align:left;border-bottom:1px solid #34506b;padding:8px}pre{white-space:pre-wrap;overflow-wrap:anywhere}a{color:#9bd0ff}</style></head>
 <body><a href="./phase10-demo.html">← Phase 10 Demo</a><h1>🏒 Roster Season Lab</h1>
 <p>Experimental, isolated roster-driven simulation. This page does not access existing franchise saves. Fictional teams only. Results are not certified official league games.</p>
-<section><h2>Season Controls</h2><p id="summary">Loading…</p><button id="new">Create Roster Season</button><button id="advance">Simulate Next Day</button><p id="status" role="status"></p></section>
+<section><h2>Season Controls</h2><p id="summary">Loading…</p><button id="new">Create Roster Season</button><button id="advance">Simulate Next Day</button><button id="fast">Finish Regular Season</button><button id="playoffs">Start Playoffs</button><button id="playoffgame">Simulate Playoff Game</button><p id="status" role="status"></p></section>
 <section><h2>Standings</h2><table><thead><tr><th>Team</th><th>GP</th><th>W</th><th>L</th><th>OTL</th><th>PTS</th></tr></thead><tbody id="standings"></tbody></table></section>
-<section><h2>Recent Results</h2><ul id="results"></ul></section>
+<section><h2>Player Goal Leaders</h2><ol id="leaders"></ol></section><section><h2>Playoff Status</h2><p id="bracket"></p></section><section><h2>Recent Results</h2><ul id="results"></ul></section>
 <script src="./hlm-phase10-roster-lab.bundle.js"></script>
 <script>
 (function(){'use strict';
@@ -16,13 +16,24 @@ let state;
 function render(){
  state=store.load();
  document.getElementById('summary').textContent=state?'Date: '+state.meta.currentDate+' | Games complete: '+state.activity.games.filter(g=>g.status==='final').length+' / '+state.activity.games.length:'No experimental roster season saved.';
- document.getElementById('advance').disabled=!state||!state.activity.games.some(g=>g.status==='scheduled');
+ const pending=state&&state.activity.games.some(g=>g.status==='scheduled');
+ const bracket=state&&state.extensions.phase10Playoffs;
+ document.getElementById('advance').disabled=!pending||!!bracket;
+ document.getElementById('fast').disabled=!pending||!!bracket;
+ document.getElementById('playoffs').disabled=!state||!!pending||!!bracket;
+ document.getElementById('playoffgame').disabled=!bracket||bracket.status!=='active';
+ document.getElementById('bracket').textContent=!bracket?'Playoffs not started':bracket.status==='complete'?'Champion team: '+bracket.championTeamId:'Round '+bracket.rounds.length+' | Active series: '+bracket.rounds[bracket.rounds.length-1].filter(s=>s.status==='active').length;
+ const leaders=state&&state.extensions.phase10ExperimentalGoalLeaders||[];
+ document.getElementById('leaders').replaceChildren(...leaders.slice(0,10).map(p=>{const li=document.createElement('li');li.textContent='Player '+p.playerId+': '+p.goals+' goals';return li}));
  const standings=state?api.calculateStandings(state.universe.teams,state.activity.games):[];
  document.getElementById('standings').replaceChildren(...standings.map(t=>{const tr=document.createElement('tr');for(const value of [t.teamName,t.gp,t.w,t.l,t.otl,t.points]){const td=document.createElement('td');td.textContent=value;tr.append(td)}return tr}));
  document.getElementById('results').replaceChildren(...(state?state.activity.games.filter(g=>g.status==='final').slice(-8).reverse():[]).map(g=>{const li=document.createElement('li');li.textContent=g.date+' | '+g.homeTeamId+' '+g.homeGoals+' : '+g.awayGoals+' '+g.awayTeamId+(g.overtime?' OT':'');return li}));
 }
 document.getElementById('new').onclick=()=>{try{if(state&&!confirm('Replace the isolated experimental roster season?'))return;store.save(api.createRosterLabFranchise());status.textContent='Roster season created.';render()}catch(e){status.textContent=e.message}};
 document.getElementById('advance').onclick=()=>{try{const current=store.load();const seed=Number(api.addCalendarDays(current.meta.currentDate,1).replaceAll('-',''));const result=store.advanceAndSave(seed);status.textContent=result.advanced?'Advanced to '+result.toDate+'; games: '+result.results.length:JSON.stringify(result.blocked);render()}catch(e){status.textContent=e.message}};
+document.getElementById('fast').onclick=()=>{try{let days=0;while(store.load().activity.games.some(g=>g.status==='scheduled')&&days<40){const current=store.load();const seed=Number(api.addCalendarDays(current.meta.currentDate,1).replaceAll('-',''));const result=store.advanceAndSave(seed);if(!result.advanced)throw new Error(JSON.stringify(result.blocked));days++}status.textContent='Simulated '+days+' days';render()}catch(e){status.textContent=e.message;render()}};
+document.getElementById('playoffs').onclick=()=>{try{store.startPlayoffsAndSave();status.textContent='Best-of-seven playoffs started';render()}catch(e){status.textContent=e.message}};
+document.getElementById('playoffgame').onclick=()=>{try{const current=store.load();const bracket=current.extensions.phase10Playoffs;const seed=100000+bracket.rounds.reduce((n,round)=>n+round.reduce((m,s)=>m+s.games.length,0),0);const result=store.playoffGameAndSave(seed);status.textContent=result.advanced?'Playoff game complete: '+result.result.homeGoals+'-'+result.result.awayGoals:JSON.stringify(result.blockers);render()}catch(e){status.textContent=e.message}};
 try{render()}catch(e){status.textContent='Could not load experimental save: '+e.message}
 })();
 </script></body></html>
