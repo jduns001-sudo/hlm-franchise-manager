@@ -1,0 +1,21 @@
+name: Mission 726 Roster Outcome Batch Tests
+on:
+  push:
+    branches:
+      - mission-726-roster-outcome-batch
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-game-outcome-batch.js'
+      - 'hlm-phase10-roster-game-outcome-batch.test.js'
+      - 'docs/MISSION_726_ROSTER_OUTCOME_BATCH.md'
+      - '.github/workflows/mission-726-roster-outcome-batch.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-game-outcome-proposal.test.js
+      - run: node hlm-phase10-roster-game-outcome-batch.test.js
