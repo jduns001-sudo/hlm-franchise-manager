@@ -1,0 +1,56 @@
+<!doctype html><meta charset="utf-8"><title>Mission 858 cross-store atomicity crash</title>
+<script>
+'use strict';
+const DB='hlm_phase11_m858_crossstore_test_only';
+const original={
+ roster:[{id:101,overall:82}],contracts:[{playerId:101,capHit:2500000}],
+ draftPicks:[{year:2027,ownerId:42}],history:[{year:2025,wins:41}]
+};
+const changed={
+ roster:[{id:101,overall:99}],contracts:[{playerId:101,capHit:9500000}],
+ draftPicks:[{year:2027,ownerId:77}],history:[{year:2025,wins:12}]
+};
+const stores=Object.keys(original);
+const done=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+const status=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+async function open(){const request=indexedDB.open(DB,1);request.onupgradeneeded=()=>stores.forEach(name=>request.result.createObjectStore(name));return done(request)}
+function seed(db){return new Promise((resolve,reject)=>{
+ const tx=db.transaction(stores,'readwrite');
+ stores.forEach(name=>tx.objectStore(name).put(original[name],'snapshot'));
+ tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('aborted'));
+})}
+async function verify(db){
+ const tx=db.transaction(stores,'readonly');
+ const records=await Promise.all(stores.map(name=>done(tx.objectStore(name).get('snapshot'))));
+ const unchanged=stores.every((name,i)=>JSON.stringify(records[i])===JSON.stringify(original[name]));
+ const noCandidates=stores.every((name,i)=>JSON.stringify(records[i])!==JSON.stringify(changed[name]));
+ status(unchanged&&noCandidates?'verified':'failed',{unchanged,noCandidates,stores});
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase'),db=await open();
+ if(phase==='seed'){await seed(db);db.close();status('seeded');return}
+ if(phase==='verify'){await verify(db);db.close();return}
+ if(phase!=='pending')throw Error('Unknown phase');
+ const tx=db.transaction(stores,'readwrite');
+ tx.oncomplete=()=>status('committed-unexpectedly');
+ tx.onabort=()=>status('aborted');
+ tx.onerror=()=>status('failed',{error:String(tx.error)});
+ let completed=0;
+ stores.forEach(name=>{
+  const request=tx.objectStore(name).put(changed[name],'snapshot');
+  request.onerror=()=>status('failed',{error:String(request.error)});
+  request.onsuccess=()=>{
+   if(++completed!==stores.length)return;
+   // Keep the same cross-store transaction active until the browser is killed.
+   function keepAlive(){
+    const next=tx.objectStore(stores[0]).get('snapshot');
+    next.onsuccess=keepAlive;
+    next.onerror=()=>status('failed',{error:String(next.error)});
+   }
+   keepAlive();
+   status('pending',{queued:completed,stores});
+  };
+ });
+}
+run().catch(error=>status('failed',{error:String(error)}));
+</script>
