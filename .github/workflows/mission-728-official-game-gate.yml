@@ -1,0 +1,21 @@
+name: Mission 728 Official Game Gate Tests
+on:
+  push:
+    branches:
+      - mission-728-official-game-integration-gate
+  pull_request:
+    paths:
+      - 'hlm-phase10-official-roster-game-gate.js'
+      - 'hlm-phase10-official-roster-game-gate.test.js'
+      - 'docs/MISSION_728_OFFICIAL_GAME_GATE.md'
+      - '.github/workflows/mission-728-official-game-gate.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-season-roster-outcome-preview.test.js
+      - run: node hlm-phase10-official-roster-game-gate.test.js
