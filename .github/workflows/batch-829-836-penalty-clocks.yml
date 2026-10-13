@@ -1,0 +1,20 @@
+name: Batch 829-836 Experimental Penalty Clocks
+on:
+  push:
+    branches:
+      - batch-829-836-experimental-penalty-clocks
+  pull_request:
+    paths:
+      - 'hlm-experimental-penalty-clocks.js'
+      - 'hlm-experimental-penalty-clocks.test.js'
+      - 'docs/BATCH_829_836_EXPERIMENTAL_PENALTY_CLOCKS.md'
+      - '.github/workflows/batch-829-836-penalty-clocks.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-penalty-clocks.test.js
