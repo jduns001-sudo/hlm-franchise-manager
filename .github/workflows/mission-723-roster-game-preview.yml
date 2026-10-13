@@ -1,0 +1,23 @@
+name: Mission 723 Roster Game Preview Tests
+on:
+  push:
+    branches:
+      - mission-723-roster-game-preview
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-game-preview.js'
+      - 'hlm-phase10-roster-game-preview.test.js'
+      - 'docs/MISSION_723_ROSTER_GAME_PREVIEW.md'
+      - '.github/workflows/mission-723-roster-game-preview.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-team-roster-projection.test.js
+      - run: node hlm-phase10-lineup-candidate-assessment.test.js
+      - run: node hlm-phase10-lineup-proposals.test.js
+      - run: node hlm-phase10-roster-game-preview.test.js
