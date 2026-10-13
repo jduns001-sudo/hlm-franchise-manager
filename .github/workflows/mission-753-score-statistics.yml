@@ -1,0 +1,20 @@
+name: Mission 753 Experimental Score Statistics
+on:
+  push:
+    branches:
+      - mission-753-experimental-score-statistics-v2
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-score-statistics.js'
+      - 'hlm-phase10-experimental-score-statistics.test.js'
+      - 'docs/MISSION_753_EXPERIMENTAL_SCORE_STATISTICS_PLAN.md'
+      - '.github/workflows/mission-753-score-statistics.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-score-statistics.test.js
