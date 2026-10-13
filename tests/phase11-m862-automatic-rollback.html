@@ -16,7 +16,7 @@ async function open(){
  const req=indexedDB.open(DB,1);
  req.onupgradeneeded=()=>{
   stores.forEach(name=>req.result.createObjectStore(name));
-  req.result.transaction.objectStore('history').createIndex('uniqueYear','year',{unique:true});
+  req.transaction.objectStore('history').createIndex('uniqueYear','year',{unique:true});
  };
  return result(req);
 }
