@@ -52,7 +52,7 @@ assert.notEqual(batch(state, games, 42).proposals[0].outcome.regulationScore.hom
 for (const invalid of [null, {}, 'bad']) {
   assert.throws(() => batch(state, invalid), { code: 'INVALID_ROSTER_GAME_BATCH' });
 }
-for (const invalid of [-1, 1.5, NaN]) {
+for (const invalid of [-1, 1.5, NaN, Number.MAX_SAFE_INTEGER]) {
   assert.throws(() => batch(state, games, invalid), { code: 'INVALID_ROSTER_GAME_BATCH_SEED' });
 }
 for (const invalid of [[null], [{ id: 'G1', homeTeamId: 1, awayTeamId: 1 }],
