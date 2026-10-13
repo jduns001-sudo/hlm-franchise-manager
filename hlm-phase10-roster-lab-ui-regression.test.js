@@ -31,6 +31,7 @@ assert.match(element('bracket').textContent,/Round 1/);
 let attempts=0;
 while(!element('bracket').textContent.includes('Champion')&&attempts++<25)element('playoffgame').onclick();
 assert.match(element('bracket').textContent,/Champion:/);
+assert(!/Champion:\\s*[1-4]$/.test(element('bracket').textContent),'Champion should display a team name');
 assert.equal(element('playoffgame').disabled,true);
 assert.equal(storageMap.get('hlm-phase10-demo-v1'),'DO_NOT_TOUCH');
 const reload={window:{localStorage:storage},document:{getElementById:element,createElement:tag=>element('reloaded-'+Math.random())},confirm:()=>true,console};
