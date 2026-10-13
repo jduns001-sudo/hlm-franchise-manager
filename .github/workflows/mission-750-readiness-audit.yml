@@ -1,0 +1,20 @@
+name: Mission 750 Experimental Readiness Audit
+on:
+  push:
+    branches:
+      - mission-750-experimental-readiness-audit-v2
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-readiness-audit.js'
+      - 'hlm-phase10-experimental-readiness-audit.test.js'
+      - 'docs/MISSION_750_EXPERIMENTAL_READINESS_AUDIT_PLAN.md'
+      - '.github/workflows/mission-750-readiness-audit.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-readiness-audit.test.js
