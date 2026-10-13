@@ -1,0 +1,23 @@
+name: Phase 11 Mission 856 Mid-Transaction Crash
+on:
+  pull_request:
+    paths:
+      - 'tests/phase11-m856-midtransaction.html'
+      - 'tests/phase11-m856-midtransaction.spec.js'
+      - '.github/workflows/phase11-m856-midtransaction.yml'
+  push:
+    branches: [phase11-m856-midtransaction-crash]
+permissions:
+  contents: read
+jobs:
+  chromium-midtransaction:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/phase11-m856-midtransaction.spec.js --workers=1
+      - run: npm test

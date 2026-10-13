@@ -1,0 +1,43 @@
+<!doctype html><meta charset="utf-8"><title>Mission 856 uncommitted transaction crash</title>
+<script>
+'use strict';
+const DB='hlm_phase11_m856_uncommitted_test_only',STORE='records';
+const original={schema:5,settings:{controlledTeamId:42,season:2026},roster:[{id:101,overall:82}],contracts:[{playerId:101,capHit:2500000}],draftPicks:[{year:2027,ownerId:42}],history:[{year:2025,wins:41}]};
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const report=(s,details={})=>{document.body.dataset.stage=s;document.body.dataset.details=JSON.stringify(details)};
+async function open(){const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);return req(r)}
+function write(db,key,value){return new Promise((resolve,reject)=>{
+ const tx=db.transaction(STORE,'readwrite');
+ tx.objectStore(STORE).put(value,key);
+ tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('aborted'));
+})}
+function read(db,key){return req(db.transaction(STORE,'readonly').objectStore(STORE).get(key))}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase'),db=await open();
+ if(phase==='seed'){try{await write(db,'original',original);report('seeded')}finally{db.close()}}
+ else if(phase==='pending'){
+  const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
+  tx.oncomplete=()=>report('committed-unexpectedly');
+  tx.onabort=()=>report('aborted');
+  tx.onerror=()=>report('failed',{error:String(tx.error)});
+  const put=store.put({schema:5,roster:[{id:101,overall:99}]},'candidate');
+  put.onerror=()=>report('failed',{error:String(put.error)});
+  put.onsuccess=()=>{
+   report('pending'); // Write request succeeded, but transaction has NOT completed.
+   const keepAlive=()=>{
+    const next=store.get('original');
+    next.onsuccess=keepAlive; // Keep requesting within active transaction until process is killed.
+    next.onerror=()=>report('failed',{error:String(next.error)});
+   };
+   keepAlive();
+  };
+ }else if(phase==='verify'){
+  try{
+   const saved=await read(db,'original'),candidate=await read(db,'candidate');
+   const intact=JSON.stringify(saved)===JSON.stringify(original);
+   report(intact?'verified':'failed',{originalIntact:intact,candidateAbsent:candidate===undefined});
+  }finally{db.close()}
+ }else throw Error('Unknown phase');
+}
+run().catch(e=>report('failed',{error:String(e)}));
+</script>
