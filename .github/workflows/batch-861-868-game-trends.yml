@@ -1,0 +1,20 @@
+name: Batch 861-868 Experimental Game Trends
+on:
+  push:
+    branches:
+      - batch-861-868-experimental-game-trends
+  pull_request:
+    paths:
+      - 'hlm-experimental-game-trends.js'
+      - 'hlm-experimental-game-trends.test.js'
+      - 'docs/BATCH_861_868_EXPERIMENTAL_GAME_TRENDS.md'
+      - '.github/workflows/batch-861-868-game-trends.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-game-trends.test.js
