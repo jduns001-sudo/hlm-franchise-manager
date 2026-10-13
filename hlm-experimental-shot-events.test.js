@@ -1,0 +1,38 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createExperimentalPlayerBoxScore}=require('./hlm-experimental-player-shots');
+const lab=require('./hlm-experimental-shot-events');
+const positions=['C','LW','RW','D','D','G'];
+const players=[...positions.map((position,i)=>({id:10+i,teamId:1,position,ovr:80})),...positions.map((position,i)=>({id:20+i,teamId:2,position,ovr:70}))];
+const contracts=players.map(p=>({playerId:p.id,teamId:p.teamId,status:'Active'}));
+const injuries=players.map(p=>({playerId:p.id,status:'Recovered'}));
+const state=createGameStateEnvelope({teams:[{id:1,name:'Wolves'},{id:2,name:'Bears'}],players,contracts,injuries});
+const before=JSON.stringify(state);
+const a=lab.createExperimentalShotTimeline(state,1,2,12345,true);
+assert.equal(a.researchReady,true);
+assert.equal(a.audit.consistent,true);
+assert.equal(a.audit.eventsChecked,a.events.length);
+assert(a.events.every((e,i)=>e.eventId===i+1&&e.second>=1&&e.second<=lab.periodDuration({kind:e.kind})));
+assert.deepEqual(lab.createExperimentalShotTimeline(state,1,2,12345,true),a);
+for(const side of ['home','away']){
+ const t=a.teams[side];assert(t.shots>=t.goals);
+ assert.equal(t.players.reduce((n,p)=>n+p.shots,0),t.shots);
+ assert.equal(t.players.reduce((n,p)=>n+p.goals,0),t.goals);
+ assert(t.players.every(p=>p.points===p.goals+p.assists));
+ assert.equal(t.goalie.saves+t.goalie.goalsAgainst,t.goalie.shotsAgainst);
+}
+assert.equal(JSON.stringify(state),before);
+const box=createExperimentalPlayerBoxScore(state,1,2,12345,true);
+const bad=JSON.parse(JSON.stringify(a.events));bad[0].second=-1;
+assert.equal(lab.auditShotEventTimeline(box,bad,a.teams).consistent,false);
+const badTeams=JSON.parse(JSON.stringify(a.teams));badTeams.home.goalie.saves++;
+assert.equal(lab.auditShotEventTimeline(box,a.events,badTeams).consistent,false);
+const missing=createGameStateEnvelope({teams:state.universe.teams,players,contracts:contracts.filter(c=>c.playerId!==20),injuries});
+const blocked=lab.createExperimentalShotTimeline(missing,1,2,12345);
+assert.equal(blocked.researchReady,false);
+assert.equal(blocked.events,null);
+assert.equal(blocked.teams,null);
+assert.equal(blocked.persistencePerformed,false);
+assert.throws(()=>lab.createExperimentalShotTimeline(state,1,2,-1),RangeError);
+console.log('Batch 797-804 experimental shot events tests passed.');
