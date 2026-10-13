@@ -1,0 +1,20 @@
+name: Mission 738 Roster Game Input Tests
+on:
+  push:
+    branches:
+      - mission-738-roster-game-input
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-game-input.js'
+      - 'hlm-phase10-roster-game-input.test.js'
+      - 'docs/MISSION_738_ROSTER_GAME_INPUT.md'
+      - '.github/workflows/mission-738-roster-game-input.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-game-input.test.js
