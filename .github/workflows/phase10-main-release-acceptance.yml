@@ -9,6 +9,9 @@ on:
       - 'hlm-phase10-roster-save-integrity.test.js'
       - 'build-phase10-roster-lab.js'
       - '.github/workflows/phase10-main-release-acceptance.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/phase10-main-release-acceptance.yml'
   workflow_dispatch:
 jobs:
   release-regression:
@@ -34,6 +37,7 @@ jobs:
         run: |
           set -euo pipefail
           root='https://jduns001-sudo.github.io/hlm-franchise-manager'
+          echo "Checking GitHub Pages deployment at $root"
           for attempt in 1 2 3 4 5 6; do
             if curl -fLsS --connect-timeout 15 --max-time 30 "$root/phase10-roster-lab.html" -o page.html &&
                curl -fLsS --connect-timeout 15 --max-time 30 "$root/hlm-phase10-roster-lab.bundle.js" -o bundle.js; then
@@ -45,6 +49,8 @@ jobs:
               fi
             fi
             echo "Pages not ready or missing expected content (attempt $attempt/6)"
+            if [ -f page.html ]; then echo "HTML bytes: $(wc -c < page.html)"; fi
+            if [ -f bundle.js ]; then echo "Bundle bytes: $(wc -c < bundle.js)"; fi
             sleep 20
           done
           echo 'Public Pages deployment smoke test failed'
