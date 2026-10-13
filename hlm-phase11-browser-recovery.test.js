@@ -1,0 +1,12 @@
+'use strict';const assert=require('node:assert/strict');const {IMPORT_KEY}=require('./hlm-phase11-franchise-selection');const {ACTIVE_KEY,BACKUP_KEY}=require('./hlm-phase11-activation-bridge');const {JOURNAL_KEY,inspect,activate,rollback,recover}=require('./hlm-phase11-browser-recovery');
+const values=new Map([['legacy-front-office','KEEP'],['hlm-phase10-demo-v1','KEEP10'],[IMPORT_KEY,JSON.stringify({universe:{teams:[{}],players:[{}]}})]]);
+let failKey=null;const store={getItem:k=>values.has(k)?values.get(k):null,setItem:(k,v)=>{if(k===failKey)throw Error('quota failure');values.set(k,v)},removeItem:k=>values.delete(k)};
+assert.throws(()=>activate(store),/authorization/);assert.equal(inspect(store).active,'existing');
+assert.equal(activate(store,{authorize:true}).active,'imported');assert.equal(inspect(store).backupExists,true);assert.equal(inspect(store).recoveryRequired,false);
+assert.equal(rollback(store,{authorize:true}).active,'existing');assert.equal(values.has(BACKUP_KEY),false);
+failKey=ACTIVE_KEY;assert.throws(()=>activate(store,{authorize:true}),/quota failure/);assert.equal(inspect(store).recoveryRequired,true);assert.equal(inspect(store).active,'existing');
+failKey=null;assert.equal(recover(store,{authorize:true}).active,'existing');assert.equal(inspect(store).recoveryRequired,false);
+assert.equal(activate(store,{authorize:true}).active,'imported');
+const reload=require('./hlm-phase11-browser-recovery');assert.equal(reload.inspect(store).active,'imported');assert.equal(reload.rollback(store,{authorize:true}).active,'existing');
+assert.equal(values.get('legacy-front-office'),'KEEP');assert.equal(values.get('hlm-phase10-demo-v1'),'KEEP10');assert.equal(values.has(JOURNAL_KEY),false);
+console.log('Phase 11 reload-safe recovery, explicit GM authorization and save isolation passed');
