@@ -22,12 +22,14 @@ function render(){
  document.getElementById('fast').disabled=!pending||!!bracket;
  document.getElementById('playoffs').disabled=!state||!!pending||!!bracket;
  document.getElementById('playoffgame').disabled=!bracket||bracket.status!=='active';
- document.getElementById('bracket').textContent=!bracket?'Playoffs not started':bracket.status==='complete'?'Champion team: '+bracket.championTeamId:'Round '+bracket.rounds.length+' | Active series: '+bracket.rounds[bracket.rounds.length-1].filter(s=>s.status==='active').length;
+ document.getElementById('bracket').textContent=!bracket?'Playoffs not started':bracket.status==='complete'?'Champion: '+((state.universe.teams.find(t=>String(t.id)===String(bracket.championTeamId))||{}).name||bracket.championTeamId):'Round '+bracket.rounds.length+' | Active series: '+bracket.rounds[bracket.rounds.length-1].filter(s=>s.status==='active').length;
  const leaders=state&&state.extensions.phase10ExperimentalGoalLeaders||[];
- document.getElementById('leaders').replaceChildren(...leaders.slice(0,10).map(p=>{const li=document.createElement('li');li.textContent='Player '+p.playerId+': '+p.goals+' goals';return li}));
+ const playerNames=new Map((state?state.universe.players:[]).map(p=>[String(p.id),p.name||('Player '+p.id)]));
+ const teamNames=new Map((state?state.universe.teams:[]).map(t=>[String(t.id),t.name||('Team '+t.id)]));
+ document.getElementById('leaders').replaceChildren(...leaders.slice(0,10).map(p=>{const li=document.createElement('li');li.textContent=(playerNames.get(String(p.playerId))||('Player '+p.playerId))+': '+p.goals+' goals';return li}));
  const standings=state?api.calculateStandings(state.universe.teams,state.activity.games):[];
  document.getElementById('standings').replaceChildren(...standings.map(t=>{const tr=document.createElement('tr');for(const value of [t.teamName,t.gp,t.w,t.l,t.otl,t.points]){const td=document.createElement('td');td.textContent=value;tr.append(td)}return tr}));
- document.getElementById('results').replaceChildren(...(state?state.activity.games.filter(g=>g.status==='final').slice(-8).reverse():[]).map(g=>{const li=document.createElement('li');li.textContent=g.date+' | '+g.homeTeamId+' '+g.homeGoals+' : '+g.awayGoals+' '+g.awayTeamId+(g.overtime?' OT':'');return li}));
+ document.getElementById('results').replaceChildren(...(state?state.activity.games.filter(g=>g.status==='final').slice(-8).reverse():[]).map(g=>{const li=document.createElement('li');li.textContent=g.date+' | '+(teamNames.get(String(g.homeTeamId))||g.homeTeamId)+' '+g.homeGoals+' : '+g.awayGoals+' '+(teamNames.get(String(g.awayTeamId))||g.awayTeamId)+(g.overtime?' OT':'');return li}));
 }
 document.getElementById('new').onclick=()=>{try{if(state&&!confirm('Replace the isolated experimental roster season?'))return;store.save(api.createRosterLabFranchise());status.textContent='Roster season created.';render()}catch(e){status.textContent=e.message}};
 document.getElementById('advance').onclick=()=>{try{const current=store.load();const seed=Number(api.addCalendarDays(current.meta.currentDate,1).replaceAll('-',''));const result=store.advanceAndSave(seed);status.textContent=result.advanced?'Advanced to '+result.toDate+'; games: '+result.results.length:JSON.stringify(result.blocked);render()}catch(e){status.textContent=e.message}};
