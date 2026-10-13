@@ -1,0 +1,20 @@
+name: Batch 781-788 Experimental Hockey Periods
+on:
+  push:
+    branches:
+      - batch-781-788-experimental-hockey-periods
+  pull_request:
+    paths:
+      - 'hlm-experimental-hockey-periods.js'
+      - 'hlm-experimental-hockey-periods.test.js'
+      - 'docs/BATCH_781_788_EXPERIMENTAL_HOCKEY_PERIODS.md'
+      - '.github/workflows/batch-781-788-hockey-periods.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-hockey-periods.test.js
