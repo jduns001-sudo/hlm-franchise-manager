@@ -1,0 +1,15 @@
+'use strict';
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const expected=['phase11-roster-import.html','phase11-franchise-selection.html','phase11-activation-controls.html','phase11-imported-franchise-preview.html','hlm-phase11-roster-validation.js','hlm-phase11-mobile-preview.js','hlm-phase11-browser-activation.js'];
+for(const path of expected)assert(fs.existsSync(path),'Missing Phase 11 release artifact: '+path);
+const preview=fs.readFileSync('phase11-imported-franchise-preview.html','utf8');
+assert.match(preview,/Read-only experimental roster preview/);
+assert.match(preview,/hlm-phase11-roster-validation\.js/);
+assert.match(preview,/hlm-phase11-mobile-preview\.js/);
+const activation=fs.readFileSync('phase11-activation-controls.html','utf8');
+assert.match(activation,/confirm\(/);
+const source=fs.readFileSync('hlm-phase11-mobile-preview.js','utf8');
+assert.match(source,/getItem\(KEY\)/);
+assert.doesNotMatch(source,/\.setItem\(|\.removeItem\(|\.clear\(/);
+const legacy=fs.readFileSync('app.html','utf8');assert(legacy.length>100);
+console.log('Phase 11 release artifacts, read-only preview, GM confirmation, and Front Office presence passed');
