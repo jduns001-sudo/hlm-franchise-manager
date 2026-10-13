@@ -1,0 +1,31 @@
+<!doctype html><meta charset="utf-8"><title>Mission 854 isolated browser restart fixture</title>
+<script>
+'use strict';
+const DB='hlm_phase11_m854_restart_test_only',STORE='snapshots';
+const original={schema:5,settings:{controlledTeamId:42,season:2026},roster:[{id:101,overall:82}],contracts:[{playerId:101,capHit:2500000}],draftPicks:[{year:2027,ownerId:42}],history:[{year:2025,wins:41}]};
+const request=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+const stage=(s,details={})=>{document.body.dataset.stage=s;document.body.dataset.details=JSON.stringify(details)};
+async function open(){const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);return request(r)}
+function write(db,key,value,abort=false){return new Promise((resolve,reject)=>{
+ const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(value,key);
+ tx.oncomplete=()=>resolve();tx.onabort=()=>abort?resolve():reject(tx.error||Error('Unexpected abort'));
+ tx.onerror=()=>{if(!abort)reject(tx.error)};
+ if(abort)tx.abort();
+})}
+function read(db,key){return request(db.transaction(STORE,'readonly').objectStore(STORE).get(key))}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ const db=await open();
+ try{
+  if(phase==='seed'){await write(db,'original',original);stage('seeded')}
+  else if(phase==='abort'){await write(db,'candidate',{schema:5,roster:[{id:101,overall:99}]},true);stage('aborted')}
+  else if(phase==='stage'){await write(db,'candidate',{schema:5,roster:[{id:101,overall:99}]});await write(db,'journal',{authorized:false,phase:'staged'});stage('staged')}
+  else if(phase==='verify'){
+   const saved=await read(db,'original'),candidate=await read(db,'candidate'),journal=await read(db,'journal');
+   const originalIntact=JSON.stringify(saved)===JSON.stringify(original);
+   stage(originalIntact?'verified':'failed',{originalIntact,candidatePresent:!!candidate,journal:journal||null});
+  }else throw Error('Invalid phase');
+ }finally{db.close()}
+}
+run().catch(e=>stage('failed',{error:String(e)}));
+</script>
