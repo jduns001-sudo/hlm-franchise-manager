@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Phase 11 | Roster Import</title>
+<style>
+body{font:16px system-ui,sans-serif;background:#0a1727;color:#edf4ff;max-width:780px;margin:auto;padding:16px;line-height:1.5}
+section{background:#152b43;border:1px solid #34506b;border-radius:12px;padding:16px;margin:16px 0}
+button,input,textarea{font:inherit}button{min-height:48px;border:0;border-radius:9px;background:#2872d9;color:#fff;padding:12px 16px;margin:8px 8px 8px 0}button:disabled{opacity:.45}
+textarea{display:block;width:100%;box-sizing:border-box;min-height:190px;background:#0a1727;color:#fff;border:1px solid #7893ad;border-radius:8px;padding:12px}
+input[type=file]{max-width:100%;padding:12px 0}a{color:#9bd0ff}li{margin:6px 0}#status{overflow-wrap:anywhere}
+</style></head>
+<body><a href="./phase10-roster-lab.html">← Experimental Roster Lab</a>
+<h1>🏒 Phase 11 Roster Import</h1>
+<p>Experimental JSON roster importer. Preview first, then explicitly approve creation of a separate franchise save. Existing Front Office and Phase 10 saves are not modified. This is not an HLR file parser.</p>
+<section><h2>1. Select roster JSON</h2><label for="file">Choose a JSON roster file</label><input id="file" type="file" accept=".json,application/json">
+<label for="json">Or paste roster JSON</label><textarea id="json" spellcheck="false" placeholder='{"teams":[...],"players":[...]}'></textarea>
+<button id="preview">Preview roster</button><p id="status" role="status" aria-live="polite"></p></section>
+<section><h2>2. Review import</h2><p id="summary">No roster previewed.</p><ul id="teams"></ul>
+<button id="save" disabled>Confirm and create new franchise save</button>
+<p>Saving is disabled if a Phase 11 imported franchise already exists. No automatic replacement.</p></section>
+<section><h2>Existing Phase 11 save</h2><p id="existing"></p></section>
+<script src="./hlm-phase11-roster-import.bundle.js"></script>
+<script>
+(function(){'use strict';
+const ctrl=window.HLMRosterImport.createRosterImportController(window.localStorage);
+const $=id=>document.getElementById(id),status=$('status');
+function refresh(){
+ try{const state=ctrl.load();$('existing').textContent=state?'Saved franchise: '+state.universe.teams.length+' teams, '+state.universe.players.length+' players. Existing save is protected.':'No imported franchise saved.';if(state)$('save').disabled=true}
+ catch(e){$('existing').textContent='Unable to read existing imported franchise: '+e.message;$('save').disabled=true}
+}
+$('file').onchange=async()=>{
+ try{const file=$('file').files[0];if(!file)return;if(file.size>5000000)throw new Error('File exceeds 5MB');$('json').value=await file.text();$('save').disabled=true;$('summary').textContent='File loaded. Select Preview roster.';$('teams').replaceChildren();status.textContent='File ready for preview.'}
+ catch(e){status.textContent=e.message;$('save').disabled=true}
+};
+$('json').oninput=()=>{$('save').disabled=true;$('summary').textContent='Roster changed. Preview again.';$('teams').replaceChildren()};
+$('preview').onclick=()=>{
+ $('save').disabled=true;$('teams').replaceChildren();
+ try{const result=ctrl.preview($('json').value);$('summary').textContent=result.teamCount+' teams, '+result.playerCount+' players. No saves changed.';for(const t of result.teamSummaries){const li=document.createElement('li');li.textContent=t.name+': '+t.players+' players';$('teams').append(li)}$('save').disabled=!!ctrl.load();status.textContent=$('save').disabled?'Preview valid, but a Phase 11 franchise already exists.':'Preview valid. Confirm to create the isolated franchise.'}
+ catch(e){$('summary').textContent='No valid roster previewed.';status.textContent=e.message}
+};
+$('save').onclick=()=>{
+ try{if(!confirm('Create a new isolated Phase 11 franchise from this preview? This will not replace existing saves.'))return;const state=ctrl.commit(true);status.textContent='New franchise created: '+state.universe.players.length+' players.';$('save').disabled=true;refresh()}
+ catch(e){status.textContent=e.message;refresh()}
+};
+refresh();
+})();
+</script></body></html>
