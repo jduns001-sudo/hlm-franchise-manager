@@ -1,0 +1,1 @@
+'use strict';module.exports={testDir:'.',testMatch:'hlm-phase11-published-mobile.spec.js',timeout:30000,retries:1,reporter:'list',use:{headless:true,trace:'retain-on-failure',viewport:{width:390,height:844}}};
