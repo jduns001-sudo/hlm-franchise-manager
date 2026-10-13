@@ -1,0 +1,23 @@
+name: Phase 11 Mission 859 Commit Boundary Crash
+on:
+  pull_request:
+    paths:
+      - 'tests/phase11-m859-commit-boundary.html'
+      - 'tests/phase11-m859-commit-boundary.spec.js'
+      - '.github/workflows/phase11-m859-commit-boundary.yml'
+  push:
+    branches: [phase11-m859-commit-boundary]
+permissions:
+  contents: read
+jobs:
+  chromium-commit-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/phase11-m859-commit-boundary.spec.js --workers=1
+      - run: npm test
