@@ -1,0 +1,20 @@
+name: Mission 731 Game Rules Integration Tests
+on:
+  push:
+    branches:
+      - mission-731-game-rules-preview-integration
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-game-rules-preview.js'
+      - 'hlm-phase10-roster-game-rules-preview.test.js'
+      - 'docs/MISSION_731_GAME_RULES_INTEGRATION.md'
+      - '.github/workflows/mission-731-game-rules-integration.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-game-rules-preview.test.js
