@@ -1,0 +1,20 @@
+name: Batch 941-948 Experimental Highlight Evidence Report
+on:
+  push:
+    branches:
+      - batch-941-948-experimental-highlight-evidence-report
+  pull_request:
+    paths:
+      - 'hlm-experimental-highlight-evidence-report.js'
+      - 'hlm-experimental-highlight-evidence-report.test.js'
+      - 'docs/BATCH_941_948_EXPERIMENTAL_HIGHLIGHT_EVIDENCE_REPORT.md'
+      - '.github/workflows/batch-941-948-highlight-evidence-report.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-highlight-evidence-report.test.js
