@@ -1,0 +1,40 @@
+name: Mission 751 Full Roster Season E2E
+on:
+  push:
+    branches: [mission-751-roster-lab-season-playoffs-stats]
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-lab-season-store.js'
+      - 'hlm-phase10-roster-lab-entry.js'
+      - 'hlm-phase10-roster-lab-e2e.test.js'
+      - 'phase10-roster-lab.html'
+      - 'hlm-phase10-roster-lab.bundle.js'
+      - '.github/workflows/mission-751-roster-season-e2e.yml'
+permissions:
+  contents: write
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node build-phase10-roster-lab.js
+      - run: node hlm-phase10-roster-lab-browser.test.js
+      - run: node hlm-phase10-roster-lab-e2e.test.js
+      - name: Commit verified browser bundle on branch
+        if: github.event_name == 'push'
+        run: |
+          if [ -n "$(git status --porcelain -- hlm-phase10-roster-lab.bundle.js)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add hlm-phase10-roster-lab.bundle.js
+            git diff --cached --quiet || git commit -m "build: regenerate roster season stats and playoffs browser bundle"
+            git push
+          fi
+      - name: Require committed bundle matches source
+        if: github.event_name == 'pull_request'
+        run: git diff --exit-code -- hlm-phase10-roster-lab.bundle.js
