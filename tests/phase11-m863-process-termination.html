@@ -46,7 +46,7 @@ async function run(){
    for(let i=0;i<25000;i++){
     tx.objectStore(stores[i%4]).put({revision:2,index:i,payload:'x'.repeat(128)},'candidate-'+i);
    }
-   // A live request cursor keeps the transaction active while the worker waits.\n   // This is a stronger signal than merely seeing an earlier request succeed.\n   const cursor=tx.objectStore('roster').openCursor();\n   cursor.onsuccess=()=>{\n    if(cursor.result){\n     status('pending',{firstRequestSucceeded:true,queuedRequests:25000,cursorActive:true,stores});\n     // Deliberately do not continue the cursor until after the process is killed.\n    }else status('failed',{error:'cursor unexpectedly exhausted'});\n   };\n   cursor.onerror=()=>status('failed',{error:String(cursor.error)});
+   // Record a pending checkpoint only after enqueuing the backlog.\n   // The parent also requires a separate no-completion confirmation before kill.\n   status('pending',{firstRequestSucceeded:true,queuedRequests:25000,stores});
   };
   first.onerror=()=>status('failed',{error:String(first.error)});
   return;
