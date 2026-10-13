@@ -1,0 +1,20 @@
+name: Mission 732 Preview Eligibility Tests
+on:
+  push:
+    branches:
+      - mission-732-game-preview-eligibility-gate
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-game-preview-eligibility.js'
+      - 'hlm-phase10-roster-game-preview-eligibility.test.js'
+      - 'docs/MISSION_732_PREVIEW_ELIGIBILITY.md'
+      - '.github/workflows/mission-732-preview-eligibility.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-game-preview-eligibility.test.js
