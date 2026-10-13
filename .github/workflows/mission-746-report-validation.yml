@@ -1,0 +1,20 @@
+name: Mission 746 Experimental Report Validation
+on:
+  push:
+    branches:
+      - mission-746-experimental-report-validation-v2
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-report-validation.js'
+      - 'hlm-phase10-experimental-report-validation.test.js'
+      - 'docs/MISSION_746_EXPERIMENTAL_REPORT_VALIDATION_PLAN.md'
+      - '.github/workflows/mission-746-report-validation.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-report-validation.test.js
