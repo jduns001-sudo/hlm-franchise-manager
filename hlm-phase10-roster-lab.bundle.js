@@ -3,7 +3,7 @@
 "hlm-phase10-roster-lab-entry.js":function(module,exports,require){
 'use strict';
 const {createGameStateEnvelope}=require('./hlm-game-state');
-const {createExperimentalRosterSaveStore}=require('./hlm-phase10-roster-save-store');
+const {createRosterLabSeasonStore}=require('./hlm-phase10-roster-lab-season-store');
 const {calculateStandings}=require('./hlm-phase10-standings');
 const {addCalendarDays}=require('./hlm-master-calendar');
 function createRosterLabFranchise(){
@@ -23,7 +23,7 @@ function createRosterLabFranchise(){
 }
 function createRosterBrowserStore(storage){
  if(!storage||typeof storage.getItem!=='function'||typeof storage.setItem!=='function')throw new TypeError('Storage API required');
- return createExperimentalRosterSaveStore({read:key=>storage.getItem(key),write:(key,value)=>storage.setItem(key,value)});
+ return createRosterLabSeasonStore(storage);
 }
 module.exports={createRosterLabFranchise,createRosterBrowserStore,calculateStandings,addCalendarDays};
 
@@ -115,31 +115,47 @@ module.exports = {
 };
 
 },
-"hlm-phase10-roster-save-store.js":function(module,exports,require){
+"hlm-phase10-roster-lab-season-store.js":function(module,exports,require){
 'use strict';
 const {createFranchiseSaveStore}=require('./hlm-phase10-save-store');
-const {simulateControlledRosterDay}=require('./hlm-phase10-controlled-roster-day');
-
-/**
- * Experimental roster-backed save transaction. Uses an isolated key and
- * never reads/writes existing Front Office or default Phase 10 saves.
- */
-function createExperimentalRosterSaveStore(adapter,key='hlm-phase10-roster-experimental-v1'){
- if(typeof key!=='string'||!key.startsWith('hlm-phase10-roster-experimental-')){
-  const error=new Error('An isolated experimental save key is required');
-  error.code='INVALID_ROSTER_EXPERIMENTAL_SAVE_KEY';throw error;
- }
- const store=createFranchiseSaveStore(adapter,key);
+const {simulateRosterDayWithGoalStats}=require('./hlm-phase10-roster-day-with-stats');
+const {calculateStandings}=require('./hlm-phase10-standings');
+const {seedPlayoffs}=require('./hlm-phase10-playoffs');
+const {createPlayoffBracket}=require('./hlm-phase10-playoff-bracket');
+const {simulateExperimentalRosterPlayoffGame}=require('./hlm-phase10-roster-playoff-game');
+const KEY='hlm-phase10-roster-experimental-v1';
+/** Isolated browser franchise transaction: regular season, stats, and playoffs. */
+function createRosterLabSeasonStore(storage){
+ if(!storage||typeof storage.getItem!=='function'||typeof storage.setItem!=='function')throw new TypeError('Storage API required');
+ const store=createFranchiseSaveStore({read:key=>storage.getItem(key),write:(key,value)=>storage.setItem(key,value)},KEY);
  function advanceAndSave(seed=1){
-  const current=store.load();
-  if(!current)throw new Error('No experimental roster franchise save found');
-  const result=simulateControlledRosterDay(current,seed,{experimental:true});
+  const state=store.load();if(!state)throw new Error('Create a roster season first');
+  if(state.extensions.phase10Playoffs)throw new Error('Playoffs already started');
+  if(!state.activity.games.some(g=>g.status==='scheduled'))throw new Error('Regular season complete');
+  const result=simulateRosterDayWithGoalStats(state,seed,{experimental:true});
   if(result.advanced)store.save(result.nextState);
   return {...result,saved:result.advanced};
  }
- return {load:store.load,save:store.save,advanceAndSave,key};
+ function startPlayoffsAndSave(){
+  const state=store.load();if(!state)throw new Error('Create a roster season first');
+  if(state.activity.games.some(g=>g.status!=='final'))throw new Error('Finish all scheduled games before playoffs');
+  if(state.extensions.phase10Playoffs)throw new Error('Playoffs already started');
+  const standings=calculateStandings(state.universe.teams,state.activity.games);
+  const seeds=seedPlayoffs(standings,4);
+  const nextState=JSON.parse(JSON.stringify(state));
+  nextState.extensions.phase10Playoffs=createPlayoffBracket(seeds,7);
+  store.save(nextState);
+  return nextState.extensions.phase10Playoffs;
+ }
+ function playoffGameAndSave(seed=1){
+  const state=store.load();if(!state)throw new Error('Create a roster season first');
+  const result=simulateExperimentalRosterPlayoffGame(state,seed);
+  if(result.advanced)store.save(result.nextState);
+  return {...result,saved:result.advanced};
+ }
+ return {load:store.load,save:store.save,advanceAndSave,startPlayoffsAndSave,playoffGameAndSave,key:KEY};
 }
-module.exports={createExperimentalRosterSaveStore};
+module.exports={createRosterLabSeasonStore};
 
 },
 "hlm-phase10-save-store.js":function(module,exports,require){
@@ -425,6 +441,33 @@ function calculateStandings(teams, games) {
   return [...standings.values()].sort((a,b)=>b.points-a.points || b.w-a.w || (b.gf-b.ga)-(a.gf-a.ga) || String(a.teamId).localeCompare(String(b.teamId)));
 }
 module.exports={calculateStandings};
+
+},
+"hlm-phase10-roster-day-with-stats.js":function(module,exports,require){
+'use strict';
+const {simulateControlledRosterDay}=require('./hlm-phase10-controlled-roster-day');
+const {buildExperimentalGoalEvents,aggregateExperimentalGoals}=require('./hlm-phase10-experimental-player-goals');
+/** Atomic day simulation with synthetic player goals, persisted only by caller. */
+function simulateRosterDayWithGoalStats(state,seed=1,options={}){
+ const result=simulateControlledRosterDay(state,seed,options);
+ if(!result.advanced)return {...result,goalEvents:[],goalLeaders:[]};
+ const nextState=result.nextState;
+ const existing=Array.isArray(nextState.extensions.phase10ExperimentalGoalEvents)?
+  nextState.extensions.phase10ExperimentalGoalEvents:[];
+ const newEvents=result.results.flatMap(game=>buildExperimentalGoalEvents(nextState,game,seed));
+ const keys=new Set(existing.map(e=>String(e.gameId)+':'+String(e.teamId)+':'+String(e.sequence)));
+ for(const event of newEvents){
+  const key=String(event.gameId)+':'+String(event.teamId)+':'+String(event.sequence);
+  if(keys.has(key))throw new Error('Duplicate experimental goal event '+key);
+  keys.add(key);
+ }
+ const goalEvents=existing.concat(newEvents);
+ nextState.extensions.phase10ExperimentalGoalEvents=goalEvents;
+ const goalLeaders=aggregateExperimentalGoals(goalEvents);
+ nextState.extensions.phase10ExperimentalGoalLeaders=goalLeaders;
+ return {...result,goalEvents:newEvents,goalLeaders};
+}
+module.exports={simulateRosterDayWithGoalStats};
 
 },
 "hlm-phase10-controlled-roster-day.js":function(module,exports,require){
@@ -1017,6 +1060,137 @@ function assessPlayerContractInjuryEvidence(state) {
 }
 
 module.exports = { assessPlayerContractInjuryEvidence };
+
+},
+"hlm-phase10-experimental-player-goals.js":function(module,exports,require){
+'use strict';
+/**
+ * Deterministic experimental goal attribution for simulated games.
+ * Derived synthetic events, never historical NHL player statistics.
+ */
+function buildExperimentalGoalEvents(state,game,seed=1){
+ if(!game||game.status!=='final'||!Number.isSafeInteger(game.homeGoals)||!Number.isSafeInteger(game.awayGoals)||
+    game.homeGoals<0||game.awayGoals<0||!Number.isSafeInteger(seed)||seed<0)throw new TypeError('Valid final game and seed required');
+ const events=[];
+ for(const [teamId,goals] of [[game.homeTeamId,game.homeGoals],[game.awayTeamId,game.awayGoals]]){
+  const skaters=state.universe.players.filter(p=>String(p.teamId)===String(teamId)&&
+   ['C','LW','RW','D'].includes(p.position)&&Number.isFinite(Number(p.ovr)));
+  if(!skaters.length&&goals>0)throw new Error('No eligible scoring players for team '+teamId);
+  const sorted=skaters.slice().sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+  for(let i=0;i<goals;i++){
+   const index=(seed+i*7+Number(teamId||0))%sorted.length;
+   events.push({gameId:game.id,teamId,playerId:sorted[index].id,type:'goal',sequence:i+1,experimental:true});
+  }
+ }
+ return events;
+}
+function aggregateExperimentalGoals(events){
+ const counts=new Map();
+ for(const event of events){
+  if(event.type!=='goal'||event.experimental!==true)throw new TypeError('Only experimental goal events supported');
+  const id=String(event.playerId);counts.set(id,(counts.get(id)||0)+1);
+ }
+ return [...counts].map(([playerId,goals])=>({playerId,goals})).sort((a,b)=>b.goals-a.goals||a.playerId.localeCompare(b.playerId));
+}
+module.exports={buildExperimentalGoalEvents,aggregateExperimentalGoals};
+
+},
+"hlm-phase10-playoffs.js":function(module,exports,require){
+'use strict';
+function seedPlayoffs(standings,spots=4) {
+  if(!Array.isArray(standings)||!Number.isInteger(spots)||spots<2||spots>standings.length||spots%2)throw new RangeError('Invalid playoff field size');
+  const ordered=standings.slice().sort((a,b)=>(b.points||0)-(a.points||0)||(b.w||0)-(a.w||0)||((b.gf||0)-(b.ga||0))-((a.gf||0)-(a.ga||0))||String(a.teamId).localeCompare(String(b.teamId)));
+  const ids=ordered.map(row=>row.teamId);
+  if(ids.some(id=>id==null)||new Set(ids.map(String)).size!==ids.length)throw new Error('Invalid team IDs');
+  return ordered.slice(0,spots).map((row,index)=>({seed:index+1,teamId:row.teamId}));
+}
+function createPlayoffSeries(highSeed,lowSeed,bestOf=7) {
+  if(!highSeed||!lowSeed||highSeed.teamId==null||lowSeed.teamId==null||highSeed.teamId===lowSeed.teamId)throw new Error('Series requires two different teams');
+  if(!Number.isInteger(bestOf)||bestOf<1||bestOf%2!==1)throw new RangeError('Best-of must be a positive odd number');
+  return {highSeed:{...highSeed},lowSeed:{...lowSeed},bestOf,games:[],wins:{[String(highSeed.teamId)]:0,[String(lowSeed.teamId)]:0},winnerTeamId:null,status:'active'};
+}
+function recordPlayoffGame(series,result) {
+  if(!series||series.status!=='active')throw new Error('Series is not active');
+  const ids=[series.highSeed.teamId,series.lowSeed.teamId];
+  if(!result||!ids.includes(result.winnerTeamId)||result.homeTeamId===result.awayTeamId||!ids.includes(result.homeTeamId)||!ids.includes(result.awayTeamId)||result.status!=='final')throw new Error('Invalid series game result');
+  if(result.gameId==null||series.games.some(g=>String(g.gameId)===String(result.gameId)))throw new Error('Duplicate or missing playoff game ID');
+  const next=JSON.parse(JSON.stringify(series));
+  next.games.push({...result});
+  const key=String(result.winnerTeamId);
+  next.wins[key]++;
+  if(next.wins[key]>=Math.floor(next.bestOf/2)+1){next.status='complete';next.winnerTeamId=result.winnerTeamId;}
+  return next;
+}
+module.exports={seedPlayoffs,createPlayoffSeries,recordPlayoffGame};
+
+},
+"hlm-phase10-playoff-bracket.js":function(module,exports,require){
+'use strict';
+const {createPlayoffSeries,recordPlayoffGame}=require('./hlm-phase10-playoffs');
+function createPlayoffBracket(seeds,bestOf=7) {
+  if(!Array.isArray(seeds)||seeds.length<2||(seeds.length&(seeds.length-1))!==0)throw new RangeError('Playoff field must be a power of two');
+  const ordered=seeds.slice().sort((a,b)=>a.seed-b.seed);
+  if(ordered.some((s,i)=>!s||!Number.isInteger(s.seed)||s.seed!==i+1||s.teamId==null)||new Set(ordered.map(s=>String(s.teamId))).size!==ordered.length)throw new Error('Seeds must be unique and numbered consecutively');
+  const round=makeRound(ordered,bestOf);
+  return {bestOf,rounds:[round],championTeamId:null,status:'active'};
+}
+function makeRound(seeds,bestOf){
+  const matches=[];
+  for(let i=0;i<seeds.length/2;i++)matches.push(createPlayoffSeries(seeds[i],seeds[seeds.length-1-i],bestOf));
+  return matches;
+}
+function recordBracketGame(bracket,seriesIndex,result) {
+  if(!bracket||bracket.status!=='active')throw new Error('Bracket is complete or invalid');
+  const next=JSON.parse(JSON.stringify(bracket));
+  const round=next.rounds[next.rounds.length-1];
+  if(!Number.isInteger(seriesIndex)||seriesIndex<0||seriesIndex>=round.length)throw new RangeError('Invalid series index');
+  round[seriesIndex]=recordPlayoffGame(round[seriesIndex],result);
+  if(round.every(series=>series.status==='complete')){
+    if(round.length===1){
+      next.championTeamId=round[0].winnerTeamId;
+      next.status='complete';
+    }else{
+      const advancing=round.map(series=>series.winnerTeamId===series.highSeed.teamId?series.highSeed:series.lowSeed).sort((a,b)=>a.seed-b.seed);
+      next.rounds.push(makeRound(advancing,next.bestOf));
+    }
+  }
+  return next;
+}
+module.exports={createPlayoffBracket,recordBracketGame};
+
+},
+"hlm-phase10-roster-playoff-game.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {simulateRosterWeightedExhibition}=require('./hlm-phase10-roster-weighted-exhibition');
+const {recordBracketGame}=require('./hlm-phase10-playoff-bracket');
+/** Experimental roster-driven playoff game. Never persists or mutates input. */
+function simulateExperimentalRosterPlayoffGame(state,seed=1){
+ if(!validateGameStateEnvelope(state).valid)throw new Error('Invalid GameState');
+ if(!Number.isSafeInteger(seed)||seed<0)throw new TypeError('Invalid playoff seed');
+ const bracket=state.extensions.phase10Playoffs;
+ if(!bracket||bracket.status!=='active')throw new Error('No active playoff bracket');
+ const roundIndex=bracket.rounds.length-1,round=bracket.rounds[roundIndex];
+ const seriesIndex=round.findIndex(s=>s.status==='active');
+ if(seriesIndex<0)throw new Error('No active playoff series');
+ const series=round[seriesIndex],gameNumber=series.games.length+1;
+ const high=series.highSeed.teamId,low=series.lowSeed.teamId;
+ const homeTeamId=[1,2,5,7].includes(gameNumber%7||7)?high:low;
+ const awayTeamId=homeTeamId===high?low:high;
+ const gameId='PO-R'+(roundIndex+1)+'-S'+(seriesIndex+1)+'-G'+gameNumber;
+ const exhibition=simulateRosterWeightedExhibition(state,homeTeamId,awayTeamId,seed);
+ if(!exhibition.playable)return {advanced:false,blockers:exhibition.blockers,nextState:null,exhibition,
+  official:false,persistencePerformed:false};
+ const result={gameId,homeTeamId,awayTeamId,status:'final',homeGoals:exhibition.score.homeGoals,
+  awayGoals:exhibition.score.awayGoals,overtime:exhibition.score.overtime,
+  winnerTeamId:exhibition.score.winnerTeamId,official:false,simulationMode:'experimental-roster-weighted'};
+ const nextBracket=recordBracketGame(bracket,seriesIndex,result);
+ const nextState=JSON.parse(JSON.stringify(state));
+ nextState.extensions.phase10Playoffs=nextBracket;
+ return {advanced:true,blockers:[],nextState,result,bracket:nextBracket,
+  championTeamId:nextBracket.championTeamId,official:false,persistencePerformed:false};
+}
+module.exports={simulateExperimentalRosterPlayoffGame};
 
 }
 };const cache={};function load(id){if(!id.endsWith('.js'))id+='.js';if(cache[id])return cache[id].exports;if(!modules[id])throw Error('Missing module '+id);const module={exports:{}};cache[id]=module;modules[id](module,module.exports,function(p){return load(p.replace(/^\.\//,''))});return module.exports;}global.HLMRosterLab=load('hlm-phase10-roster-lab-entry.js');})(window);
