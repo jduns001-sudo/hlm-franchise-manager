@@ -10,4 +10,5 @@ function validateImportedRoster(state,{maxTeams=1000,maxPlayers=100000}={}){
  for(const p of u.players){if(!p||!(typeof p.id==='string'||typeof p.id==='number')||String(p.id).trim()===''){errors.push('Player missing valid id');continue}if(playerIds.has(String(p.id)))errors.push('Duplicate player id: '+p.id);else playerIds.add(String(p.id));if(p.teamId!==null&&p.teamId!==undefined&&String(p.teamId)!==''&&!teamIds.has(String(p.teamId)))warnings.push('Player '+p.id+' references unknown team '+p.teamId)}
  return {valid:errors.length===0,errors,warnings,summary:{teams:u.teams.length,players:u.players.length}};
 }
-module.exports={validateImportedRoster};
+if(typeof module!=='undefined'&&module.exports)module.exports={validateImportedRoster};
+if(typeof window!=='undefined')window.HLMPhase11RosterValidation={validateImportedRoster};
