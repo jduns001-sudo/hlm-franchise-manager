@@ -1,0 +1,20 @@
+name: Batch 821-828 Experimental Manpower
+on:
+  push:
+    branches:
+      - batch-821-828-experimental-manpower
+  pull_request:
+    paths:
+      - 'hlm-experimental-manpower.js'
+      - 'hlm-experimental-manpower.test.js'
+      - 'docs/BATCH_821_828_EXPERIMENTAL_MANPOWER.md'
+      - '.github/workflows/batch-821-828-manpower.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-manpower.test.js
