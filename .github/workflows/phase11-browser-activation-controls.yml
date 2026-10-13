@@ -1,0 +1,24 @@
+name: Phase 11 Browser Activation Controls
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-browser-activation*'
+      - 'phase11-activation-controls.html'
+      - '.github/workflows/phase11-browser-activation-controls.yml'
+  push:
+    branches: [phase11-browser-activation-controls]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-browser-activation.test.js
+      - run: node hlm-phase11-browser-recovery.test.js
+      - run: node hlm-phase11-activation-bridge.test.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: npm test
