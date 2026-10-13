@@ -1,6 +1,6 @@
 'use strict';
 const {createGameStateEnvelope}=require('./hlm-game-state');
-const {createExperimentalRosterSaveStore}=require('./hlm-phase10-roster-save-store');
+const {createRosterLabSeasonStore}=require('./hlm-phase10-roster-lab-season-store');
 const {calculateStandings}=require('./hlm-phase10-standings');
 const {addCalendarDays}=require('./hlm-master-calendar');
 function createRosterLabFranchise(){
@@ -20,6 +20,6 @@ function createRosterLabFranchise(){
 }
 function createRosterBrowserStore(storage){
  if(!storage||typeof storage.getItem!=='function'||typeof storage.setItem!=='function')throw new TypeError('Storage API required');
- return createExperimentalRosterSaveStore({read:key=>storage.getItem(key),write:(key,value)=>storage.setItem(key,value)});
+ return createRosterLabSeasonStore(storage);
 }
 module.exports={createRosterLabFranchise,createRosterBrowserStore,calculateStandings,addCalendarDays};
