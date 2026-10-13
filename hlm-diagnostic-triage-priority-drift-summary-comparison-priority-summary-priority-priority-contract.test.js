@@ -118,7 +118,9 @@ assert.deepEqual(tieReport.urgentFindings.map(f => f.field), ['first', 'second',
 assert.deepEqual(tieReport.groups.map(g => g.category), ['alpha', 'zeta']);
 assert.deepEqual(tieReport.groups[1].findings.map(f => f.field), ['first', 'third']);
 
-for (const bad of [null, undefined, [], {}, { kind: 'wrong', findings: [], findingCount: 0 },
+// An omitted/undefined argument intentionally invokes the default clean report.
+assert.deepEqual(summarize(undefined), summarize());
+for (const bad of [null, [], {}, { kind: 'wrong', findings: [], findingCount: 0 },
   { kind, findings: null, findingCount: 0 }, { kind, findings: [], findingCount: 1 }]) {
   assert.throws(() => summarize(bad), { code: 'INVALID_PRIORITY_SUMMARY_PRIORITY_SEVERITY_REPORT' });
 }
