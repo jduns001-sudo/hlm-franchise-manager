@@ -1,0 +1,26 @@
+name: Phase 11 Published Mobile Browser Acceptance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-published-mobile.spec.js'
+      - 'hlm-phase11-playwright.config.js'
+      - '.github/workflows/phase11-published-mobile-browser.yml'
+  push:
+    branches: [phase11-playwright-published-mobile-acceptance]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-acceptance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=hlm-phase11-playwright.config.js
+      - run: node hlm-phase11-mobile-browser-acceptance.test.js
+      - run: node hlm-phase11-release-acceptance.test.js
+      - run: npm test
