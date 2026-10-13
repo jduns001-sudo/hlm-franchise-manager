@@ -1,0 +1,23 @@
+name: Phase 11 IndexedDB Backup Rollback
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-indexeddb-backup.js'
+      - 'hlm-phase11-indexeddb-backup.test.js'
+      - '.github/workflows/phase11-indexeddb-backup.yml'
+  push:
+    branches: [phase11-indexeddb-backup-rollback-adapter]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-indexeddb-backup.test.js
+      - run: node hlm-phase11-production-readiness.test.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: npm test
