@@ -21,4 +21,5 @@ assert.equal(advanced.results.length,2);
 assert.equal(store.load().activity.games.filter(g=>g.status==='final').length,2);
 assert.equal(api.calculateStandings(store.load().universe.teams,store.load().activity.games).reduce((n,t)=>n+t.gp,0),4);
 assert.equal(original.activity.games[0].status,'scheduled');
+assert.equal(store.load().meta.currentDate,'2026-10-14');
 console.log('Mission 746 browser bundle smoke tests passed.');
