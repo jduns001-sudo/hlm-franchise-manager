@@ -1,0 +1,20 @@
+name: Mission 730 Official Game Rules Tests
+on:
+  push:
+    branches:
+      - mission-730-official-rules-calculator
+  pull_request:
+    paths:
+      - 'hlm-phase10-official-game-rules-calculator.js'
+      - 'hlm-phase10-official-game-rules-calculator.test.js'
+      - 'docs/MISSION_730_OFFICIAL_GAME_RULES.md'
+      - '.github/workflows/mission-730-official-game-rules.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-official-game-rules-calculator.test.js
