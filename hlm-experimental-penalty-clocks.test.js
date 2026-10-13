@@ -1,0 +1,35 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createExperimentalPenaltyClockAudit:run}=require('./hlm-experimental-penalty-clocks');
+const positions=['C','LW','RW','D','D','G'];
+const players=[...positions.map((position,i)=>({id:10+i,teamId:1,position,ovr:80})),...positions.map((position,i)=>({id:20+i,teamId:2,position,ovr:70}))];
+const contracts=players.map(p=>({playerId:p.id,teamId:p.teamId,status:'Active'}));
+const injuries=players.map(p=>({playerId:p.id,status:'Recovered'}));
+const state=createGameStateEnvelope({teams:[{id:1,name:'Wolves'},{id:2,name:'Bears'}],players,contracts,injuries});
+const before=JSON.stringify(state);
+const a=run(state,1,2,12345,true);
+assert.equal(a.researchReady,true);
+assert.equal(a.audit.consistent,true);
+assert.equal(a.official,false);
+assert.equal(a.persistencePerformed,false);
+assert.equal(a.penaltyMode,'synthetic-goal-expiring-minors');
+assert.deepEqual(run(state,1,2,12345,true),a);
+assert(a.penalties.length===3);
+assert(a.penalties.every(p=>p.effectiveEndSecond>=p.second&&p.effectiveEndSecond<=p.scheduledEndSecond));
+assert(a.events.every(e=>['even','power-play','short-handed'].includes(e.strength)));
+for(const side of ['home','away']){
+ const t=a.teams[side];
+ assert.equal(t.shots,a.events.filter(e=>e.side===side).length);
+ assert.equal(t.goals,a.events.filter(e=>e.side===side&&e.goal).length);
+ assert.equal(t.evenStrengthShots+t.shortHandedShots+t.powerPlayShots,t.shots);
+ assert.equal(t.goalie.saves+t.goalie.goalsAgainst,t.goalie.shotsAgainst);
+}
+assert.equal(JSON.stringify(state),before);
+const missing=createGameStateEnvelope({teams:state.universe.teams,players,contracts:contracts.filter(c=>c.playerId!==20),injuries});
+const blocked=run(missing,1,2,12345);
+assert.equal(blocked.researchReady,false);
+assert.equal(blocked.events,null);
+assert.equal(blocked.persistencePerformed,false);
+assert.throws(()=>run(state,1,2,-1),RangeError);
+console.log('Batch 829-836 experimental penalty clock tests passed.');
