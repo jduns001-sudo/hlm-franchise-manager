@@ -1,0 +1,24 @@
+name: Phase 11 Durable File Reopen Verification
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-durable-file-verify.js'
+      - 'hlm-phase11-durable-file-verify.test.js'
+      - '.github/workflows/phase11-durable-file-verify.yml'
+  push:
+    branches: [phase11-durable-file-reopen-verification]
+permissions:
+  contents: read
+jobs:
+  durable-reopen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-durable-file-verify.test.js
+      - run: node hlm-phase11-idb-portable-export.test.js
+      - run: node hlm-phase11-indexeddb-backup.test.js
+      - run: node hlm-phase11-production-safety-review.test.js
+      - run: npm test
