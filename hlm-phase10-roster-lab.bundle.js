@@ -163,6 +163,7 @@ function createRosterLabSeasonStore(storage){
   let backup;try{backup=JSON.parse(serialized)}catch(e){throw new Error('Backup is not valid JSON')}
   if(!backup||backup.format!=='hlm-phase10-roster-lab-backup-v1'||!backup.state||!validateGameStateEnvelope(backup.state).valid)
    throw new Error('Invalid roster lab backup format or state');
+  if(backup.state.meta.saveId!=='phase10-roster-lab')throw new Error('Backup belongs to a different franchise save');
   if(store.load()&&!replace)throw new Error('Existing roster lab save requires explicit replace');
   store.save(backup.state);return backup.state;
  }
