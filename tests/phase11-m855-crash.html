@@ -1,0 +1,33 @@
+<!doctype html><meta charset="utf-8"><title>Mission 855 isolated Chromium crash test</title>
+<script>
+'use strict';
+const DB='hlm_phase11_m855_crash_test_only',STORE='records';
+const original={schema:5,settings:{controlledTeamId:42,season:2026},roster:[{id:101,overall:82}],contracts:[{playerId:101,capHit:2500000}],draftPicks:[{year:2027,ownerId:42}],history:[{year:2025,wins:41}]};
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const report=(s,v={})=>{document.body.dataset.stage=s;document.body.dataset.details=JSON.stringify(v)};
+async function open(){const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>r.result.createObjectStore(STORE);return req(r)}
+function write(db,key,value,abort=false){return new Promise((resolve,reject)=>{
+ const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(value,key);
+ tx.oncomplete=()=>resolve();tx.onabort=()=>abort?resolve():reject(tx.error||Error('Aborted'));
+ tx.onerror=()=>{if(!abort)reject(tx.error)};
+ if(abort)tx.abort();
+})}
+function read(db,key){return req(db.transaction(STORE,'readonly').objectStore(STORE).get(key))}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase'),db=await open();
+ try{
+  if(phase==='seed'){await write(db,'original',original);report('seeded')}
+  else if(phase==='abort'){await write(db,'candidate',{schema:5,roster:[{id:101,overall:99}]},true);report('aborted')}
+  else if(phase==='stage'){
+   await write(db,'candidate',{schema:5,roster:[{id:101,overall:99}]});
+   await write(db,'journal',{authorized:false,phase:'staged'});
+   report('staged');
+  }else if(phase==='verify'){
+   const saved=await read(db,'original'),candidate=await read(db,'candidate'),journal=await read(db,'journal');
+   const originalIntact=JSON.stringify(saved)===JSON.stringify(original);
+   report(originalIntact?'verified':'failed',{originalIntact,candidatePresent:!!candidate,journal:journal||null});
+  }else throw Error('Unknown phase');
+ }finally{db.close()}
+}
+run().catch(e=>report('failed',{error:String(e)}));
+</script>
