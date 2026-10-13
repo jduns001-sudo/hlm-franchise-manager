@@ -1,0 +1,22 @@
+name: Mission 724 Roster Game Readiness Tests
+on:
+  push:
+    branches:
+      - mission-724-roster-game-readiness
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-game-readiness.js'
+      - 'hlm-phase10-roster-game-readiness.test.js'
+      - 'docs/MISSION_724_ROSTER_GAME_READINESS.md'
+      - '.github/workflows/mission-724-roster-game-readiness.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-lineup-proposals.test.js
+      - run: node hlm-phase10-roster-game-preview.test.js
+      - run: node hlm-phase10-roster-game-readiness.test.js
