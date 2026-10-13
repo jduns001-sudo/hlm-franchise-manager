@@ -17,7 +17,9 @@ function buildShotEvents(state,box,seed){
    const attempts=Math.max(goals,period.kind==='regulation'?Math.round(6+next()*7):goals);
    const times=Array.from({length:attempts},()=>1+Math.floor(next()*duration)).sort((a,b)=>a-b);
    const goalSlots=new Set();
-   for(let i=0;i<goals;i++)goalSlots.add(i);
+   const slots=Array.from({length:attempts},(_,i)=>i);
+   for(let i=slots.length-1;i>0;i--){const j=Math.floor(next()*(i+1));[slots[i],slots[j]]=[slots[j],slots[i]];}
+   for(let i=0;i<goals;i++)goalSlots.add(slots[i]);
    for(let i=0;i<attempts;i++){
     const shooter=weightedSkater(players,next),isGoal=goalSlots.has(i);
     const helpers=players.filter(p=>p.id!==shooter.id);
@@ -59,7 +61,7 @@ function summarizeShotEvents(state,box,events){
 function auditShotEventTimeline(box,events,teams){
  if(!box||!box.researchReady||!Array.isArray(events)||!teams)return {consistent:false,reason:'NOT_READY'};
  const periods=box.game.periods;
- const valid=events.every((e,i)=>e.eventId===i+1&&Number.isSafeInteger(e.second)&&e.second>=1&&
+ const valid=events.every((e,i)=>e.eventId===i+1&&(i===0||events[i-1].period<e.period||(events[i-1].period===e.period&&events[i-1].second<=e.second))&&periods.some(p=>p.period===e.period&&p.kind===e.kind)&&['home','away'].includes(e.side)&&e.teamId===box.game[e.side+'TeamId']&&Number.isSafeInteger(e.second)&&e.second>=1&&
   e.second<=periodDuration(periods.find(p=>p.period===e.period)||{kind:'regulation'})&&
   Array.isArray(e.assistIds)&&e.assistIds.length<=2&&new Set(e.assistIds).size===e.assistIds.length&&
   (!e.goal?e.assistIds.length===0:true))&&
@@ -70,6 +72,7 @@ function auditShotEventTimeline(box,events,teams){
     t.players.reduce((n,p)=>n+p.shots,0)===t.shots&&
     t.players.reduce((n,p)=>n+p.goals,0)===t.goals&&
     t.players.reduce((n,p)=>n+p.assists,0)===es.reduce((n,e)=>n+e.assistIds.length,0)&&
+    t.players.every(p=>p.points===p.goals+p.assists&&p.shots===es.filter(e=>e.shooterId===p.playerId).length&&p.goals===es.filter(e=>e.shooterId===p.playerId&&e.goal).length&&p.assists===es.filter(e=>e.assistIds.includes(p.playerId)).length)&&
     t.goalie.saves+t.goalie.goalsAgainst===t.goalie.shotsAgainst;
   });
  return {consistent:valid,eventsChecked:events.length,official:false};
