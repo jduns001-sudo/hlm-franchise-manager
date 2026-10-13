@@ -1,0 +1,37 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const lab=require('./hlm-experimental-player-shots');
+const positions=['C','LW','RW','D','D','G'];
+const players=[...positions.map((position,i)=>({id:10+i,teamId:1,position,ovr:80})),...positions.map((position,i)=>({id:20+i,teamId:2,position,ovr:70}))];
+const contracts=players.map(p=>({playerId:p.id,teamId:p.teamId,status:'Active'}));
+const injuries=players.map(p=>({playerId:p.id,status:'Recovered'}));
+const state=createGameStateEnvelope({teams:[{id:1,name:'Wolves'},{id:2,name:'Bears'}],players,contracts,injuries});
+const before=JSON.stringify(state);
+assert.equal(lab.activeSkaters(state,1).length,5);
+assert.equal(lab.activeGoalie(state,1).position,'G');
+const box=lab.createExperimentalPlayerBoxScore(state,1,2,12345);
+assert.equal(box.researchReady,true);
+assert.equal(box.teams.home.players.length,5);
+assert.equal(box.teams.away.players.length,5);
+assert.equal(lab.auditExperimentalPlayerBoxScore(box).consistent,true);
+assert.deepEqual(lab.createExperimentalPlayerBoxScore(state,1,2,12345),box);
+assert.equal(JSON.stringify(state),before);
+for(const side of ['home','away']){
+ const t=box.teams[side];assert(t.shots>=t.goals);
+ assert.equal(t.players.reduce((n,p)=>n+p.goals,0),t.goals);
+ assert.equal(t.players.reduce((n,p)=>n+p.shots,0),t.shots);
+ assert(t.players.every(p=>p.shots>=p.goals));
+}
+const corrupted=JSON.parse(JSON.stringify(box));corrupted.teams.home.goalie.saves++;
+assert.equal(lab.auditExperimentalPlayerBoxScore(corrupted).consistent,false);
+const missing=createGameStateEnvelope({teams:state.universe.teams,players,contracts:contracts.filter(c=>c.playerId!==20),injuries});
+const blocked=lab.createExperimentalPlayerBoxScore(missing,1,2,12345);
+assert.equal(blocked.researchReady,false);
+assert.equal(blocked.teams,null);
+assert.equal(lab.auditExperimentalPlayerBoxScore(blocked).consistent,false);
+assert.throws(()=>lab.allocateShots(-1,lab.activeSkaters(state,1),()=>0.5),RangeError);
+assert.equal(lab.allocateShots(0,lab.activeSkaters(state,1),()=>0.5).records.reduce((n,p)=>n+p.goals,0),0);
+assert.equal(box.official,false);
+assert.equal(box.persistencePerformed,false);
+console.log('Batch 789-796 experimental player shots tests passed.');
