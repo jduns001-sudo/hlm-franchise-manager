@@ -1,0 +1,20 @@
+name: Mission 752 Experimental Score Distribution
+on:
+  push:
+    branches:
+      - mission-752-experimental-score-distribution-v2
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-score-distribution.js'
+      - 'hlm-phase10-experimental-score-distribution.test.js'
+      - 'docs/MISSION_752_EXPERIMENTAL_SCORE_DISTRIBUTION_PLAN.md'
+      - '.github/workflows/mission-752-score-distribution.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-score-distribution.test.js
