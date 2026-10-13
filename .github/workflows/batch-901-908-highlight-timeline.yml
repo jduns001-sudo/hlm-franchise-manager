@@ -1,0 +1,20 @@
+name: Batch 901-908 Experimental Highlight Timeline
+on:
+  push:
+    branches:
+      - batch-901-908-experimental-highlight-timeline
+  pull_request:
+    paths:
+      - 'hlm-experimental-highlight-timeline.js'
+      - 'hlm-experimental-highlight-timeline.test.js'
+      - 'docs/BATCH_901_908_EXPERIMENTAL_HIGHLIGHT_TIMELINE.md'
+      - '.github/workflows/batch-901-908-highlight-timeline.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-highlight-timeline.test.js
