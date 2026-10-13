@@ -1,0 +1,21 @@
+name: Mission 729 Official Authorization Tests
+on:
+  push:
+    branches:
+      - mission-729-official-game-authorization-contract
+  pull_request:
+    paths:
+      - 'hlm-phase10-official-game-authorization.js'
+      - 'hlm-phase10-official-game-authorization.test.js'
+      - 'docs/MISSION_729_OFFICIAL_AUTHORIZATION.md'
+      - '.github/workflows/mission-729-official-authorization.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-official-roster-game-gate.test.js
+      - run: node hlm-phase10-official-game-authorization.test.js
