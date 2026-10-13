@@ -1,0 +1,19 @@
+name: Mission 743 Roster Day Tests
+on:
+  push:
+    branches:
+      - mission-743-roster-day-simulation
+  pull_request:
+    paths:
+      - 'hlm-phase10-controlled-roster-day.js'
+      - 'hlm-phase10-controlled-roster-day.test.js'
+      - '.github/workflows/mission-743-roster-day.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-controlled-roster-day.test.js
