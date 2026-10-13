@@ -1,0 +1,20 @@
+name: Batch 925-932 Experimental Highlight Recap
+on:
+  push:
+    branches:
+      - batch-925-932-experimental-highlight-recap
+  pull_request:
+    paths:
+      - 'hlm-experimental-highlight-recap.js'
+      - 'hlm-experimental-highlight-recap.test.js'
+      - 'docs/BATCH_925_932_EXPERIMENTAL_HIGHLIGHT_RECAP.md'
+      - '.github/workflows/batch-925-932-highlight-recap.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-highlight-recap.test.js
