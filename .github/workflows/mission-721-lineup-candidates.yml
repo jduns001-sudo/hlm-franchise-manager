@@ -1,0 +1,21 @@
+name: Mission 721 Lineup Candidate Tests
+on:
+  push:
+    branches:
+      - mission-721-roster-lineup-assessment
+  pull_request:
+    paths:
+      - 'hlm-phase10-lineup-candidate-assessment.js'
+      - 'hlm-phase10-lineup-candidate-assessment.test.js'
+      - 'docs/MISSION_721_LINEUP_CANDIDATES.md'
+      - '.github/workflows/mission-721-lineup-candidates.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-team-roster-projection.test.js
+      - run: node hlm-phase10-lineup-candidate-assessment.test.js
