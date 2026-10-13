@@ -1,0 +1,22 @@
+name: Mission 722 Lineup Proposal Tests
+on:
+  push:
+    branches:
+      - mission-722-lineup-construction
+  pull_request:
+    paths:
+      - 'hlm-phase10-lineup-proposals.js'
+      - 'hlm-phase10-lineup-proposals.test.js'
+      - 'docs/MISSION_722_LINEUP_PROPOSALS.md'
+      - '.github/workflows/mission-722-lineup-proposals.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-team-roster-projection.test.js
+      - run: node hlm-phase10-lineup-candidate-assessment.test.js
+      - run: node hlm-phase10-lineup-proposals.test.js
