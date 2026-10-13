@@ -1,0 +1,18 @@
+name: Mission 749 Roster Day Player Stats
+on:
+  push:
+    branches: [mission-749-persist-experimental-player-goals]
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-day-with-stats.js'
+      - 'hlm-phase10-roster-day-with-stats.test.js'
+      - '.github/workflows/mission-749-player-stats.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-day-with-stats.test.js
