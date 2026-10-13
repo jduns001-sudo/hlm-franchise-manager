@@ -20,7 +20,7 @@ function createExperimentalGameTrends(state,homeId,awayId,seed,playoff=false){
  }
  const last=periods.at(-1);
  const valid=base.audit.consistent&&Boolean(last)&&last.goalMargin===teams.home.goalDifferential&&last.shotMargin===teams.home.shotDifferential&&teams.home.goalDifferential===-teams.away.goalDifferential&&teams.home.shotDifferential===-teams.away.shotDifferential&&periods.every(p=>p.homeGoalSwing===p.homeGoals&&p.awayGoalSwing===p.awayGoals&&p.homeShotSwing===p.homeShots&&p.awayShotSwing===p.awayShots&&p.periodIntensity===p.homeShots+p.awayShots);
- if(!valid)throw new Error('EXPERIMENTAL_GAME_TRENDS_AUDIT_FAILED');
+ if(!valid)throw new Error('EXPERIMENTAL_GAME_TRENDS_AUDIT_FAILED '+JSON.stringify({last,home:teams.home,away:teams.away,periodsValid:periods.map(p=>({period:p.period,homeGoalSwing:p.homeGoalSwing,homeGoals:p.homeGoals,awayGoalSwing:p.awayGoalSwing,awayGoals:p.awayGoals,homeShotSwing:p.homeShotSwing,homeShots:p.homeShots,awayShotSwing:p.awayShotSwing,awayShots:p.awayShots}))}));
  return {kind:'experimental-game-trends',researchReady:true,periods,teams,audit:{consistent:true,periodsChecked:periods.length},trendMode:'synthetic-descriptive',game:base.game,official:false,persistencePerformed:false};
 }
 module.exports={createExperimentalGameTrends};
