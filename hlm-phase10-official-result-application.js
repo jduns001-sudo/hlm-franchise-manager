@@ -9,7 +9,8 @@ const { calculateStandings } = require('./hlm-phase10-standings');
  */
 function applyValidatedOfficialGameResult(state, result, authorization) {
   if (!authorization || authorization.kind !== 'trusted-official-game-authorization' ||
-      authorization.validated !== true || authorization.gameId !== result?.gameId) {
+      authorization.validated !== true || authorization.gameId !== result?.gameId ||
+      authorization.issuer !== 'phase10-trusted-game-engine') {
     const error = new Error('Trusted game authorization is required');
     error.code = 'OFFICIAL_RESULT_NOT_AUTHORIZED';
     throw error;
