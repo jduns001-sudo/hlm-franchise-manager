@@ -1,0 +1,20 @@
+name: Mission 740 Experimental Expected Goals Tests
+on:
+  push:
+    branches:
+      - mission-740-experimental-score-model
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-expected-goals.js'
+      - 'hlm-phase10-experimental-expected-goals.test.js'
+      - 'docs/MISSION_740_EXPERIMENTAL_EXPECTED_GOALS.md'
+      - '.github/workflows/mission-740-expected-goals.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-expected-goals.test.js
