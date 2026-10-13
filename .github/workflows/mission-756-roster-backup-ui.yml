@@ -1,0 +1,20 @@
+name: Mission 756 Roster Lab Backup UI
+on:
+  push:
+    branches: [mission-756-roster-lab-backup-controls]
+  pull_request:
+    paths:
+      - 'phase10-roster-lab.html'
+      - 'hlm-phase10-roster-lab-ui-regression.test.js'
+      - '.github/workflows/mission-756-roster-backup-ui.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-lab-ui-regression.test.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: node hlm-phase10-roster-lab-e2e.test.js
