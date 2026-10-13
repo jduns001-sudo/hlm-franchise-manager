@@ -1,0 +1,30 @@
+'use strict';
+const assert = require('node:assert/strict');
+const { createGameStateEnvelope } = require('./hlm-game-state');
+const { createExperimentalScoreFrequency: frequency } = require('./hlm-phase10-experimental-score-frequency');
+const positions=['C','LW','RW','D','D','G'];
+const players=[...positions.map((position,i)=>({id:10+i,teamId:1,position,ovr:80})),...positions.map((position,i)=>({id:20+i,teamId:2,position,ovr:70}))];
+const contracts=players.map(p=>({playerId:p.id,teamId:p.teamId,status:'Active'}));
+const injuries=players.map(p=>({playerId:p.id,status:'Recovered'}));
+const state=createGameStateEnvelope({teams:[{id:1,name:'Wolves'},{id:2,name:'Bears'}],players,contracts,injuries});
+const before=JSON.stringify(state);
+const a=frequency(state,1,2,12345,12);
+assert.equal(a.researchReady,true);
+assert.equal(a.sampleCount,12);
+assert.deepEqual(frequency(state,1,2,12345,12),a);
+for(const side of ['home','away']) {
+  const rows=a.hypotheticalGoalFrequency[side];
+  assert.equal(rows.reduce((sum,row)=>sum+row.observations,0),12);
+  assert(rows.every(row=>Number.isInteger(row.goals)&&row.goals>=0&&Number.isInteger(row.observations)&&row.observations>0));
+  assert(rows.every((row,i)=>i===0||rows[i-1].goals<row.goals));
+}
+assert.equal(JSON.stringify(state),before);
+for(const flag of ['simulationAuthorized','gameResultCreated','standingsUpdated','sourceStateMutated','persistencePerformed']) assert.equal(a[flag],false);
+const missing=createGameStateEnvelope({teams:state.universe.teams,players,contracts:contracts.filter(c=>c.playerId!==20),injuries});
+const blocked=frequency(missing,1,2,12345,12);
+assert.equal(blocked.researchReady,false);
+assert.equal(blocked.sampleCount,0);
+assert.equal(blocked.hypotheticalGoalFrequency,null);
+assert(blocked.blockers.length>0);
+for(const count of [0,-1,257,1.5]) assert.throws(()=>frequency(state,1,2,12345,count),RangeError);
+console.log('Mission 754 experimental score frequency tests passed.');
