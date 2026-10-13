@@ -6,17 +6,34 @@ on:
     paths:
       - 'phase10-roster-lab.html'
       - 'hlm-phase10-roster-lab-entry.js'
+      - 'hlm-phase10-roster-lab-browser.test.js'
       - 'build-phase10-roster-lab.js'
       - 'hlm-phase10-roster-lab.bundle.js'
       - '.github/workflows/mission-746-roster-browser-lab.yml'
+permissions:
+  contents: write
 jobs:
   build-and-verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: node build-phase10-roster-lab.js
-      - run: node -e "const fs=require('fs');const b=fs.readFileSync('hlm-phase10-roster-lab.bundle.js','utf8');if(!b.includes('HLMRosterLab')||!b.includes('createRosterLabFranchise'))process.exit(1)"
-      - run: git diff --exit-code -- hlm-phase10-roster-lab.bundle.js
+      - run: node hlm-phase10-roster-lab-browser.test.js
+      - name: Commit generated bundle on development branch
+        if: github.event_name == 'push'
+        run: |
+          if ! git diff --quiet -- hlm-phase10-roster-lab.bundle.js || [ ! -f hlm-phase10-roster-lab.bundle.js ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add hlm-phase10-roster-lab.bundle.js
+            git diff --cached --quiet || git commit -m "build: regenerate verified roster lab browser bundle"
+            git push
+          fi
+      - name: Verify committed bundle matches source
+        if: github.event_name == 'pull_request'
+        run: git diff --exit-code -- hlm-phase10-roster-lab.bundle.js
