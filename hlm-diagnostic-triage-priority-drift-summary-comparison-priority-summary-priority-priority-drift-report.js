@@ -69,7 +69,7 @@ function createDiagnosticTriagePriorityDriftSummaryComparisonPrioritySummaryPrio
         record(name, field, expected[field], actual,
           field === 'categoryNames' ? 'PRIORITY_SUMMARY_FINAL_CATEGORY_ORDER_CHANGED' :
             field === 'priorityFields' ? 'PRIORITY_SUMMARY_FINAL_FIELDS_CHANGED' :
-              'PRIORITY_SUMMARY_URGENT_FIELDS_CHANGED');
+              'PRIORITY_SUMMARY_FINAL_URGENT_FIELDS_CHANGED');
       }
     }
     if (row.simulationAuthorized !== false) {
