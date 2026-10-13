@@ -1,0 +1,84 @@
+<!doctype html><meta charset="utf-8"><title>Mission 860 sequential commits</title>
+<script>
+'use strict';
+const DB='hlm_phase11_m860_sequential_commit_test_only';
+const stores=['roster','contracts','draftPicks','history'];
+const snapshot=n=>({
+ roster:{playerId:101,overall:70+n},
+ contracts:{playerId:101,capHit:1000000+n*100000},
+ draftPicks:{year:2027,ownerId:n},
+ history:{year:2025,wins:30+n}
+});
+const baseline=snapshot(0),first=snapshot(1),latest=snapshot(2),candidate=snapshot(3);
+const result=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+const status=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+async function open(){
+ const req=indexedDB.open(DB,1);
+ req.onupgradeneeded=()=>stores.forEach(name=>req.result.createObjectStore(name));
+ return result(req);
+}
+function write(db,values){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(stores,'readwrite');
+  stores.forEach(name=>tx.objectStore(name).put(values[name],'snapshot'));
+  tx.oncomplete=()=>resolve();
+  tx.onerror=()=>reject(tx.error);
+  tx.onabort=()=>reject(tx.error||Error('aborted'));
+ });
+}
+async function read(db){
+ const tx=db.transaction(stores,'readonly');
+ const records=await Promise.all(stores.map(name=>result(tx.objectStore(name).get('snapshot'))));
+ return Object.fromEntries(stores.map((name,i)=>[name,records[i]]));
+}
+const matches=(a,b)=>stores.every(name=>JSON.stringify(a[name])===JSON.stringify(b[name]));
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ const db=await open();
+ if(phase==='seed'){
+  await write(db,baseline);if(!matches(await read(db),baseline))throw Error('baseline mismatch');
+  db.close();status('seeded');return;
+ }
+ if(phase==='first'){
+  if(!matches(await read(db),baseline))throw Error('baseline missing');
+  await write(db,first);
+  if(!matches(await read(db),first))throw Error('first commit mismatch');
+  db.close();status('first-committed');return;
+ }
+ if(phase==='second'){
+  if(!matches(await read(db),first))throw Error('first commit missing');
+  await write(db,latest);
+  if(!matches(await read(db),latest))throw Error('second commit mismatch');
+  db.close();status('second-committed');return;
+ }
+ if(phase==='verify'){
+  const actual=await read(db);
+  const retained=matches(actual,latest);
+  const noFirst=stores.every(name=>JSON.stringify(actual[name])!==JSON.stringify(first[name]));
+  const noCandidate=stores.every(name=>JSON.stringify(actual[name])!==JSON.stringify(candidate[name]));
+  db.close();status(retained&&noFirst&&noCandidate?'verified':'failed',{retained,noFirst,noCandidate,stores});return;
+ }
+ if(phase!=='pending')throw Error('unknown phase');
+ if(!matches(await read(db),latest))throw Error('second commit missing before crash');
+ const tx=db.transaction(stores,'readwrite');
+ tx.oncomplete=()=>status('unexpected-third-commit');
+ tx.onabort=()=>status('aborted');
+ tx.onerror=()=>status('failed',{error:String(tx.error)});
+ let completed=0;
+ stores.forEach(name=>{
+  const req=tx.objectStore(name).put(candidate[name],'snapshot');
+  req.onerror=()=>status('failed',{error:String(req.error)});
+  req.onsuccess=()=>{
+   if(++completed!==stores.length)return;
+   function keepAlive(){
+    const next=tx.objectStore(stores[0]).get('snapshot');
+    next.onsuccess=keepAlive;
+    next.onerror=()=>status('failed',{error:String(next.error)});
+   }
+   keepAlive();
+   status('pending',{queued:completed,stores});
+  };
+ });
+}
+run().catch(error=>status('failed',{error:String(error)}));
+</script>
