@@ -1,0 +1,88 @@
+<!doctype html><meta charset="utf-8"><title>Mission 863 crash durability</title><script>
+'use strict';
+const DB='hlm_phase11_m863_process_termination_test_only';
+const stores=['roster','contracts','draftPicks','history'];
+const value=(name,n)=>({name,revision:n,payload:name+'-'+n});
+const request=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+const status=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+async function open(){
+ const req=indexedDB.open(DB,1);
+ req.onupgradeneeded=()=>stores.forEach(name=>req.result.createObjectStore(name));
+ return request(req);
+}
+function write(db,n){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(stores,'readwrite');
+  stores.forEach(name=>tx.objectStore(name).put(value(name,n),'snapshot'));
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('aborted'));
+ });
+}
+async function read(db){
+ const tx=db.transaction(stores,'readonly');
+ const rows=await Promise.all(stores.map(name=>request(tx.objectStore(name).get('snapshot'))));
+ return Object.fromEntries(stores.map((name,i)=>[name,rows[i]]));
+}
+const matches=(rows,n)=>stores.every(name=>JSON.stringify(rows[name])===JSON.stringify(value(name,n)));
+function interruptWorker(){
+ const stores=['roster','contracts','draftPicks','history'];
+ const DB='hlm_phase11_m863_process_termination_test_only';
+ self.onmessage=event=>{
+  const gate=new Int32Array(event.data.gate);
+  const req=indexedDB.open(DB,1);
+  req.onerror=()=>self.postMessage({type:'error',error:String(req.error)});
+  req.onsuccess=()=>{
+   const db=req.result;
+   const tx=db.transaction(stores,'readwrite');
+   tx.oncomplete=()=>self.postMessage({type:'error',error:'candidate transaction completed'});
+   tx.onabort=()=>self.postMessage({type:'error',error:'candidate transaction aborted'});
+   for(const name of stores)tx.objectStore(name).put({name,revision:2,payload:name+'-2'},'snapshot');
+   const marker=tx.objectStore('roster').put({revision:2},'candidate-marker');
+   marker.onsuccess=()=>{
+    // Post the checkpoint before blocking synchronously in the SAME
+    // IndexedDB request callback. Message delivery is asynchronous, so
+    // the page cannot observe the checkpoint before this handler blocks.
+    self.postMessage({type:'blocked'});
+    Atomics.wait(gate,0,0);
+    self.postMessage({type:'error',error:'barrier unexpectedly released'});
+   };
+   marker.onerror=()=>self.postMessage({type:'error',error:String(marker.error)});
+  };
+ };
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ const db=await open();
+ if(phase==='seed'){
+  await write(db,1);
+  if(!matches(await read(db),1))throw Error('committed seed mismatch');
+  db.close();status('committed');return;
+ }
+ if(phase==='interrupt'){
+  if(!crossOriginIsolated||typeof SharedArrayBuffer==='undefined')throw Error('cross-origin isolation required for deterministic barrier');
+  if(!matches(await read(db),1))throw Error('committed seed absent');
+  db.close();
+  const gate=new SharedArrayBuffer(4);
+  const workerSource='('+interruptWorker.toString()+')()';
+  const worker=new Worker(URL.createObjectURL(new Blob([workerSource],{type:'text/javascript'})));
+  worker.onmessage=event=>{
+   if(event.data.type==='blocked'){
+    // The worker has entered the success handler and synchronously called
+    // Atomics.wait. Its IndexedDB transaction cannot finish that handler,
+    // and therefore cannot commit, until the worker is unblocked.
+    status('pending',{barrier:'Atomics.wait inside IDB success handler',stores});
+   }else status('failed',{error:event.data.error||'worker failure'});
+  };
+  worker.onerror=event=>status('failed',{error:event.message});
+  worker.postMessage({gate});
+  return;
+ }
+ if(phase==='verify'){
+  const rows=await read(db);
+  const markers=await Promise.all(stores.map(name=>request(db.transaction(name,'readonly').objectStore(name).get('candidate-marker'))));
+  const retained=matches(rows,1),noCandidate=markers.every(x=>x===undefined);
+  db.close();status(retained&&noCandidate?'verified':'failed',{retained,noCandidate,stores});return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(error=>status('failed',{error:String(error)}));
+</script>
