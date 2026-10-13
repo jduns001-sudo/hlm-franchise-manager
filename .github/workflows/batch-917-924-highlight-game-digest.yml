@@ -1,0 +1,20 @@
+name: Batch 917-924 Experimental Highlight Game Digest
+on:
+  push:
+    branches:
+      - batch-917-924-experimental-highlight-game-digest
+  pull_request:
+    paths:
+      - 'hlm-experimental-highlight-game-digest.js'
+      - 'hlm-experimental-highlight-game-digest.test.js'
+      - 'docs/BATCH_917_924_EXPERIMENTAL_HIGHLIGHT_GAME_DIGEST.md'
+      - '.github/workflows/batch-917-924-highlight-game-digest.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-highlight-game-digest.test.js
