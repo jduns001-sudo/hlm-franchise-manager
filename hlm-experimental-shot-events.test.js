@@ -26,6 +26,12 @@ assert.equal(JSON.stringify(state),before);
 const box=createExperimentalPlayerBoxScore(state,1,2,12345,true);
 const bad=JSON.parse(JSON.stringify(a.events));bad[0].second=-1;
 assert.equal(lab.auditShotEventTimeline(box,bad,a.teams).consistent,false);
+const outOfOrder=JSON.parse(JSON.stringify(a.events));
+if(outOfOrder.length>1){outOfOrder[1].period=0;assert.equal(lab.auditShotEventTimeline(box,outOfOrder,a.teams).consistent,false);}
+const wrongTeam=JSON.parse(JSON.stringify(a.events));wrongTeam[0].teamId=999;
+assert.equal(lab.auditShotEventTimeline(box,wrongTeam,a.teams).consistent,false);
+const wrongPlayer=JSON.parse(JSON.stringify(a.teams));wrongPlayer.home.players[0].points++;
+assert.equal(lab.auditShotEventTimeline(box,a.events,wrongPlayer).consistent,false);
 const badTeams=JSON.parse(JSON.stringify(a.teams));badTeams.home.goalie.saves++;
 assert.equal(lab.auditShotEventTimeline(box,a.events,badTeams).consistent,false);
 const missing=createGameStateEnvelope({teams:state.universe.teams,players,contracts:contracts.filter(c=>c.playerId!==20),injuries});
