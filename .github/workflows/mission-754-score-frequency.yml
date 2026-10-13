@@ -1,0 +1,20 @@
+name: Mission 754 Experimental Score Frequency
+on:
+  push:
+    branches:
+      - mission-754-experimental-score-frequency-v2
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-score-frequency.js'
+      - 'hlm-phase10-experimental-score-frequency.test.js'
+      - 'docs/MISSION_754_EXPERIMENTAL_SCORE_FREQUENCY_PLAN.md'
+      - '.github/workflows/mission-754-score-frequency.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-score-frequency.test.js
