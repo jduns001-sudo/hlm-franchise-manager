@@ -1,0 +1,21 @@
+name: Mission 727 Season Roster Preview Tests
+on:
+  push:
+    branches:
+      - mission-727-season-roster-preview
+  pull_request:
+    paths:
+      - 'hlm-phase10-season-roster-outcome-preview.js'
+      - 'hlm-phase10-season-roster-outcome-preview.test.js'
+      - 'docs/MISSION_727_SEASON_ROSTER_PREVIEW.md'
+      - '.github/workflows/mission-727-season-roster-preview.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-game-outcome-batch.test.js
+      - run: node hlm-phase10-season-roster-outcome-preview.test.js
