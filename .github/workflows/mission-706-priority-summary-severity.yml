@@ -1,0 +1,67 @@
+name: Mission 706 Priority Summary Severity Tests
+on:
+  push:
+    branches:
+      - mission-706-priority-summary-severity
+  pull_request:
+    paths:
+      - 'hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-severity.js'
+      - 'hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-severity.test.js'
+      - 'docs/MISSION_706_PRIORITY_SUMMARY_SEVERITY.md'
+      - '.github/workflows/mission-706-priority-summary-severity.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-canonical-franchise-bridge.test.js
+      - run: node hlm-classified-canonical-bridge.test.js
+      - run: node hlm-simulation-roster-eligibility.test.js
+      - run: node hlm-simulation-roster-readiness.test.js
+      - run: node hlm-simulation-roster-readiness-pipeline.test.js
+      - run: node hlm-roster-readiness-validation-summary.test.js
+      - run: node hlm-franchise-data-health-report.test.js
+      - run: node hlm-franchise-data-health-contract.test.js
+      - run: node hlm-franchise-diagnostic-fixtures.test.js
+      - run: node hlm-franchise-diagnostic-regression-matrix.test.js
+      - run: node hlm-franchise-diagnostic-baseline-v1.test.js
+      - run: node hlm-franchise-diagnostic-drift-report.test.js
+      - run: node hlm-diagnostic-drift-severity.test.js
+      - run: node hlm-diagnostic-triage-summary.test.js
+      - run: node hlm-diagnostic-triage-contract.test.js
+      - run: node hlm-diagnostic-triage-fixture-matrix.test.js
+      - run: node hlm-diagnostic-triage-baseline-v1.test.js
+      - run: node hlm-diagnostic-triage-drift-report.test.js
+      - run: node hlm-diagnostic-triage-drift-severity.test.js
+      - run: node hlm-diagnostic-triage-priority-summary.test.js
+      - run: node hlm-diagnostic-triage-priority-contract.test.js
+      - run: node hlm-diagnostic-triage-priority-fixture-matrix.test.js
+      - run: node hlm-diagnostic-triage-priority-baseline-v1.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-report.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-severity.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-contract.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-fixture-matrix.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-baseline-v1.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-report.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-severity.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-contract.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-fixture-matrix.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-baseline-v1.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-drift-report.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-severity.test.js
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary.test.js
+
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-contract.test.js
+
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-fixture-matrix.test.js
+
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-baseline-v1.test.js
+
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-drift-report.test.js
+
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-severity.test.js
