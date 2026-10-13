@@ -1,0 +1,20 @@
+name: Batch 885-892 Experimental Game Highlights
+on:
+  push:
+    branches:
+      - batch-885-892-experimental-game-highlights
+  pull_request:
+    paths:
+      - 'hlm-experimental-game-highlights.js'
+      - 'hlm-experimental-game-highlights.test.js'
+      - 'docs/BATCH_885_892_EXPERIMENTAL_GAME_HIGHLIGHTS.md'
+      - '.github/workflows/batch-885-892-game-highlights.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-game-highlights.test.js
