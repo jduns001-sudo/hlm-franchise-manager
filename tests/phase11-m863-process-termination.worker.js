@@ -5,7 +5,7 @@ const {chromium}=require('@playwright/test');
  const context=await chromium.launchPersistentContext(profile,{headless:true,args:['--no-sandbox']});
  const page=await context.newPage();
  await page.goto(url);
- await page.waitForFunction(()=>document.body.dataset.stage==='pending'||document.body.dataset.stage==='failed',{timeout:30000});
+ await page.waitForFunction(()=>document.body.dataset.stage==='pending'||document.body.dataset.stage==='failed',null,{timeout:30000});
  const result=await page.locator('body').getAttribute('data-stage');
  if(result!=='pending')throw Error('interrupt fixture failed: '+await page.locator('body').getAttribute('data-details'));
  if(process.send)process.send({type:'pending'});
