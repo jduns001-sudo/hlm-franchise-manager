@@ -1,0 +1,20 @@
+name: Batch 853-860 Experimental Momentum
+on:
+  push:
+    branches:
+      - batch-853-860-experimental-momentum
+  pull_request:
+    paths:
+      - 'hlm-experimental-momentum.js'
+      - 'hlm-experimental-momentum.test.js'
+      - 'docs/BATCH_853_860_EXPERIMENTAL_MOMENTUM.md'
+      - '.github/workflows/batch-853-860-momentum.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-momentum.test.js
