@@ -14,6 +14,11 @@ for(const invalid of ['{oops','{}',JSON.stringify({format:'hlm-phase10-roster-la
  assert.throws(()=>store.importBackup(invalid,{replace:true}));
  assert.equal(storage.m.get(store.key),before);
 }
+const wrongSave=JSON.parse(backup);
+wrongSave.state.meta.saveId='official-other-franchise';
+assert.throws(()=>store.importBackup(JSON.stringify(wrongSave),{replace:true}),/different franchise save/);
+assert.equal(storage.m.get(store.key),before);
+assert.equal(storage.m.get('hlm-phase10-demo-v1'),'PRESERVE');
 const fresh=createRosterLabSeasonStore(adapter());
 fresh.importBackup(backup);
 assert.deepEqual(fresh.load(),store.load());

@@ -1,0 +1,39 @@
+name: Mission 758 Backup Provenance
+on:
+  push:
+    branches: [mission-758-backup-provenance-acceptance]
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-lab-season-store.js'
+      - 'hlm-phase10-roster-save-integrity.test.js'
+      - 'hlm-phase10-roster-lab.bundle.js'
+      - '.github/workflows/mission-758-backup-provenance.yml'
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node build-phase10-roster-lab.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: node hlm-phase10-roster-lab-e2e.test.js
+      - run: node hlm-phase10-roster-lab-ui-regression.test.js
+      - name: Commit generated bundle on branch
+        if: github.event_name == 'push'
+        run: |
+          if [ -n "$(git status --porcelain -- hlm-phase10-roster-lab.bundle.js)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add hlm-phase10-roster-lab.bundle.js
+            git diff --cached --quiet || git commit -m "build: sync browser bundle with backup provenance guard"
+            git push
+          fi
+      - name: Verify generated bundle
+        if: github.event_name == 'pull_request'
+        run: git diff --exit-code -- hlm-phase10-roster-lab.bundle.js
