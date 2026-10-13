@@ -4,6 +4,7 @@ on:
     paths:
       - 'hlm-phase11-franchise-selection*'
       - 'phase11-franchise-selection.html'
+      - 'phase11-roster-import.html'
       - '.github/workflows/phase11-safe-franchise-selection.yml'
   push:
     branches: [phase11-safe-import-selection-integration]
@@ -18,6 +19,7 @@ jobs:
         with:
           node-version: '22'
       - run: node hlm-phase11-franchise-selection.test.js
+      - run: node hlm-phase11-franchise-selection-browser.test.js
       - run: node hlm-phase11-roster-import-browser.test.js
       - run: node hlm-phase10-roster-save-integrity.test.js
       - run: npm test
