@@ -1,0 +1,20 @@
+name: Mission 733 Gameplay Integration Plan Tests
+on:
+  push:
+    branches:
+      - mission-733-gameplay-blocker-plan
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-gameplay-integration-plan.js'
+      - 'hlm-phase10-roster-gameplay-integration-plan.test.js'
+      - 'docs/MISSION_733_GAMEPLAY_INTEGRATION_PLAN.md'
+      - '.github/workflows/mission-733-gameplay-integration-plan.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-gameplay-integration-plan.test.js
