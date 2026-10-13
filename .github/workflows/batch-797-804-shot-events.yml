@@ -1,0 +1,20 @@
+name: Batch 797-804 Experimental Shot Events
+on:
+  push:
+    branches:
+      - batch-797-804-experimental-shot-events
+  pull_request:
+    paths:
+      - 'hlm-experimental-shot-events.js'
+      - 'hlm-experimental-shot-events.test.js'
+      - 'docs/BATCH_797_804_EXPERIMENTAL_SHOT_EVENTS.md'
+      - '.github/workflows/batch-797-804-shot-events.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-shot-events.test.js
