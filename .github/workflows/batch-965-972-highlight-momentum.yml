@@ -1,0 +1,20 @@
+name: Batch 965-972 Experimental Highlight Momentum
+on:
+  push:
+    branches:
+      - batch-965-972-experimental-highlight-momentum
+  pull_request:
+    paths:
+      - 'hlm-experimental-highlight-momentum.js'
+      - 'hlm-experimental-highlight-momentum.test.js'
+      - 'docs/BATCH_965_972_EXPERIMENTAL_HIGHLIGHT_MOMENTUM.md'
+      - '.github/workflows/batch-965-972-highlight-momentum.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-highlight-momentum.test.js
