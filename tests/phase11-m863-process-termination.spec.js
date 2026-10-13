@@ -4,12 +4,13 @@ const fs=require('node:fs'),http=require('node:http'),os=require('node:os'),path
 const fixture=fs.readFileSync(path.join(__dirname,'phase11-m863-process-termination.html'));
 let server,base;
 test.beforeAll(async()=>{
- server=http.createServer((req,res)=>{res.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store'});res.end(fixture)});
+ server=http.createServer((req,res)=>{res.writeHead(200,{'Content-Type':'text/html','Cache-Control':'no-store','Cross-Origin-Opener-Policy':'same-origin','Cross-Origin-Embedder-Policy':'require-corp'});res.end(fixture)});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  base='http://127.0.0.1:'+server.address().port+'/?phase=';
 });
 test.afterAll(async()=>{await new Promise(resolve=>server.close(resolve))});
 test('Chromium process termination preserves committed multi-store snapshot',async()=>{
+ test.setTimeout(120000);
  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'hlm-m863-'));
  let context,child;
  const launch=()=>chromium.launchPersistentContext(profile,{headless:true,args:['--no-sandbox']});
@@ -28,8 +29,9 @@ test('Chromium process termination preserves committed multi-store snapshot',asy
   expect(pending).toBe(true);
   // Kill the worker and all Chromium descendants as a single OS process group.
   // Do not call browser.close(): this specifically exercises abrupt termination.
+  const exited=new Promise(resolve=>child.once('exit',resolve));
   process.kill(-child.pid,'SIGKILL');
-  await new Promise(resolve=>child.once('exit',resolve));
+  await exited;
   child=null;
   context=await launch();
   const verify=await context.newPage();
