@@ -1,0 +1,20 @@
+name: Batch 877-884 Experimental Game Narratives
+on:
+  push:
+    branches:
+      - batch-877-884-experimental-game-narratives
+  pull_request:
+    paths:
+      - 'hlm-experimental-game-narratives.js'
+      - 'hlm-experimental-game-narratives.test.js'
+      - 'docs/BATCH_877_884_EXPERIMENTAL_GAME_NARRATIVES.md'
+      - '.github/workflows/batch-877-884-game-narratives.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-game-narratives.test.js
