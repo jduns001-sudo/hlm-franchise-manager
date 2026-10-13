@@ -1,0 +1,24 @@
+name: Phase 11 Mobile Browser Acceptance Safety
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-mobile-browser-acceptance.test.js'
+      - '.github/workflows/phase11-mobile-browser-acceptance.yml'
+  push:
+    branches: [phase11-mobile-browser-acceptance-safety]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-mobile-browser-acceptance.test.js
+      - run: node hlm-phase11-browser-validation.test.js
+      - run: node hlm-phase11-mobile-preview-acceptance.test.js
+      - run: node hlm-phase11-mobile-preview.test.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: npm test
