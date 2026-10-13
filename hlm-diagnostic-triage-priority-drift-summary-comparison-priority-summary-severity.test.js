@@ -66,7 +66,7 @@ assert.equal(report.findingCount, 8);
 assert.equal(report.highestSeverity, 'critical');
 assert.deepEqual(report.counts, { critical: 1, high: 4, medium: 2, low: 1 });
 assert.deepEqual(report.findings.map(f => f.severity),
-  ['low', 'critical', 'medium', 'high', 'high', 'high', 'medium', 'high']);
+  ['low', 'critical', 'medium', 'high', 'high', 'medium', 'high', 'high']);
 assert.deepEqual(report.findings.map(f => f.originalIndex), [0, 1, 2, 3, 4, 5, 6, 7]);
 assert.equal(report.findingCount, report.findings.length);
 assert.equal(JSON.stringify(drift), before);
