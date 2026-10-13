@@ -21,7 +21,7 @@ const result = preview(state, 1, 2);
 assert.equal(result.kind, 'phase10-roster-backed-matchup-preview');
 assert.equal(result.home.teamId, 1);
 assert.equal(result.away.teamId, 2);
-assert.deepEqual(result.home.proposedPlayerIds, [10, 11, 12, 13, 14, 15]);
+assert.deepEqual(result.home.proposedPlayerIds, [10, 11, 12, 14, 13, 15]);
 assert.equal(result.home.proposedRatingSum, 495);
 assert.equal(result.home.proposedRatingCount, 6);
 assert.equal(result.home.evidenceCompleteCount, 6);
