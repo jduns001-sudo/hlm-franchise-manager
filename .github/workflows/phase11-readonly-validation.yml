@@ -1,0 +1,23 @@
+name: Phase 11 Readonly Validation Acceptance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-roster-validation*'
+      - '.github/workflows/phase11-readonly-validation.yml'
+  push:
+    branches: [phase11-readonly-validation-acceptance]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-roster-validation.test.js
+      - run: node hlm-phase11-mobile-preview-acceptance.test.js
+      - run: node hlm-phase11-mobile-preview.test.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: npm test
