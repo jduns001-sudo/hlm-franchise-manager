@@ -1,0 +1,20 @@
+name: Batch 869-876 Experimental Lead Changes
+on:
+  push:
+    branches:
+      - batch-869-876-experimental-lead-changes
+  pull_request:
+    paths:
+      - 'hlm-experimental-lead-changes.js'
+      - 'hlm-experimental-lead-changes.test.js'
+      - 'docs/BATCH_869_876_EXPERIMENTAL_LEAD_CHANGES.md'
+      - '.github/workflows/batch-869-876-lead-changes.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-lead-changes.test.js
