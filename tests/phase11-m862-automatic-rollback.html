@@ -1,0 +1,82 @@
+<!doctype html><meta charset="utf-8"><title>Mission 862 automatic rollback</title>
+<script>
+'use strict';
+const DB='hlm_phase11_m862_auto_rollback_test_only';
+const stores=['roster','contracts','draftPicks','history'];
+const snapshot=n=>({
+ roster:{playerId:101,overall:70+n},
+ contracts:{playerId:101,capHit:1000000+n*100000},
+ draftPicks:{year:2027,ownerId:n},
+ history:{year:2025,wins:30+n}
+});
+const baseline=snapshot(0),committed=snapshot(1),candidate=snapshot(2);
+const result=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+const status=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+async function open(){
+ const req=indexedDB.open(DB,1);
+ req.onupgradeneeded=()=>{
+  stores.forEach(name=>req.result.createObjectStore(name));
+  req.transaction.objectStore('history').createIndex('uniqueYear','year',{unique:true});
+ };
+ return result(req);
+}
+function write(db,values){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(stores,'readwrite');
+  stores.forEach(name=>tx.objectStore(name).put(values[name],'snapshot'));
+  tx.oncomplete=()=>resolve();
+  tx.onerror=()=>reject(tx.error);
+  tx.onabort=()=>reject(tx.error||Error('aborted'));
+ });
+}
+async function read(db){
+ const tx=db.transaction(stores,'readonly');
+ const values=await Promise.all(stores.map(name=>result(tx.objectStore(name).get('snapshot'))));
+ return Object.fromEntries(stores.map((name,i)=>[name,values[i]]));
+}
+const matches=(a,b)=>stores.every(name=>JSON.stringify(a[name])===JSON.stringify(b[name]));
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ const db=await open();
+ if(phase==='seed'){
+  await write(db,baseline);
+  if(!matches(await read(db),baseline))throw Error('baseline mismatch');
+  await write(db,committed);
+  if(!matches(await read(db),committed))throw Error('committed mismatch');
+  db.close();status('committed');return;
+ }
+ if(phase==='failure'){
+  if(!matches(await read(db),committed))throw Error('committed snapshot missing');
+  const tx=db.transaction(stores,'readwrite');
+  let requestFailed=false,aborted=false,completed=false,errorName=null;
+  tx.oncomplete=()=>{completed=true;status('failed',{error:'candidate transaction unexpectedly committed'})};
+  tx.onerror=()=>{}; // Intentionally do not call preventDefault: allow automatic abort.
+  tx.onabort=async()=>{
+   aborted=true;
+   try{
+    const actual=await read(db);
+    const retained=matches(actual,committed);
+    const noCandidate=stores.every(name=>JSON.stringify(actual[name])!==JSON.stringify(candidate[name]));
+    db.close();
+    status(requestFailed&&aborted&&!completed&&errorName==='ConstraintError'&&retained&&noCandidate?'rolled-back':'failed',
+     {requestFailed,aborted,completed,errorName,retained,noCandidate,stores});
+   }catch(error){status('failed',{error:String(error)})}
+  };
+  stores.forEach(name=>tx.objectStore(name).put(candidate[name],'snapshot'));
+  // The committed history record already owns year 2025. Adding another key with the
+  // same indexed year violates uniqueYear and automatically aborts the entire transaction.
+  const failure=tx.objectStore('history').add({year:2025,wins:999},'intentional-conflict');
+  failure.onerror=()=>{requestFailed=true;errorName=failure.error&&failure.error.name};
+  failure.onsuccess=()=>status('failed',{error:'intentional unique-index conflict did not fail'});
+  return;
+ }
+ if(phase==='verify'){
+  const actual=await read(db);
+  const retained=matches(actual,committed);
+  const noCandidate=stores.every(name=>JSON.stringify(actual[name])!==JSON.stringify(candidate[name]));
+  db.close();status(retained&&noCandidate?'verified':'failed',{retained,noCandidate,stores});return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(error=>status('failed',{error:String(error)}));
+</script>
