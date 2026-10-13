@@ -1,0 +1,23 @@
+name: Phase 11 Published Preview Smoke
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/phase11-pages-preview-smoke.yml'
+      - 'hlm-phase11-pages-smoke.test.js'
+  push:
+    branches: [phase11-pages-deployment-acceptance]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  published-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-pages-smoke.test.js
+      - run: node hlm-phase11-mobile-browser-acceptance.test.js
+      - run: node hlm-phase11-release-acceptance.test.js
+      - run: npm test
