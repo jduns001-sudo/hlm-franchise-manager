@@ -1,0 +1,20 @@
+name: Mission 734 League Participation Tests
+on:
+  push:
+    branches:
+      - mission-734-league-participation
+  pull_request:
+    paths:
+      - 'hlm-phase10-league-participation-references.js'
+      - 'hlm-phase10-league-participation-references.test.js'
+      - 'docs/MISSION_734_LEAGUE_PARTICIPATION.md'
+      - '.github/workflows/mission-734-league-participation.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-league-participation-references.test.js
