@@ -4,7 +4,7 @@ const {createExperimentalMomentum}=require('./hlm-experimental-momentum');
 function createExperimentalGameTrends(state,homeId,awayId,seed,playoff=false){
  const base=createExperimentalMomentum(state,homeId,awayId,seed,playoff);
  if(!base.researchReady)return {kind:'experimental-game-trends',researchReady:false,blockers:base.blockers,periods:null,teams:null,official:false,persistencePerformed:false};
- let previousHomeGoals=0,previousAwayGoals=0,previousHomeShots=0,previousAwayShots;
+ let previousHomeGoals=0,previousAwayGoals=0,previousHomeShots=0,previousAwayShots=0;
  const periods=base.periods.map(p=>{
   const homeGoalSwing=p.cumulativeHomeGoals-previousHomeGoals,awayGoalSwing=p.cumulativeAwayGoals-previousAwayGoals;
   const homeShotSwing=p.cumulativeHomeShots-previousHomeShots,awayShotSwing=p.cumulativeAwayShots-previousAwayShots;
@@ -20,7 +20,7 @@ function createExperimentalGameTrends(state,homeId,awayId,seed,playoff=false){
  }
  const last=periods.at(-1);
  const valid=base.audit.consistent&&Boolean(last)&&last.goalMargin===teams.home.goalDifferential&&last.shotMargin===teams.home.shotDifferential&&teams.home.goalDifferential===-teams.away.goalDifferential&&teams.home.shotDifferential===-teams.away.shotDifferential&&periods.every(p=>p.homeGoalSwing===p.homeGoals&&p.awayGoalSwing===p.awayGoals&&p.homeShotSwing===p.homeShots&&p.awayShotSwing===p.awayShots&&p.periodIntensity===p.homeShots+p.awayShots);
- if(!valid)throw new Error('EXPERIMENTAL_GAME_TRENDS_AUDIT_FAILED '+JSON.stringify({last,home:teams.home,away:teams.away,periodsValid:periods.map(p=>({period:p.period,homeGoalSwing:p.homeGoalSwing,homeGoals:p.homeGoals,awayGoalSwing:p.awayGoalSwing,awayGoals:p.awayGoals,homeShotSwing:p.homeShotSwing,homeShots:p.homeShots,awayShotSwing:p.awayShotSwing,awayShots:p.awayShots}))}));
+ if(!valid)throw new Error('EXPERIMENTAL_GAME_TRENDS_AUDIT_FAILED');
  return {kind:'experimental-game-trends',researchReady:true,periods,teams,audit:{consistent:true,periodsChecked:periods.length},trendMode:'synthetic-descriptive',game:base.game,official:false,persistencePerformed:false};
 }
 module.exports={createExperimentalGameTrends};
