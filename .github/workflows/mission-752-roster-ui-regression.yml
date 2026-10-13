@@ -1,0 +1,19 @@
+name: Mission 752 Roster Lab UI Regression
+on:
+  push:
+    branches: [mission-752-roster-lab-browser-regression]
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-lab-ui-regression.test.js'
+      - 'phase10-roster-lab.html'
+      - 'hlm-phase10-roster-lab.bundle.js'
+      - '.github/workflows/mission-752-roster-ui-regression.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-lab-ui-regression.test.js
