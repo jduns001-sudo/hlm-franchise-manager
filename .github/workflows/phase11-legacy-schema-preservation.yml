@@ -1,0 +1,23 @@
+name: Phase 11 Legacy Schema Preservation
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-legacy-schema-preservation.js'
+      - 'hlm-phase11-legacy-schema-preservation.test.js'
+      - '.github/workflows/phase11-legacy-schema-preservation.yml'
+  push:
+    branches: [phase11-legacy-schema-preservation]
+permissions:
+  contents: read
+jobs:
+  schema-preservation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-legacy-schema-preservation.test.js
+      - run: node hlm-phase11-durable-file-verify.test.js
+      - run: node hlm-phase11-production-readiness.test.js
+      - run: npm test
