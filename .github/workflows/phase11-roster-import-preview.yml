@@ -1,0 +1,20 @@
+name: Phase 11 Roster Import Preview
+on:
+  push:
+    branches: [mission-762-phase11-roster-import-preview]
+  pull_request:
+    paths:
+      - 'hlm-phase11-roster-import.js'
+      - 'hlm-phase11-roster-import.test.js'
+      - '.github/workflows/phase11-roster-import-preview.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-roster-import.test.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: node hlm-phase10-roster-lab-e2e.test.js
