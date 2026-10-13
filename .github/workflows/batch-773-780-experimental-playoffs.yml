@@ -1,0 +1,20 @@
+name: Batch 773-780 Experimental Playoff Series
+on:
+  push:
+    branches:
+      - batch-773-780-experimental-playoff-series
+  pull_request:
+    paths:
+      - 'hlm-experimental-playoff-series.js'
+      - 'hlm-experimental-playoff-series.test.js'
+      - 'docs/BATCH_773_780_EXPERIMENTAL_PLAYOFF_SERIES.md'
+      - '.github/workflows/batch-773-780-experimental-playoffs.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-playoff-series.test.js
