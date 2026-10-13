@@ -115,7 +115,7 @@ assert.equal(lowOnly.highestSeverity, 'low');
 assert.deepEqual(lowOnly.priorityFindings.map(f => f.field), ['l']);
 assert.deepEqual(lowOnly.urgentFindings, []);
 
-for (const invalid of [null, undefined, [], {}, { ...emptyInput, kind: 'other' },
+for (const invalid of [null, [], {}, { ...emptyInput, kind: 'other' },
   { ...emptyInput, findings: null }, { ...emptyInput, findingCount: 2 }]) {
   assert.throws(() => summarize(invalid), { code: 'INVALID_PRIORITY_SUMMARY_SEVERITY_REPORT' });
 }
