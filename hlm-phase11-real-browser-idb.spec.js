@@ -45,7 +45,7 @@ test('aborted real IndexedDB write leaves previous record intact',async({page})=
  await write(page,{schema:7,settings:{controlledTeamId:10}});
  const value=await page.evaluate(()=>new Promise((resolve,reject)=>{
   const r=indexedDB.open('hlm_front_office_v8');
-  r.onsuccess=()=>{const db=r.result,tx=db.transaction('state','readwrite');tx.objectStore('state').put({schema:7,settings:{controlledTeamId:999}},'db');tx.abort();tx.onabort=()=>{db.close();resolve('aborted')};tx.onerror=()=>reject(tx.error)};
+  r.onsuccess=()=>{const db=r.result,tx=db.transaction('state','readwrite');tx.objectStore('state').put({schema:7,settings:{controlledTeamId:999}},'db');tx.abort();tx.onabort=()=>{db.close();resolve('aborted')};tx.onerror=()=>{}};
   r.onerror=()=>reject(r.error);
  }));
  expect(value).toBe('aborted');
