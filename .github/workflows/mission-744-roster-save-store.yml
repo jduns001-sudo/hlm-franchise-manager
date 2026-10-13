@@ -1,0 +1,19 @@
+name: Mission 744 Roster Save Store Tests
+on:
+  push:
+    branches:
+      - mission-744-isolated-roster-save-store
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-save-store.js'
+      - 'hlm-phase10-roster-save-store.test.js'
+      - '.github/workflows/mission-744-roster-save-store.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-save-store.test.js
