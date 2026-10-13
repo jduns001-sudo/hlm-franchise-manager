@@ -1,0 +1,20 @@
+name: Batch 757-764 Experimental Season Lab
+on:
+  push:
+    branches:
+      - batch-757-764-isolated-season-simulation
+  pull_request:
+    paths:
+      - 'hlm-experimental-season-batch.js'
+      - 'hlm-experimental-season-batch.test.js'
+      - 'docs/BATCH_757_764_EXPERIMENTAL_SEASON_LAB.md'
+      - '.github/workflows/batch-757-764-experimental-season.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-season-batch.test.js
