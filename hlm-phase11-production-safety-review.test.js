@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const doc=fs.readFileSync(path.join(__dirname,'PHASE11_PRODUCTION_SAFETY_REVIEW.md'),'utf8');
+const backup=fs.readFileSync(path.join(__dirname,'hlm-phase11-indexeddb-backup.js'),'utf8');
+const exportCode=fs.readFileSync(path.join(__dirname,'hlm-phase11-idb-portable-export.js'),'utf8');
+const browser=fs.readFileSync(path.join(__dirname,'hlm-phase11-real-browser-idb.spec.js'),'utf8');
+const app=fs.readFileSync(path.join(__dirname,'app.html'),'utf8');
+for(const phrase of ['NO CUTOVER','Durable backup evidence','Interruption recovery','Schema compatibility','Controlled-team retention','Explicit GM approval','Opt-in rollout','NO GO','JSON.stringify/parse','callback'])assert.ok(doc.includes(phrase),'missing review requirement: '+phrase);
+assert.match(backup,/DB_NAME='hlm_front_office_v8'/);
+assert.match(backup,/authorization!==true/);
+assert.match(backup,/JSON\.parse\(JSON\.stringify\(v\)\)/);
+assert.match(exportCode,/result!==true/);
+assert.match(browser,/aborted real IndexedDB write/);
+assert.match(app,/hlm_front_office_v8/);
+assert.ok(!doc.includes('GO FOR PRODUCTION'),'review must not authorize cutover');
+console.log('Phase 11 production safety review requirements passed (review-only; not production acceptance).');
