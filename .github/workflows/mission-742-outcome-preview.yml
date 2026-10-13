@@ -1,0 +1,20 @@
+name: Mission 742 Experimental Outcome Preview Tests
+on:
+  push:
+    branches:
+      - mission-742-experimental-outcome-preview
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-regulation-outcome-preview.js'
+      - 'hlm-phase10-experimental-regulation-outcome-preview.test.js'
+      - 'docs/MISSION_742_EXPERIMENTAL_OUTCOME_PREVIEW.md'
+      - '.github/workflows/mission-742-outcome-preview.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-regulation-outcome-preview.test.js
