@@ -1,0 +1,22 @@
+name: Phase 11 Legacy Migration Assessment
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-legacy-migration-assessment.js'
+      - 'hlm-phase11-legacy-migration-assessment.test.js'
+      - '.github/workflows/phase11-legacy-migration-assessment.yml'
+  push:
+    branches: [phase11-legacy-migration-assessment]
+permissions:
+  contents: read
+jobs:
+  migration-assessment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-legacy-migration-assessment.test.js
+      - run: node hlm-phase11-legacy-schema-preservation.test.js
+      - run: npm test
