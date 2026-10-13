@@ -1,0 +1,20 @@
+name: Mission 748 Experimental Gate Diagnostics
+on:
+  push:
+    branches:
+      - mission-748-experimental-gate-diagnostics-v2
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-gate-diagnostics.js'
+      - 'hlm-phase10-experimental-gate-diagnostics.test.js'
+      - 'docs/MISSION_748_EXPERIMENTAL_GATE_DIAGNOSTICS_PLAN.md'
+      - '.github/workflows/mission-748-gate-diagnostics.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-gate-diagnostics.test.js
