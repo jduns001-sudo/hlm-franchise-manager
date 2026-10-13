@@ -1,0 +1,19 @@
+name: Mission 742 Controlled Roster Game Tests
+on:
+  push:
+    branches:
+      - mission-742-controlled-roster-game-execution
+  pull_request:
+    paths:
+      - 'hlm-phase10-controlled-roster-game.js'
+      - 'hlm-phase10-controlled-roster-game.test.js'
+      - '.github/workflows/mission-742-controlled-roster-game.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-controlled-roster-game.test.js
