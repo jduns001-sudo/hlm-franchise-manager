@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {buildExperimentalGoalEvents:build,aggregateExperimentalGoals:aggregate}=require('./hlm-phase10-experimental-player-goals');
+const state={universe:{players:[{id:101,teamId:1,position:'C',ovr:88},{id:102,teamId:1,position:'D',ovr:78},{id:201,teamId:2,position:'LW',ovr:81},{id:202,teamId:2,position:'G',ovr:90}]}};
+const game={id:'G1',status:'final',homeTeamId:1,awayTeamId:2,homeGoals:3,awayGoals:2};
+const before=JSON.stringify(state);
+const events=build(state,game,7);
+assert.equal(events.length,5);
+assert.equal(events.filter(e=>e.teamId===1).length,3);
+assert.equal(events.filter(e=>e.teamId===2).length,2);
+assert(!events.some(e=>e.playerId===202));
+assert.deepEqual(events,build(state,game,7));
+assert.equal(aggregate(events).reduce((n,p)=>n+p.goals,0),5);
+assert.equal(JSON.stringify(state),before);
+assert.throws(()=>build({universe:{players:[]}},game,7),/No eligible scoring players/);
+console.log('Mission 747 experimental player goal stats tests passed.');
