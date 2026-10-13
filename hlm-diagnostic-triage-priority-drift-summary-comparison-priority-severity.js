@@ -46,12 +46,12 @@ function createDiagnosticTriagePriorityDriftSummaryComparisonPrioritySeverityRep
     throw error;
   }
   const findings = drift.findings.map((finding, originalIndex) => ({
+    ...classifyPriorityBaselineDriftFinding(finding),
     scenario: finding.scenario,
     field: finding.field,
     code: finding.code,
     expected: Array.isArray(finding.expected) ? finding.expected.slice() : finding.expected,
     actual: Array.isArray(finding.actual) ? finding.actual.slice() : finding.actual,
-    ...classifyPriorityBaselineDriftFinding(finding),
     originalIndex
   }));
   const counts = { critical: 0, high: 0, medium: 0, low: 0 };
