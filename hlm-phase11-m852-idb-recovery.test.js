@@ -20,6 +20,6 @@ const {DB,openDB,read,stagedRecovery}=require('./hlm-phase11-m852-idb-recovery')
   assert.equal(await read(db,'production'),undefined);
   db.close();
  }
- await assert.rejects(openDB(indexedDB,'hlm_front_office_v8'),/Test database namespace required/);
+ assert.throws(()=>openDB(indexedDB,'hlm_front_office_v8'),/Test database namespace required/);
  console.log('Mission 852 isolated fake IndexedDB reload/failure fidelity passed; not a real browser crash test');
 })().catch(e=>{console.error(e);process.exitCode=1});
