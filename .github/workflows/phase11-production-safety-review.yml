@@ -1,0 +1,24 @@
+name: Phase 11 Production Safety Review
+on:
+  pull_request:
+    paths:
+      - 'PHASE11_PRODUCTION_SAFETY_REVIEW.md'
+      - 'hlm-phase11-production-safety-review.test.js'
+      - '.github/workflows/phase11-production-safety-review.yml'
+  push:
+    branches: [phase11-production-safety-review]
+permissions:
+  contents: read
+jobs:
+  safety-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-production-safety-review.test.js
+      - run: node hlm-phase11-production-readiness.test.js
+      - run: node hlm-phase11-idb-portable-export.test.js
+      - run: node hlm-phase11-indexeddb-backup.test.js
+      - run: npm test
