@@ -1,0 +1,20 @@
+name: Batch 837-844 Experimental Game Recaps
+on:
+  push:
+    branches:
+      - batch-837-844-experimental-game-recaps
+  pull_request:
+    paths:
+      - 'hlm-experimental-game-recaps.js'
+      - 'hlm-experimental-game-recaps.test.js'
+      - 'docs/BATCH_837_844_EXPERIMENTAL_GAME_RECAPS.md'
+      - '.github/workflows/batch-837-844-game-recaps.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-game-recaps.test.js
