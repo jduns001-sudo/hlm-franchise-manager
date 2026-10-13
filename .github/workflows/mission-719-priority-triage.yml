@@ -1,0 +1,20 @@
+name: Mission 719 Priority Triage Tests
+on:
+  push:
+    branches:
+      - mission-719-priority-triage
+  pull_request:
+    paths:
+      - 'hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-priority-priority-priority-report.js'
+      - 'hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-priority-priority-priority-report.test.js'
+      - 'docs/MISSION_719_PRIORITY_TRIAGE_REPORT.md'
+      - '.github/workflows/mission-719-priority-triage.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-priority-priority-priority-report.test.js
