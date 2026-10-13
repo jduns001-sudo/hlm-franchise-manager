@@ -25,7 +25,6 @@ async function run(){
   put.onsuccess=()=>{
    report('pending'); // Write request succeeded, but transaction has NOT completed.
    const keepAlive=()=>{
-    if(tx.readyState!=='active')return;
     const next=store.get('original');
     next.onsuccess=keepAlive; // Keep requesting within active transaction until process is killed.
     next.onerror=()=>report('failed',{error:String(next.error)});
