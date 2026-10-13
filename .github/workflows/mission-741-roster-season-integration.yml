@@ -1,0 +1,19 @@
+name: Mission 741 Roster Season Integration Tests
+on:
+  push:
+    branches:
+      - mission-741-roster-simulation-integration-tests
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-season-integration-assessment.js'
+      - 'hlm-phase10-roster-season-integration-assessment.test.js'
+      - '.github/workflows/mission-741-roster-season-integration.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-season-integration-assessment.test.js
