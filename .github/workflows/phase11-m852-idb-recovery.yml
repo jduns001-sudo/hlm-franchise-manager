@@ -1,0 +1,23 @@
+name: Phase 11 Mission 852 Isolated IndexedDB Recovery
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m852-idb-recovery.js'
+      - 'hlm-phase11-m852-idb-recovery.test.js'
+      - '.github/workflows/phase11-m852-idb-recovery.yml'
+  push:
+    branches: [phase11-m852-idb-recovery-isolation]
+permissions:
+  contents: read
+jobs:
+  isolated-idb-recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false fake-indexeddb@6.2.4
+      - run: node hlm-phase11-m852-idb-recovery.test.js
+      - run: node hlm-phase11-m851-legacy-fixtures.test.js
+      - run: npm test
