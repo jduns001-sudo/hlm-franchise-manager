@@ -1,0 +1,20 @@
+name: Mission 736 Game Eligibility Evidence Tests
+on:
+  push:
+    branches:
+      - mission-736-game-eligibility-evidence
+  pull_request:
+    paths:
+      - 'hlm-phase10-game-eligibility-evidence.js'
+      - 'hlm-phase10-game-eligibility-evidence.test.js'
+      - 'docs/MISSION_736_GAME_ELIGIBILITY_EVIDENCE.md'
+      - '.github/workflows/mission-736-game-eligibility-evidence.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-game-eligibility-evidence.test.js
