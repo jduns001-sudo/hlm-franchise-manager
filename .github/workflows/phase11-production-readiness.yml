@@ -1,0 +1,24 @@
+name: Phase 11 Production Integration Readiness
+on:
+  pull_request:
+    paths:
+      - 'PHASE11_PRODUCTION_INTEGRATION_READINESS.md'
+      - 'hlm-phase11-production-readiness.test.js'
+      - '.github/workflows/phase11-production-readiness.yml'
+  push:
+    branches: [phase11-production-integration-readiness]
+permissions:
+  contents: read
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-production-readiness.test.js
+      - run: node hlm-phase11-release-acceptance.test.js
+      - run: node hlm-phase11-mobile-browser-acceptance.test.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: npm test
