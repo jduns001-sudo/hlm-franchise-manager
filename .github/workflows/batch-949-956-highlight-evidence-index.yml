@@ -1,0 +1,20 @@
+name: Batch 949-956 Experimental Highlight Evidence Index
+on:
+  push:
+    branches:
+      - batch-949-956-experimental-highlight-evidence-index
+  pull_request:
+    paths:
+      - 'hlm-experimental-highlight-evidence-index.js'
+      - 'hlm-experimental-highlight-evidence-index.test.js'
+      - 'docs/BATCH_949_956_EXPERIMENTAL_HIGHLIGHT_EVIDENCE_INDEX.md'
+      - '.github/workflows/batch-949-956-highlight-evidence-index.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-highlight-evidence-index.test.js
