@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Mission 853 isolated browser IndexedDB recovery</title>
+<script>
+'use strict';
+const NAME='hlm_phase11_m853_browser_test_only',STORE='records';
+const expected={schema:5,settings:{controlledTeamId:42},roster:[{id:101,overall:82}],contracts:[{playerId:101}],draftPicks:[{ownerId:42}],history:[{year:2025}]};
+const report=(stage,extra={})=>{document.body.dataset.stage=stage;document.body.dataset.result=JSON.stringify(extra)};
+const reqPromise=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+async function open(){
+ const req=indexedDB.open(NAME,1);
+ req.onupgradeneeded=()=>req.result.createObjectStore(STORE);
+ return reqPromise(req);
+}
+async function transaction(db,operation,abort=false){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(STORE,'readwrite');
+  tx.oncomplete=()=>resolve();
+  tx.onabort=()=>abort?resolve():reject(tx.error||Error('Unexpected abort'));
+  tx.onerror=()=>{if(!abort)reject(tx.error)};
+  operation(tx.objectStore(STORE));
+  if(abort)tx.abort();
+ });
+}
+async function read(db,key){
+ return reqPromise(db.transaction(STORE,'readonly').objectStore(STORE).get(key));
+}
+async function run(){
+ const params=new URLSearchParams(location.search),phase=params.get('phase')||'seed';
+ const db=await open();
+ try{
+  if(phase==='seed'){
+   await transaction(db,s=>s.put(expected,'original'));
+   await transaction(db,s=>s.put({phase:'seeded',authorized:false},'journal'));
+   report('seeded');
+  }else if(phase==='abort'){
+   await transaction(db,s=>s.put({roster:[{id:101,overall:99}]},'candidate'),true);
+   report('aborted');
+  }else if(phase==='stage'){
+   await transaction(db,s=>s.put({roster:[{id:101,overall:99}]},'candidate'));
+   report('staged');
+  }else if(phase==='verify'){
+   const original=await read(db,'original'),candidate=await read(db,'candidate'),journal=await read(db,'journal');
+   const originalIntact=JSON.stringify(original)===JSON.stringify(expected);
+   report(originalIntact?'verified':'failed',{originalIntact,candidatePresent:candidate!==undefined,journal});
+  }else throw Error('Unknown phase');
+ }finally{db.close()}
+}
+run().catch(e=>report('failed',{error:String(e)}));
+</script>
