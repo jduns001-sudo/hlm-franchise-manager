@@ -30,4 +30,5 @@ assert.equal(store.load().extensions.phase10Playoffs.status,'complete');
 assert([1,2,3,4].includes(store.load().extensions.phase10Playoffs.championTeamId));
 assert.equal(memory.get('hlm-phase10-demo-v1'),'DO_NOT_TOUCH');
 assert.throws(()=>store.startPlayoffsAndSave(),/already started/);
+assert.equal(store.load().extensions.phase10Playoffs.status,'complete');
 console.log('Mission 751 complete roster season to championship test passed: '+days+' days, '+count+' playoff games.');
