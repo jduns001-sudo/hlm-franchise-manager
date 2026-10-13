@@ -1,0 +1,20 @@
+name: Mission 720 Roster Projection Tests
+on:
+  push:
+    branches:
+      - mission-720-simulation-team-roster
+  pull_request:
+    paths:
+      - 'hlm-phase10-team-roster-projection.js'
+      - 'hlm-phase10-team-roster-projection.test.js'
+      - 'docs/MISSION_720_ROSTER_PROJECTION.md'
+      - '.github/workflows/mission-720-roster-projection.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-team-roster-projection.test.js
