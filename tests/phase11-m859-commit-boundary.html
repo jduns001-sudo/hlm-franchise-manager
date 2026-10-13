@@ -1,0 +1,76 @@
+<!doctype html><meta charset="utf-8"><title>Mission 859 commit boundary crash</title>
+<script>
+'use strict';
+const DB='hlm_phase11_m859_commit_boundary_test_only';
+const baseline={
+ roster:[{id:101,overall:70}],contracts:[{playerId:101,capHit:1000000}],
+ draftPicks:[{year:2027,ownerId:1}],history:[{year:2025,wins:30}]
+};
+const committed={
+ roster:[{id:101,overall:82}],contracts:[{playerId:101,capHit:2500000}],
+ draftPicks:[{year:2027,ownerId:42}],history:[{year:2025,wins:41}]
+};
+const candidate={
+ roster:[{id:101,overall:99}],contracts:[{playerId:101,capHit:9500000}],
+ draftPicks:[{year:2027,ownerId:77}],history:[{year:2025,wins:12}]
+};
+const stores=Object.keys(baseline);
+const result=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+const status=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+async function open(){const req=indexedDB.open(DB,1);req.onupgradeneeded=()=>stores.forEach(name=>req.result.createObjectStore(name));return result(req)}
+function write(db,values){return new Promise((resolve,reject)=>{
+ const tx=db.transaction(stores,'readwrite');
+ stores.forEach(name=>tx.objectStore(name).put(values[name],'snapshot'));
+ tx.oncomplete=()=>resolve();
+ tx.onerror=()=>reject(tx.error);
+ tx.onabort=()=>reject(tx.error||Error('aborted'));
+})}
+async function read(db){
+ const tx=db.transaction(stores,'readonly');
+ const records=await Promise.all(stores.map(name=>result(tx.objectStore(name).get('snapshot'))));
+ return Object.fromEntries(stores.map((name,i)=>[name,records[i]]));
+}
+const matches=(actual,expected)=>stores.every(name=>JSON.stringify(actual[name])===JSON.stringify(expected[name]));
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase'),db=await open();
+ if(phase==='seed'){await write(db,baseline);db.close();status('seeded');return}
+ if(phase==='commit'){
+  const before=await read(db);
+  if(!matches(before,baseline))throw Error('Baseline not intact');
+  await write(db,committed); // Wait for actual transaction oncomplete, not request success.
+  const after=await read(db);
+  if(!matches(after,committed))throw Error('Committed values not visible');
+  db.close();status('committed',{stores});return;
+ }
+ if(phase==='verify'){
+  const actual=await read(db);
+  const retained=matches(actual,committed);
+  const noCandidates=stores.every(name=>JSON.stringify(actual[name])!==JSON.stringify(candidate[name]));
+  db.close();status(retained&&noCandidates?'verified':'failed',{retained,noCandidates,stores});return;
+ }
+ if(phase!=='pending')throw Error('Unknown phase');
+ const current=await read(db);
+ if(!matches(current,committed))throw Error('Prior committed transaction missing before crash');
+ const tx=db.transaction(stores,'readwrite');
+ tx.oncomplete=()=>status('committed-unexpectedly');
+ tx.onabort=()=>status('aborted');
+ tx.onerror=()=>status('failed',{error:String(tx.error)});
+ let completed=0;
+ stores.forEach(name=>{
+  const req=tx.objectStore(name).put(candidate[name],'snapshot');
+  req.onerror=()=>status('failed',{error:String(req.error)});
+  req.onsuccess=()=>{
+   if(++completed!==stores.length)return;
+   // Chain requests to keep the second transaction uncommitted before SIGKILL.
+   function keepAlive(){
+    const next=tx.objectStore(stores[0]).get('snapshot');
+    next.onsuccess=keepAlive;
+    next.onerror=()=>status('failed',{error:String(next.error)});
+   }
+   keepAlive();
+   status('pending',{queued:completed,stores});
+  };
+ });
+}
+run().catch(error=>status('failed',{error:String(error)}));
+</script>
