@@ -29,6 +29,11 @@ function createRosterBackedGameOutcomeBatch(state, games, seed = 1) {
       error.code = 'INVALID_ROSTER_GAME_BATCH_ENTRY';
       throw error;
     }
+    if (!Number.isSafeInteger(seed + index)) {
+      const error = new RangeError('Batch seed plus game index exceeds safe integer range');
+      error.code = 'INVALID_ROSTER_GAME_BATCH_SEED';
+      throw error;
+    }
     seen.add(String(game.id));
     const proposal = createRosterBackedGameOutcomeProposal(
       state, game.homeTeamId, game.awayTeamId, seed + index
