@@ -1,0 +1,20 @@
+name: Mission 751 Experimental Simulation Dry Run
+on:
+  push:
+    branches:
+      - mission-751-experimental-simulation-dry-run-v2
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-simulation-dry-run.js'
+      - 'hlm-phase10-experimental-simulation-dry-run.test.js'
+      - 'docs/MISSION_751_EXPERIMENTAL_SIMULATION_DRY_RUN_PLAN.md'
+      - '.github/workflows/mission-751-simulation-dry-run.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-simulation-dry-run.test.js
