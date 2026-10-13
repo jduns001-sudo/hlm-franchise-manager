@@ -1,0 +1,20 @@
+name: Mission 718 Priority Drift Severity Tests
+on:
+  push:
+    branches:
+      - mission-718-severity-classification
+  pull_request:
+    paths:
+      - 'hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-priority-priority-severity.js'
+      - 'hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-priority-priority-severity.test.js'
+      - 'docs/MISSION_718_PRIORITY_DRIFT_SEVERITY.md'
+      - '.github/workflows/mission-718-severity-classification.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-diagnostic-triage-priority-drift-summary-comparison-priority-summary-priority-priority-severity.test.js
