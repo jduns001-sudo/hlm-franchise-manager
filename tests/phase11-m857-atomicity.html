@@ -1,0 +1,57 @@
+<!doctype html><meta charset="utf-8"><title>Mission 857 multi-record atomicity crash</title>
+<script>
+'use strict';
+const DB='hlm_phase11_m857_atomicity_test_only',STORE='franchise';
+const original={
+ roster:[{id:101,overall:82}],contracts:[{playerId:101,capHit:2500000}],
+ draftPicks:[{year:2027,ownerId:42}],history:[{year:2025,wins:41}]
+};
+const changed={
+ roster:[{id:101,overall:99}],contracts:[{playerId:101,capHit:9500000}],
+ draftPicks:[{year:2027,ownerId:77}],history:[{year:2025,wins:12}]
+};
+const keys=Object.keys(original);
+function result(request){return new Promise((resolve,reject)=>{request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error)})}
+function status(stage,detail={}){document.body.dataset.stage=stage;document.body.dataset.detail=JSON.stringify(detail)}
+async function open(){const request=indexedDB.open(DB,1);request.onupgradeneeded=()=>request.result.createObjectStore(STORE);return result(request)}
+function seed(db){return new Promise((resolve,reject)=>{
+ const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
+ keys.forEach(key=>store.put(original[key],key));
+ tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('aborted'));
+})}
+async function verify(db){
+ const tx=db.transaction(STORE,'readonly'),store=tx.objectStore(STORE);
+ const values=await Promise.all(keys.map(key=>result(store.get(key))));
+ const unchanged=keys.every((key,i)=>JSON.stringify(values[i])===JSON.stringify(original[key]));
+ const noneChanged=keys.every((key,i)=>JSON.stringify(values[i])!==JSON.stringify(changed[key]));
+ status(unchanged&&noneChanged?'verified':'failed',{unchanged,noneChanged,checked:keys});
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase'),db=await open();
+ if(phase==='seed'){await seed(db);db.close();status('seeded');return}
+ if(phase==='verify'){await verify(db);db.close();return}
+ if(phase!=='pending')throw Error('unknown phase');
+ const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
+ tx.oncomplete=()=>status('committed-unexpectedly');
+ tx.onabort=()=>status('aborted');
+ tx.onerror=()=>status('failed',{error:String(tx.error)});
+ const requests=keys.map(key=>store.put(changed[key],key));
+ let complete=0;
+ requests.forEach(request=>{
+  request.onerror=()=>status('failed',{error:String(request.error)});
+  request.onsuccess=()=>{
+   if(++complete!==keys.length)return;
+   // All four requests succeeded within one active, not-yet-committed transaction.
+   // Immediately enqueue another request on every success to prevent auto-commit.
+   function keepAlive(){
+    const next=store.get(keys[0]);
+    next.onsuccess=keepAlive;
+    next.onerror=()=>status('failed',{error:String(next.error)});
+   }
+   keepAlive();
+   status('pending',{queued:keys.length});
+  };
+ });
+}
+run().catch(e=>status('failed',{error:String(e)}));
+</script>
