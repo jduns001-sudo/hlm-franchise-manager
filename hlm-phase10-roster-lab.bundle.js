@@ -118,6 +118,7 @@ module.exports = {
 "hlm-phase10-roster-lab-season-store.js":function(module,exports,require){
 'use strict';
 const {createFranchiseSaveStore}=require('./hlm-phase10-save-store');
+const {validateGameStateEnvelope}=require('./hlm-game-state');
 const {simulateRosterDayWithGoalStats}=require('./hlm-phase10-roster-day-with-stats');
 const {calculateStandings}=require('./hlm-phase10-standings');
 const {seedPlayoffs}=require('./hlm-phase10-playoffs');
@@ -153,7 +154,19 @@ function createRosterLabSeasonStore(storage){
   if(result.advanced)store.save(result.nextState);
   return {...result,saved:result.advanced};
  }
- return {load:store.load,save:store.save,advanceAndSave,startPlayoffsAndSave,playoffGameAndSave,key:KEY};
+ function exportBackup(){
+  const state=store.load();if(!state)throw new Error('No roster lab save to export');
+  return JSON.stringify({format:'hlm-phase10-roster-lab-backup-v1',state});
+ }
+ function importBackup(serialized,{replace=false}={}){
+  if(typeof serialized!=='string'||serialized.length>10_000_000)throw new TypeError('Invalid roster lab backup size or type');
+  let backup;try{backup=JSON.parse(serialized)}catch(e){throw new Error('Backup is not valid JSON')}
+  if(!backup||backup.format!=='hlm-phase10-roster-lab-backup-v1'||!backup.state||!validateGameStateEnvelope(backup.state).valid)
+   throw new Error('Invalid roster lab backup format or state');
+  if(store.load()&&!replace)throw new Error('Existing roster lab save requires explicit replace');
+  store.save(backup.state);return backup.state;
+ }
+ return {load:store.load,save:store.save,advanceAndSave,startPlayoffsAndSave,playoffGameAndSave,exportBackup,importBackup,key:KEY};
 }
 module.exports={createRosterLabSeasonStore};
 
