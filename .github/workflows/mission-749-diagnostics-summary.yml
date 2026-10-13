@@ -1,0 +1,20 @@
+name: Mission 749 Experimental Diagnostics Summary
+on:
+  push:
+    branches:
+      - mission-749-experimental-diagnostics-summary-v2
+  pull_request:
+    paths:
+      - 'hlm-phase10-experimental-diagnostics-summary.js'
+      - 'hlm-phase10-experimental-diagnostics-summary.test.js'
+      - 'docs/MISSION_749_EXPERIMENTAL_DIAGNOSTICS_SUMMARY_PLAN.md'
+      - '.github/workflows/mission-749-diagnostics-summary.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-experimental-diagnostics-summary.test.js
