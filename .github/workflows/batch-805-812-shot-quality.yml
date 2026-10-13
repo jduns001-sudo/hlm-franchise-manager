@@ -1,0 +1,20 @@
+name: Batch 805-812 Experimental Shot Quality
+on:
+  push:
+    branches:
+      - batch-805-812-experimental-shot-quality
+  pull_request:
+    paths:
+      - 'hlm-experimental-shot-quality.js'
+      - 'hlm-experimental-shot-quality.test.js'
+      - 'docs/BATCH_805_812_EXPERIMENTAL_SHOT_QUALITY.md'
+      - '.github/workflows/batch-805-812-shot-quality.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-shot-quality.test.js
