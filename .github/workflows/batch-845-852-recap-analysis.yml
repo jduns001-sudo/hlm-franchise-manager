@@ -1,0 +1,20 @@
+name: Batch 845-852 Experimental Recap Analysis
+on:
+  push:
+    branches:
+      - batch-845-852-experimental-recap-analysis
+  pull_request:
+    paths:
+      - 'hlm-experimental-recap-analysis.js'
+      - 'hlm-experimental-recap-analysis.test.js'
+      - 'docs/BATCH_845_852_EXPERIMENTAL_RECAP_ANALYSIS.md'
+      - '.github/workflows/batch-845-852-recap-analysis.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-recap-analysis.test.js
