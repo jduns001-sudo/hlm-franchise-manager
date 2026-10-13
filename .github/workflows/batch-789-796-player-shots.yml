@@ -1,0 +1,20 @@
+name: Batch 789-796 Experimental Player Shots
+on:
+  push:
+    branches:
+      - batch-789-796-experimental-player-shots
+  pull_request:
+    paths:
+      - 'hlm-experimental-player-shots.js'
+      - 'hlm-experimental-player-shots.test.js'
+      - 'docs/BATCH_789_796_EXPERIMENTAL_PLAYER_SHOTS.md'
+      - '.github/workflows/batch-789-796-player-shots.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-experimental-player-shots.test.js
