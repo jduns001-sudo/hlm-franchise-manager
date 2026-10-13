@@ -1,0 +1,20 @@
+name: Mission 737 Roster Matchup Preview Tests
+on:
+  push:
+    branches:
+      - mission-737-roster-matchup-preview
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-matchup-preview.js'
+      - 'hlm-phase10-roster-matchup-preview.test.js'
+      - 'docs/MISSION_737_ROSTER_MATCHUP_PREVIEW.md'
+      - '.github/workflows/mission-737-roster-matchup-preview.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-matchup-preview.test.js
