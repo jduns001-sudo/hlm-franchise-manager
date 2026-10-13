@@ -1,0 +1,19 @@
+name: Mission 757 Phase 10 Acceptance Guards
+on:
+  push:
+    branches: [mission-757-phase10-acceptance-guards]
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-lab-ui-regression.test.js'
+      - '.github/workflows/mission-757-phase10-acceptance.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-lab-ui-regression.test.js
+      - run: node hlm-phase10-roster-save-integrity.test.js
+      - run: node hlm-phase10-roster-lab-e2e.test.js
