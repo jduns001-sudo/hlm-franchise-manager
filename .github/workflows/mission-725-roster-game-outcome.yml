@@ -1,0 +1,21 @@
+name: Mission 725 Roster Outcome Proposal Tests
+on:
+  push:
+    branches:
+      - mission-725-roster-game-outcome-proposal
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-game-outcome-proposal.js'
+      - 'hlm-phase10-roster-game-outcome-proposal.test.js'
+      - 'docs/MISSION_725_ROSTER_GAME_OUTCOME.md'
+      - '.github/workflows/mission-725-roster-game-outcome.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-game-readiness.test.js
+      - run: node hlm-phase10-roster-game-outcome-proposal.test.js
