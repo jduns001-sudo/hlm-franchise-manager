@@ -1,0 +1,24 @@
+name: Phase 11 Browser Download Persistence
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-browser-download.spec.js'
+      - 'hlm-phase11-browser-download.config.js'
+      - '.github/workflows/phase11-browser-download.yml'
+  push:
+    branches: [phase11-browser-download-persistence]
+permissions:
+  contents: read
+jobs:
+  chromium-download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=hlm-phase11-browser-download.config.js
+      - run: node hlm-phase11-durable-file-verify.test.js
+      - run: npm test
