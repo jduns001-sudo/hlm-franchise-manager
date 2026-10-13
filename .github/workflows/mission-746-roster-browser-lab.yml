@@ -1,0 +1,22 @@
+name: Mission 746 Roster Browser Lab
+on:
+  push:
+    branches: [mission-746-roster-season-browser-page]
+  pull_request:
+    paths:
+      - 'phase10-roster-lab.html'
+      - 'hlm-phase10-roster-lab-entry.js'
+      - 'build-phase10-roster-lab.js'
+      - 'hlm-phase10-roster-lab.bundle.js'
+      - '.github/workflows/mission-746-roster-browser-lab.yml'
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node build-phase10-roster-lab.js
+      - run: node -e "const fs=require('fs');const b=fs.readFileSync('hlm-phase10-roster-lab.bundle.js','utf8');if(!b.includes('HLMRosterLab')||!b.includes('createRosterLabFranchise'))process.exit(1)"
+      - run: git diff --exit-code -- hlm-phase10-roster-lab.bundle.js
