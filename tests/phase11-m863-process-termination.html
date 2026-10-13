@@ -23,6 +23,32 @@ async function read(db){
  return Object.fromEntries(stores.map((name,i)=>[name,rows[i]]));
 }
 const matches=(rows,n)=>stores.every(name=>JSON.stringify(rows[name])===JSON.stringify(value(name,n)));
+function interruptWorker(){
+ const stores=['roster','contracts','draftPicks','history'];
+ const DB='hlm_phase11_m863_process_termination_test_only';
+ self.onmessage=event=>{
+  const gate=new Int32Array(event.data.gate);
+  const req=indexedDB.open(DB,1);
+  req.onerror=()=>self.postMessage({type:'error',error:String(req.error)});
+  req.onsuccess=()=>{
+   const db=req.result;
+   const tx=db.transaction(stores,'readwrite');
+   tx.oncomplete=()=>self.postMessage({type:'error',error:'candidate transaction completed'});
+   tx.onabort=()=>self.postMessage({type:'error',error:'candidate transaction aborted'});
+   for(const name of stores)tx.objectStore(name).put({name,revision:2,payload:name+'-2'},'snapshot');
+   const marker=tx.objectStore('roster').put({revision:2},'candidate-marker');
+   marker.onsuccess=()=>{
+    // Post the checkpoint before blocking synchronously in the SAME
+    // IndexedDB request callback. Message delivery is asynchronous, so
+    // the page cannot observe the checkpoint before this handler blocks.
+    self.postMessage({type:'blocked'});
+    Atomics.wait(gate,0,0);
+    self.postMessage({type:'error',error:'barrier unexpectedly released'});
+   };
+   marker.onerror=()=>self.postMessage({type:'error',error:String(marker.error)});
+  };
+ };
+}
 async function run(){
  const phase=new URLSearchParams(location.search).get('phase');
  const db=await open();
@@ -32,24 +58,22 @@ async function run(){
   db.close();status('committed');return;
  }
  if(phase==='interrupt'){
+  if(!crossOriginIsolated||typeof SharedArrayBuffer==='undefined')throw Error('cross-origin isolation required for deterministic barrier');
   if(!matches(await read(db),1))throw Error('committed seed absent');
-  const tx=db.transaction(stores,'readwrite');
-  tx.oncomplete=()=>status('failed',{error:'candidate transaction completed before termination'});
-  tx.onabort=()=>status('failed',{error:'candidate transaction aborted before termination'});
-  tx.onerror=()=>status('failed',{error:'candidate transaction error'});
-  // Queue a large amount of work across all four stores, ensuring a request is
-  // observed to succeed before signalling the parent to terminate Chromium.
-  // The final completion is never awaited or permitted by the test.
-  for(const name of stores)tx.objectStore(name).put(value(name,2),'snapshot');
-  const first=tx.objectStore('roster').put({name:'roster',revision:2,payload:'candidate-first'},'candidate-marker');
-  first.onsuccess=()=>{
-   for(let i=0;i<25000;i++){
-    tx.objectStore(stores[i%4]).put({revision:2,index:i,payload:'x'.repeat(128)},'candidate-'+i);
-   }
-   // Signal only after the backlog is queued; completion changes stage to failed.
-   status('pending',{firstRequestSucceeded:true,queuedRequests:25000,stores});
+  db.close();
+  const gate=new SharedArrayBuffer(4);
+  const workerSource='('+interruptWorker.toString()+')()';
+  const worker=new Worker(URL.createObjectURL(new Blob([workerSource],{type:'text/javascript'})));
+  worker.onmessage=event=>{
+   if(event.data.type==='blocked'){
+    // The worker has entered the success handler and synchronously called
+    // Atomics.wait. Its IndexedDB transaction cannot finish that handler,
+    // and therefore cannot commit, until the worker is unblocked.
+    status('pending',{barrier:'Atomics.wait inside IDB success handler',stores});
+   }else status('failed',{error:event.data.error||'worker failure'});
   };
-  first.onerror=()=>status('failed',{error:String(first.error)});
+  worker.onerror=event=>status('failed',{error:event.message});
+  worker.postMessage({gate});
   return;
  }
  if(phase==='verify'){
