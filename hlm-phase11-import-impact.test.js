@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {compare}=require('./hlm-phase11-import-impact');
+const importState={meta:{controlledTeamId:1},universe:{teams:[{id:1,name:'One'},{id:2,name:'Two'}],players:[...Array.from({length:6},(_,i)=>({id:i+1,teamId:1,position:i===5?'G':'C'})),...Array.from({length:6},(_,i)=>({id:i+7,teamId:2,position:i===5?'G':'C'}))]}};
+let writes=0;const storage={getItem:()=>JSON.stringify(importState),setItem:()=>writes++};
+const production={schema:7,settings:{controlledTeamId:99},contracts:[{playerId:10}],draftPickOverrides:{x:1},history:[{season:2026}]};
+const before=JSON.stringify(production),impact=compare(storage,production);
+assert.equal(impact.importedPlayers,12);assert.equal(impact.controlledTeamConflict,true);assert.equal(impact.protectedCounts.contracts,1);assert.equal(impact.eligibleForAutomaticCutover,false);
+assert.equal(writes,0);assert.equal(JSON.stringify(production),before);
+assert.throws(()=>compare(storage,{schema:8,settings:{}}),/schema/);
+assert.throws(()=>compare({getItem:()=>'{broken'},production),/Invalid imported/);
+console.log('Phase 11 read-only import impact checks passed');
