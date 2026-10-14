@@ -65,7 +65,7 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
    return {rolledBack:true,exactOriginalRestored:true};
   }finally{db.close()}
  }
- async function status(){const db=await open(idb);try{const journal=await read(db,JOURNAL);return {cutoverEnabled:enabled,journal:journal??null,journalPresent:journal!==undefined,recoveryRequired:journal!==undefined}}finally{db.close()}}
+ async function status(){const db=await open(idb);try{const journal=await read(db,JOURNAL),present=journal!==undefined;const phase=present&&journal&&typeof journal==='object'&&typeof journal.phase==='string'?journal.phase:null;const shapeValid=phase==='committed'&&typeof journal.original==='string'&&typeof journal.backupSha256==='string'&&typeof journal.candidateSha256==='string';return {cutoverEnabled:enabled,journal:journal??null,journalPresent:present,recoveryRequired:present,journalPhase:phase,journalMalformed:present&&!shapeValid}}finally{db.close()}}
  return {commit,rollback,status,enabled};
 }
 global.HLMPhase11AtomicCutover={createController,verifyCandidate,verifyBackup};
