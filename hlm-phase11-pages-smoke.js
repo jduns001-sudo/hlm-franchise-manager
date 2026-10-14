@@ -17,7 +17,7 @@ function get(url,redirects=0){return new Promise((resolve,reject)=>{
  });req.setTimeout(20000,()=>req.destroy(Error('Pages request timed out')));req.on('error',reject);
 })}
 (async()=>{const {html,contentType}=await get(target);if(!contentType.includes('text/html'))throw Error('Pages did not serve HTML');
-for(const marker of ['HLM27','Front Office','Command Center'])if(!html.includes(marker))throw Error('Front Office marker missing: '+marker);
+for(const marker of ['Hockey Franchise Manager','Front Office','app.html'])if(!html.includes(marker))throw Error('Front Office marker missing: '+marker);
 if(/<script[^>]+src=["'][^"']*hlm-phase11-atomic-cutover\.js/i.test(html))throw Error('Production cutover script must not be loaded');
 if(/HLM_PHASE11_SAVE_GUARD_OPT_IN\s*=\s*true/.test(html))throw Error('Normal-user guarded saves must remain disabled');
 console.log('PASS: read-only Pages HTML reachable, Front Office markers present, production cutover/opt-in not activated');
