@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>Mission 899 key range delete durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m899_delete_range_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=12;
+const value=(s,i)=>({store:s,id:i,group:i%3,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details)=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s).createIndex('group','group'));return req(r)};
+const write=(db,fn)=>new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('write aborted'));fn(tx)});
+async function seed(db){await write(db,tx=>{for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).put(value(s,i),i)})}
+async function remove(db){await write(db,tx=>{for(const s of STORES)tx.objectStore(s).delete(IDBKeyRange.bound(3,8,true,false))})}
+async function inspect(db,after){const tx=db.transaction(STORES,'readonly'),keys=after?[0,1,2,3,9,10,11]:Array.from({length:COUNT},(_,i)=>i);const all=await Promise.all(STORES.map(s=>req(tx.objectStore(s).getAll())));const ids=await Promise.all(STORES.map(s=>req(tx.objectStore(s).getAllKeys())));const indexes=await Promise.all(STORES.map(s=>req(tx.objectStore(s).index('group').getAll())));return {valid:STORES.every((s,j)=>JSON.stringify(all[j])===JSON.stringify(keys.map(i=>value(s,i)))&&JSON.stringify(ids[j])===JSON.stringify(keys)&&JSON.stringify(indexes[j])===JSON.stringify(keys.map(i=>value(s,i)).sort((a,b)=>a.group-b.group||a.id-b.id))),counts:all.map(x=>x.length),indexCounts:indexes.map(x=>x.length),keys:ids}}
+async function run(){const phase=new URLSearchParams(location.search).get('phase'),db=await open();try{if(phase==='seed'){await seed(db);const state=await inspect(db,false);mark(state.valid?'seeded':'failed',state)}else if(phase==='delete'){const before=await inspect(db,false);if(!before.valid)throw Error('baseline invalid');await remove(db);const after=await inspect(db,true);mark(after.valid?'deleted':'failed',after)}else if(phase==='verify'){const state=await inspect(db,true);mark(state.valid?'verified':'failed',{...state,stores:Array.from(db.objectStoreNames).sort()})}else throw Error('unknown phase')}finally{db.close()}}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
