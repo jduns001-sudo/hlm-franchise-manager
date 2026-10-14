@@ -1,0 +1,18 @@
+name: Phase 11 Mobile Save Race Chromium
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-mobile-save-race.spec.js'
+      - 'hlm-phase11-mobile-save-race.config.js'
+      - '.github/workflows/phase11-mobile-save-race.yml'
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=hlm-phase11-mobile-save-race.config.js
