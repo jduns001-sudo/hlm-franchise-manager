@@ -1,0 +1,24 @@
+name: Phase 11 Mission 913 Parallel Readonly Snapshot Durability
+on:
+  pull_request:
+    paths:
+      - 'tests/phase11-m913-parallel-readonly.html'
+      - 'tests/phase11-m913-parallel-readonly.spec.js'
+      - '.github/workflows/phase11-m913-parallel-readonly.yml'
+  push:
+    branches: [phase11-m913-readonly-parallel-snapshot]
+permissions:
+  contents: read
+jobs:
+  chromium-parallel-readonly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/phase11-m913-parallel-readonly.spec.js --workers=1
+      - run: npm test
