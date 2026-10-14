@@ -1,0 +1,18 @@
+name: Phase 11 Atomic Cross-Tab Preflight Race Chromium
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-atomic-cross-tab-preflight-race.spec.js'
+      - 'hlm-phase11-atomic-cross-tab-preflight-race.config.js'
+      - '.github/workflows/phase11-atomic-cross-tab-preflight-race.yml'
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=hlm-phase11-atomic-cross-tab-preflight-race.config.js
