@@ -1,0 +1,48 @@
+<!doctype html><meta charset="utf-8"><title>Mission 878 index getAllKeys durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m878_getallkeys_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=12;
+const value=(s,i)=>({store:s,id:i,group:Math.floor(i/3),revision:1,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s).createIndex('group','group'));return req(r)};
+async function seed(db){
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction(STORES,'readwrite');
+  for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).put(value(s,i),i);
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'));
+ });
+}
+async function full(db){
+ const tx=db.transaction(STORES,'readonly');
+ const rows=await Promise.all(STORES.map(s=>req(tx.objectStore(s).getAll())));
+ return {valid:STORES.every((s,j)=>rows[j].length===COUNT&&rows[j].every((v,i)=>JSON.stringify(v)===JSON.stringify(value(s,i)))),counts:rows.map(r=>r.length)};
+}
+async function keys(db){
+ const tx=db.transaction(STORES,'readonly');
+ const found={};
+ await Promise.all(STORES.map(async s=>{
+  const idx=tx.objectStore(s).index('group');
+  const [all,subset]=await Promise.all([req(idx.getAllKeys()),req(idx.getAllKeys(IDBKeyRange.only(2)))]);
+  found[s]={all,subset};
+ }));
+ return {found,valid:STORES.every(s=>JSON.stringify(found[s])===JSON.stringify({all:Array.from({length:COUNT},(_,i)=>i),subset:[6,7,8]})))};
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ if(phase==='seed'){
+  const db=await open();await seed(db);const state=await full(db);db.close();mark(state.valid?'seeded':'failed',state);return;
+ }
+ if(phase==='keys'){
+  const db=await open(),before=await full(db);
+  if(!before.valid)throw Error('baseline invalid');
+  const result=await keys(db),after=await full(db);db.close();
+  mark(result.valid&&after.valid?'keyed':'failed',{keysValid:result.valid,fullValid:after.valid,found:result.found,counts:after.counts});return;
+ }
+ if(phase==='verify'){
+  const db=await open(),state=await full(db),result=await keys(db),stores=Array.from(db.objectStoreNames).sort();db.close();
+  mark(state.valid&&result.valid?'verified':'failed',{fullValid:state.valid,keysValid:result.valid,counts:state.counts,stores});return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
