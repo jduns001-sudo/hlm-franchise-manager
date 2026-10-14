@@ -1,0 +1,53 @@
+<!doctype html><meta charset="utf-8"><title>Mission 866 failed migration durability</title><script>
+'use strict';
+const DB='hlm_phase11_m866_upgrade_abort_test_only';
+const STORES=['roster','contracts','draftPicks','history'];
+const val=s=>({store:s,revision:1,payload:'committed-'+s});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=v=>{const r=indexedDB.open(DB,v);if(v===1)r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s));return req(r)};
+async function check(db){
+ const names=Array.from(db.objectStoreNames).sort();
+ const rows=await Promise.all(STORES.map(s=>req(db.transaction(s,'readonly').objectStore(s).get('snapshot'))));
+ return {version:db.version,retained:STORES.every((s,i)=>JSON.stringify(rows[i])===JSON.stringify(val(s))),noTemporaryStore:!db.objectStoreNames.contains('migrationTemporary'),stores:names};
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ if(phase==='seed'){
+  const db=await open(1);
+  await new Promise((resolve,reject)=>{
+   const tx=db.transaction(STORES,'readwrite');
+   STORES.forEach(s=>tx.objectStore(s).put(val(s),'snapshot'));
+   tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed abort'));tx.onerror=()=>reject(tx.error);
+  });
+  const result=await check(db);db.close();mark(result.retained?'seeded':'failed',result);return;
+ }
+ if(phase==='migrate'){
+  let upgradeStarted=false,abortCalled=false,upgradeCommitted=false;
+  const r=indexedDB.open(DB,2);
+  r.onupgradeneeded=()=>{
+   upgradeStarted=true;
+   const db=r.result,tx=r.transaction;
+   db.createObjectStore('migrationTemporary').put({candidate:true},'candidate');
+   STORES.forEach(s=>tx.objectStore(s).put({store:s,revision:2},'snapshot'));
+   abortCalled=true;
+   tx.abort();
+  };
+  r.onsuccess=()=>{upgradeCommitted=true;r.result.close();mark('failed',{upgradeStarted,abortCalled,upgradeCommitted})};
+  r.onerror=async()=>{
+   try{
+    const db=await open(1),result=await check(db);db.close();
+    mark(upgradeStarted&&abortCalled&&!upgradeCommitted&&r.error?.name==='AbortError'&&result.version===1&&result.retained&&result.noTemporaryStore?'aborted':'failed',
+     {...result,upgradeStarted,abortCalled,upgradeCommitted,error:r.error?.name});
+   }catch(e){mark('failed',{error:String(e)})}
+  };
+  return;
+ }
+ if(phase==='verify'){
+  const db=await open(1),result=await check(db);db.close();
+  mark(result.version===1&&result.retained&&result.noTemporaryStore?'verified':'failed',result);return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script>
