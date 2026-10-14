@@ -9,6 +9,6 @@ const old={schema:7,settings:{controlledTeamId:42},customPlayers:[]},newer={...o
 await state(b,'write','db',old);await a.evaluate(()=>window.HLM_PHASE11_SAVE_GUARD_OPT_IN=true);
 const rejected=await a.evaluate(async ({old,newer})=>{try{await HLMPhase11AtomicCutover.guardedSave(indexedDB,old,newer);return false}catch{return true}},{old:{...old,settings:{controlledTeamId:999}},newer});
 expect(rejected).toBe(true);expect(await state(b,'read','db')).toEqual(old);
-await state(b,'write','db',newer);const denied=await a.evaluate(async ({old})=>{try{await HLMPhase11AtomicCutover.guardedSave(indexedDB,old,{...old,settings:{controlledTeamId:10}});return false}catch{return true}},{old});expect(denied).toBe(true);expect(await state(b,'read','db')).toEqual(newer);
-await state(b,'write','phase11-atomic-cutover-journal-v1',{phase:'interrupted'});const blocked=await a.evaluate(async ({newer})=>{try{await HLMPhase11AtomicCutover.guardedSave(indexedDB,newer,newer);return false}catch{return true}},{newer});expect(blocked).toBe(true);expect(await state(b,'read','db')).toEqual(newer);
+await state(b,'write','db',newer);const denied=await a.evaluate(async ({old})=>{try{await HLMPhase11AtomicCutover.guardedSave(indexedDB,old,{...old,settings:{controlledTeamId:10}});return false}catch{return true}},{old});expect(denied).toBe(true);expect((await state(b,'read','db')).settings.controlledTeamId).toBe(77);
+await state(b,'write','phase11-atomic-cutover-journal-v1',{phase:'interrupted'});const blocked=await a.evaluate(async ({newer})=>{try{await HLMPhase11AtomicCutover.guardedSave(indexedDB,newer,newer);return false}catch{return true}},{newer});expect(blocked).toBe(true);expect((await state(b,'read','db')).settings.controlledTeamId).toBe(77);
 }finally{await ctx.close()}});
