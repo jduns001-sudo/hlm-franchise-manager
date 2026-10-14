@@ -1,0 +1,24 @@
+name: Phase 11 Mission 923 Explicit Commit Constraint Rollback
+on:
+  pull_request:
+    paths:
+      - 'tests/phase11-m923-commit-constraint.html'
+      - 'tests/phase11-m923-commit-constraint.spec.js'
+      - '.github/workflows/phase11-m923-commit-constraint.yml'
+  push:
+    branches: [phase11-m923-explicit-commit-constraint-rollback]
+permissions:
+  contents: read
+jobs:
+  chromium-commit-constraint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/phase11-m923-commit-constraint.spec.js --workers=1
+      - run: npm test
