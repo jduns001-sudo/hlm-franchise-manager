@@ -1,0 +1,1 @@
+module.exports={testDir:'.',testMatch:'hlm-phase11-import-workbench.spec.js',timeout:45000,retries:1,reporter:'list',use:{headless:true}};
