@@ -15,6 +15,8 @@ function create({enabled=false,integration,finalGate,workbench,atomic,fetcher,st
   const current=await workbench.current();
   atomic.verifyCandidate(current,plan.candidate);
   await atomic.verifyBackup(verified.cutoverBackupText,current);
+  const finalPlan=await integration.preflight(workbench,fetcher,storage);
+  if(JSON.stringify(finalPlan.candidate)!==JSON.stringify(plan.candidate))throw Error('Final roster candidate changed before commit');
   const committed=await controller.commit({candidate:plan.candidate,backupText:verified.cutoverBackupText,authorization:gmApproval});
   return {...committed,addedPlayers:plan.addedPlayers,controlledTeamId:proof.controlledTeamId,requiresReload:true};
  }

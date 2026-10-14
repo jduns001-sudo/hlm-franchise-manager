@@ -1,0 +1,21 @@
+name: Phase 11 Final Revalidation Chromium
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-explicit-activation.js'
+      - 'hlm-phase11-final-revalidation.spec.js'
+      - 'hlm-phase11-final-revalidation.config.js'
+      - '.github/workflows/phase11-final-revalidation.yml'
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=hlm-phase11-final-revalidation.config.js
+      - run: npx playwright test --config=hlm-phase11-end-to-end-cutover.config.js
+      - run: npx playwright test --config=hlm-phase11-explicit-activation.config.js

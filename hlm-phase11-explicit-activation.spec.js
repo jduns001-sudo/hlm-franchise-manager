@@ -27,5 +27,5 @@ test('enabled test-only gate validates reopened backup and preflight before atom
   return {commit,rollback,events};
  });
  expect(result.commit.committed).toBe(true);expect(result.commit.requiresReload).toBe(true);expect(result.rollback.rolledBack).toBe(true);
- expect(result.events).toEqual(['gate','reopened','preflight','candidate','backup','commit','rollback']);
+ expect(result.events).toEqual(['gate','reopened','preflight','candidate','backup','preflight','commit','rollback']);
 });
