@@ -1,0 +1,21 @@
+name: Phase 11 Cutover Integration Chromium
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-cutover-integration.js'
+      - 'phase11-import-workbench.html'
+      - 'hlm-phase11-cutover-integration.spec.js'
+      - 'hlm-phase11-cutover-integration.config.js'
+      - '.github/workflows/phase11-cutover-integration.yml'
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=hlm-phase11-cutover-integration.config.js
+      - run: node hlm-phase11-cutover-preflight.test.js
