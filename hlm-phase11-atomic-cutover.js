@@ -7,6 +7,22 @@ function stringify(x){const s=JSON.stringify(x);if(!s||s.length>5000000||JSON.st
 function open(idb){return new Promise((resolve,reject)=>{const r=idb.open(DB);r.onupgradeneeded=()=>r.transaction.abort();r.onerror=()=>reject(r.error||Error('Missing production DB'));r.onsuccess=()=>resolve(r.result)})}
 function read(db,key){return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),r=tx.objectStore(STORE).get(key);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 function atomic(db,changes){return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),s=tx.objectStore(STORE);for(const [key,value] of changes){if(value===undefined)s.delete(key);else s.put(value,key)}tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||Error('Write failed'));tx.onabort=()=>reject(tx.error||Error('Aborted'))})}
+function guardedAtomic(db,expectedCurrent,expectedJournal,changes){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
+  let checked=0,actualCurrent,actualJournal;
+  const a=store.get(KEY),b=store.get(JOURNAL);
+  a.onsuccess=()=>{actualCurrent=a.result;check()};
+  b.onsuccess=()=>{actualJournal=b.result;check()};
+  function check(){if(++checked!==2)return;
+   try{
+    if(stringify(actualCurrent)!==expectedCurrent||stringify(actualJournal??null)!==stringify(expectedJournal??null))throw Error('Concurrent save or journal change detected');
+    for(const [key,value] of changes){if(value===undefined)store.delete(key);else store.put(value,key)}
+   }catch(e){tx.abort();reject(e)}
+  }
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||Error('Transaction failed'));tx.onabort=()=>reject(tx.error||Error('Transaction aborted'));
+ });
+}
 function verifyCandidate(current,next){
  if(!current||current.schema!==7||!current.settings||!Array.isArray(current.customPlayers)||!next||next.schema!==7||!Array.isArray(next.customPlayers))throw Error('Unsupported schema 7 save');
  const keys=new Set([...Object.keys(current),...Object.keys(next)]);
@@ -32,7 +48,7 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
    verifyCandidate(current,candidate);const backupSha256=await verifyBackup(backupText,current);
    const journal={phase:'committed',backupSha256,original:stringify(current),candidateSha256:await digest(stringify(candidate)),createdAt:new Date().toISOString()};
    // The journal and active state update share ONE IndexedDB readwrite transaction.
-   await atomic(db,[[JOURNAL,journal],[KEY,candidate]]);
+   await guardedAtomic(db,stringify(current),null,[[JOURNAL,journal],[KEY,candidate]]);
    if(stringify(await read(db,KEY))!==stringify(candidate)||!(await read(db,JOURNAL)))throw Error('Postcommit verification failed: journal retained for recovery');
    return {committed:true,backupSha256,rollbackAvailable:true};
   }finally{db.close()}
@@ -44,7 +60,7 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
    const journal=await read(db,JOURNAL);if(!journal||journal.phase!=='committed')throw Error('No recoverable journal');
    const active=await read(db,KEY);if(await digest(stringify(active))!==journal.candidateSha256)throw Error('Active save diverged: automatic rollback unsafe');
    const original=JSON.parse(journal.original);if(await digest(journal.original)!==journal.backupSha256)throw Error('Journal backup mismatch');
-   await atomic(db,[[KEY,original],[JOURNAL,undefined]]);
+   await guardedAtomic(db,stringify(active),journal,[[KEY,original],[JOURNAL,undefined]]);
    if(stringify(await read(db,KEY))!==journal.original||await read(db,JOURNAL))throw Error('Rollback verification failed');
    return {rolledBack:true,exactOriginalRestored:true};
   }finally{db.close()}
