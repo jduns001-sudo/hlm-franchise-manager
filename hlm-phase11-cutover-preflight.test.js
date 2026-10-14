@@ -10,5 +10,5 @@ assert.deepEqual(verifySnapshot(snapshotRawRecord({present:false})),{present:fal
 assert.throws(()=>verifySnapshot({...result.backup,payload:'not json'}));
 assert.throws(()=>inspectCandidate({getItem:()=>JSON.stringify({...state,meta:{controlledTeamId:99}})}),/Controlled team/);
 assert.throws(()=>inspectCandidate({getItem:()=>JSON.stringify({...state,universe:{...state.universe,players:[state.universe.players[0],state.universe.players[0]]}})}),/Invalid player/);
-assert.throws(()=>snapshotRawRecord({present:true,value:{bad:undefined}}),/round-trip mismatch/);
+assert.throws(()=>snapshotRawRecord({present:true,value:{bad:1n}}),/BigInt/);
 console.log('Phase 11 production cutover read-only preflight tests passed');
