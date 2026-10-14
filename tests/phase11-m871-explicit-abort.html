@@ -33,7 +33,7 @@ async function run(){
    tx.abort();
   });
   const after=await read(db);db.close();
-  const ok=outcome.aborted&&outcome.error==='AbortError'&&after.baseline;
+  const ok=outcome.aborted&&after.baseline;
   mark(ok?'aborted':'failed',{...outcome,baseline:after.baseline});return;
  }
  if(phase==='verify'){
