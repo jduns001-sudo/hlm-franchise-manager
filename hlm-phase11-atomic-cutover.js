@@ -49,7 +49,7 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
    const journal={phase:'committed',backupSha256,original:stringify(current),candidateSha256:await digest(stringify(candidate)),createdAt:new Date().toISOString()};
    // The journal and active state update share ONE IndexedDB readwrite transaction.
    await guardedAtomic(db,stringify(current),undefined,[[JOURNAL,journal],[KEY,candidate]]);
-   if(stringify(await read(db,KEY))!==stringify(candidate)||!(await read(db,JOURNAL)))throw Error('Postcommit verification failed: journal retained for recovery');
+   if(stringify(await read(db,KEY))!==stringify(candidate)||(await read(db,JOURNAL))===undefined)throw Error('Postcommit verification failed: journal retained for recovery');
    return {committed:true,backupSha256,rollbackAvailable:true};
   }finally{db.close()}
  }
