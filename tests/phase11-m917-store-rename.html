@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><title>Mission 917 object store rename durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m917_store_rename_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=6,OLD='draftPicks',NEW='futureDraftPicks';
+const value=(s,i)=>({store:s,id:i,group:i%3,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details)=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+function open(version,upgrade){const r=indexedDB.open(DB,version);r.onupgradeneeded=()=>upgrade&&upgrade(r.result,r.transaction);return req(r)}
+const create=db=>STORES.forEach(s=>db.createObjectStore(s).createIndex('group','group'));
+async function seed(db){await new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).add(value(s,i),i);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'))})}
+async function inspect(db){const names=['roster','contracts',NEW,'history'],tx=db.transaction(names,'readonly');const results=await Promise.all(names.map(async s=>{const store=tx.objectStore(s),original=s===NEW?OLD:s;const [rows,keys,groups]=await Promise.all([req(store.getAll()),req(store.getAllKeys()),req(store.index('group').getAllKeys(IDBKeyRange.only(2)))]);return {valid:JSON.stringify(rows)===JSON.stringify(Array.from({length:COUNT},(_,i)=>value(original,i)))&&JSON.stringify(keys)===JSON.stringify([0,1,2,3,4,5])&&JSON.stringify(groups)===JSON.stringify([2,5]),count:rows.length}}));let oldMissing=false;try{db.transaction(OLD)}catch(e){oldMissing=e.name==='NotFoundError'}return {valid:results.every(x=>x.valid)&&oldMissing,oldMissing,results}}
+async function run(){const phase=new URLSearchParams(location.search).get('phase');if(phase==='seed'){const db=await open(1,create);try{await seed(db);mark('seeded',{version:db.version,stores:Array.from(db.objectStoreNames).sort()})}finally{db.close()}}else if(phase==='upgrade'){const db=await open(2,(_,tx)=>{tx.objectStore(OLD).name=NEW});try{const state=await inspect(db);mark(state.valid?'upgraded':'failed',{...state,version:db.version,stores:Array.from(db.objectStoreNames).sort()})}finally{db.close()}}else if(phase==='verify'){const db=await open(2);try{const state=await inspect(db);mark(state.valid?'verified':'failed',{...state,version:db.version,stores:Array.from(db.objectStoreNames).sort()})}finally{db.close()}}else throw Error('unknown phase')}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
