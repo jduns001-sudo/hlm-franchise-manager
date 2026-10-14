@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const {planCustomPlayers,previewAdditiveSave}=require('./hlm-phase11-custom-player-adapter');
+const app=fs.readFileSync('app.html','utf8');
+assert.match(app,/function compactState\(\)/);
+assert.match(app,/customPlayers:custom/);
+assert.match(app,/\.concat\(st\.customPlayers\|\|\[\]\)/);
+assert.match(app,/playerOverrides:db\.playerOverrides\|\|\{\}/);
+const production={schema:7,settings:{controlledTeamId:42},customPlayers:[{id:7,name:'Existing'}],contracts:[{playerId:7}],draftPickOverrides:{x:1},history:[{season:2026}],lines:{a:[7]}};
+const imported={universe:{teams:[{id:1,name:'One'}],players:[{id:7,teamId:1,name:'Duplicate',position:'C',ovr:80},{id:9,teamId:1,name:'New',position:'G',ovr:76}]}};
+const original=JSON.stringify(production);
+const plan=planCustomPlayers(imported,production,[101]);
+assert.equal(plan.candidateCustomPlayers.length,1);assert.equal(plan.rejected.length,1);assert.equal(plan.requiresTeamIdMapping,true);
+const result=previewAdditiveSave(production,plan);
+assert.equal(result.preview.customPlayers.length,2);assert.deepEqual(result.preview.contracts,production.contracts);assert.deepEqual(result.preview.history,production.history);assert.deepEqual(result.preview.draftPickOverrides,production.draftPickOverrides);assert.equal(JSON.stringify(production),original);assert.equal(result.writes,0);
+assert.throws(()=>planCustomPlayers({...imported,universe:{...imported.universe,players:[{id:9,teamId:99,name:'Bad',position:'C',ovr:80}]}},production),/Invalid imported player/);
+console.log('Phase 11 verified custom-player mapping preview passed');
