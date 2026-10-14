@@ -1,0 +1,39 @@
+<!doctype html><meta charset="utf-8"><title>Mission 868 blocked deletion durability</title><script>
+'use strict';
+const DB='hlm_phase11_m868_blocked_delete_test_only',STORES=['roster','contracts','draftPicks','history'];
+const value=s=>({store:s,revision:1,payload:'saved-'+s});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s));return req(r)};
+async function retained(db){
+ const tx=db.transaction(STORES,'readonly');
+ const rows=await Promise.all(STORES.map(s=>req(tx.objectStore(s).get('snapshot'))));
+ return STORES.every((s,i)=>JSON.stringify(rows[i])===JSON.stringify(value(s)));
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ if(phase==='seed'){
+  const db=await open();
+  await new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');STORES.forEach(s=>tx.objectStore(s).put(value(s),'snapshot'));tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed abort'))});
+  const ok=await retained(db);db.close();mark(ok?'seeded':'failed',{retained:ok});return;
+ }
+ if(phase==='block'){
+  const db=await open();let blocked=false,deleted=false,failed=false;
+  db.onversionchange=()=>{ /* intentionally retain the connection until release */ };
+  const deletion=indexedDB.deleteDatabase(DB);
+  deletion.onblocked=async()=>{blocked=true;try{const ok=await retained(db);mark(ok&&!deleted?'blocked':'failed',{blocked,retained:ok,deleted})}catch(e){mark('failed',{error:String(e)})}};
+  deletion.onerror=()=>{failed=true;mark('failed',{error:deletion.error?.name})};
+  deletion.onsuccess=()=>{deleted=true;mark(blocked&&!failed?'deleted':'failed',{blocked,deleted,failed})};
+  window.releaseBlocker=()=>db.close();
+  return;
+ }
+ if(phase==='verify'){
+  const db=await open(),names=Array.from(db.objectStoreNames).sort();
+  const rows=await Promise.all(STORES.map(s=>req(db.transaction(s,'readonly').objectStore(s).get('snapshot'))));
+  const empty=rows.every(v=>v===undefined);db.close();
+  mark(empty?'verified':'failed',{empty,stores:names});return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script>
