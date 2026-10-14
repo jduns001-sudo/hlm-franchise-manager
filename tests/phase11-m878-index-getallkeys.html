@@ -25,7 +25,7 @@ async function keys(db){
   const [all,subset]=await Promise.all([req(idx.getAllKeys()),req(idx.getAllKeys(IDBKeyRange.only(2)))]);
   found[s]={all,subset};
  }));
- return {found,valid:STORES.every(s=>JSON.stringify(found[s])===JSON.stringify({all:Array.from({length:COUNT},(_,i)=>i),subset:[6,7,8]})))};
+ return {found,valid:STORES.every(s=>JSON.stringify(found[s])===JSON.stringify({all:Array.from({length:COUNT},(_,i)=>i),subset:[6,7,8]}))};
 }
 async function run(){
  const phase=new URLSearchParams(location.search).get('phase');
