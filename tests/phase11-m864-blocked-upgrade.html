@@ -1,0 +1,59 @@
+<!doctype html><meta charset="utf-8"><title>Mission 864 blocked upgrade durability</title><script>
+'use strict';
+const NAME='hlm_phase11_m864_blocked_upgrade_test_only';
+const STORES=['roster','contracts','draftPicks','history'];
+const val=(store,n)=>({store,revision:n});
+const result=req=>new Promise((resolve,reject)=>{req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+const stage=(s,details={})=>{document.body.dataset.stage=s;document.body.dataset.details=JSON.stringify(details)};
+async function open(version){
+ const req=indexedDB.open(NAME,version);
+ req.onupgradeneeded=()=>{const db=req.result;if(db.objectStoreNames.length===0)STORES.forEach(s=>db.createObjectStore(s));};
+ return result(req);
+}
+async function write(db,n){
+ return new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');
+ STORES.forEach(s=>tx.objectStore(s).put(val(s,n),'snapshot'));
+ tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('aborted'));tx.onerror=()=>reject(tx.error);
+ });
+}
+async function verify(db){
+ const tx=db.transaction(STORES,'readonly');
+ const rows=await Promise.all(STORES.map(s=>result(tx.objectStore(s).get('snapshot'))));
+ return STORES.every((s,i)=>JSON.stringify(rows[i])===JSON.stringify(val(s,1)));
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ if(phase==='seed'){
+  const db=await open(1);await write(db,1);if(!await verify(db))throw Error('seed mismatch');
+  db.close();stage('seeded');return;
+ }
+ if(phase==='block'){
+  const old=await open(1);
+  if(!await verify(old))throw Error('committed data missing');
+  let sawVersionChange=false,sawBlocked=false,upgradeStarted=false;
+  old.onversionchange=()=>{sawVersionChange=true; /* deliberately retain old connection */};
+  const req=indexedDB.open(NAME,2);
+  req.onupgradeneeded=()=>{upgradeStarted=true};
+  req.onsuccess=()=>{req.result.close();stage('failed',{error:'upgrade succeeded while old connection open'})};
+  req.onerror=()=>stage('failed',{error:String(req.error)});
+  req.onblocked=async()=>{
+   sawBlocked=true;
+   if(upgradeStarted)return stage('failed',{error:'upgrade started while blocked'});
+   if(!await verify(old))return stage('failed',{error:'committed snapshot changed'});
+   stage('blocked',{sawVersionChange,sawBlocked,upgradeStarted});
+   // Leave the old connection open until the Playwright test terminates this page.
+  };
+  return;
+ }
+ if(phase==='verify'){
+  const db=await open(1);
+  const retained=await verify(db);
+  const version=db.version;
+  const noUpgrade=!db.objectStoreNames.contains('newSchema');
+  db.close();stage(retained&&version===1&&noUpgrade?'verified':'failed',{retained,version,noUpgrade});
+  return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(e=>stage('failed',{error:String(e)}));
+</script>
