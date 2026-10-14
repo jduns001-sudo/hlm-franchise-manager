@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const {inspectImportedRoster,KEY}=require('./hlm-phase11-imported-roster-view');
+const page=fs.readFileSync('phase11-imported-roster-view.html','utf8');
+for(const id of ['team','players','status','count'])assert(page.includes('id="'+id+'"'));
+assert(page.includes('textContent=v'));assert(!page.includes('innerHTML'));
+const data={universe:{teams:[{id:1,name:'Wolves'},{id:2,name:'Bears'}],players:[{id:10,name:'A',teamId:1,position:'C',ovr:80},{id:11,name:'B',teamId:2,position:'G',ovr:70}]}};
+const values=new Map([['hlm_front_office_v8','untouched'],[KEY,JSON.stringify(data)]]);
+const storage={getItem:k=>values.get(k)??null,setItem(){throw Error('Read-only inspection attempted write')}};
+const result=inspectImportedRoster(storage);
+assert.equal(result.teams.length,2);assert.equal(result.players.length,2);
+assert.equal(values.get('hlm_front_office_v8'),'untouched');
+assert.equal(inspectImportedRoster({getItem:()=>null}).available,false);
+assert.throws(()=>inspectImportedRoster({getItem:()=>'{'}),/invalid JSON/);
+assert.throws(()=>inspectImportedRoster({getItem:()=>JSON.stringify({universe:{teams:data.universe.teams,players:[{...data.universe.players[0],teamId:99}]}})}),/Invalid imported player/);
+assert.throws(()=>inspectImportedRoster({getItem:()=>JSON.stringify({universe:{teams:data.universe.teams,players:[data.universe.players[0],data.universe.players[0]]}})}),/Invalid imported player/);
+console.log('Phase 11 imported roster read-only inspection tests passed');
