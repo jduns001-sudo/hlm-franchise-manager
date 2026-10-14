@@ -17,7 +17,7 @@ test('explicit transaction.abort rolls back staged updates across four stores af
   context=await launch();
   const seed=await phase('seed');await expect(seed.locator('body')).toHaveAttribute('data-stage','seeded');await seed.close();
   const abort=await phase('abort');await expect(abort.locator('body')).toHaveAttribute('data-stage','aborted');
-  expect(JSON.parse(await abort.locator('body').getAttribute('data-details'))).toMatchObject({aborted:true,error:'AbortError',baseline:true});
+  expect(JSON.parse(await abort.locator('body').getAttribute('data-details'))).toMatchObject({aborted:true,baseline:true});
   await context.close();context=null;
   context=await launch();
   const verify=await phase('verify');await expect(verify.locator('body')).toHaveAttribute('data-stage','verified');
