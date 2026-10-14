@@ -1,0 +1,24 @@
+name: Phase 11 Mission 877 Continue Primary Key Durability
+on:
+  pull_request:
+    paths:
+      - 'tests/phase11-m877-continue-primarykey.html'
+      - 'tests/phase11-m877-continue-primarykey.spec.js'
+      - '.github/workflows/phase11-m877-continue-primarykey.yml'
+  push:
+    branches: [phase11-m877-cursor-continue-primarykey-durability]
+permissions:
+  contents: read
+jobs:
+  chromium-continue-primarykey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test tests/phase11-m877-continue-primarykey.spec.js --workers=1
+      - run: npm test
