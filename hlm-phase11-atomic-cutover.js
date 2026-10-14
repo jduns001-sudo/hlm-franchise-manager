@@ -58,7 +58,8 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
   if(!enabled)throw Error('Production rollback disabled by default');
   if(authorization!=='I AUTHORIZE PRODUCTION ROLLBACK')throw Error('GM rollback approval required');
   const db=await open(idb);try{
-   const journal=await read(db,JOURNAL);if(!journal||journal.phase!=='committed')throw Error('No recoverable journal');
+   const storedJournal=await read(db,JOURNAL);if(!storedJournal||storedJournal.phase!=='committed')throw Error('No recoverable journal');
+   const journal=JSON.parse(stringify(storedJournal));
    if(typeof journal.createdAt!=='string'||!Number.isFinite(Date.parse(journal.createdAt))||new Date(journal.createdAt).toISOString()!==journal.createdAt)throw Error('Journal timestamp invalid');
    const active=await read(db,KEY),activeSnapshot=stringify(active);if(await digest(activeSnapshot)!==journal.candidateSha256)throw Error('Active save diverged: automatic rollback unsafe');
    if(typeof journal.original!=='string'||typeof journal.backupSha256!=='string')throw Error('Journal backup mismatch');
