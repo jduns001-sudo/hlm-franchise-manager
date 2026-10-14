@@ -72,7 +72,7 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
    return {rolledBack:true,exactOriginalRestored:true};
   }finally{db.close()}
  }
- async function status(){const db=await open(idb);try{const journal=await read(db,JOURNAL),present=journal!==undefined;const phase=present&&journal&&typeof journal==='object'&&typeof journal.phase==='string'?journal.phase:null;const shapeValid=phase==='committed'&&typeof journal.original==='string'&&typeof journal.backupSha256==='string'&&typeof journal.candidateSha256==='string'&&typeof journal.createdAt==='string'&&Number.isFinite(Date.parse(journal.createdAt))&&new Date(journal.createdAt).toISOString()===journal.createdAt;return {cutoverEnabled:enabled,journal:journal??null,journalPresent:present,recoveryRequired:present,journalPhase:phase,journalMalformed:present&&!shapeValid}}finally{db.close()}}
+ async function status(){const db=await open(idb);try{const journal=await read(db,JOURNAL),present=journal!==undefined;const phase=present&&journal&&typeof journal==='object'&&typeof journal.phase==='string'?journal.phase:null;const shapeValid=phase==='committed'&&typeof journal.original==='string'&&/^[0-9a-f]{64}$/.test(journal.backupSha256)&&/^[0-9a-f]{64}$/.test(journal.candidateSha256)&&typeof journal.createdAt==='string'&&Number.isFinite(Date.parse(journal.createdAt))&&new Date(journal.createdAt).toISOString()===journal.createdAt;return {cutoverEnabled:enabled,journal:journal??null,journalPresent:present,recoveryRequired:present,journalPhase:phase,journalMalformed:present&&!shapeValid}}finally{db.close()}}
  return {commit,rollback,status,enabled};
 }
 global.HLMPhase11AtomicCutover={createController,verifyCandidate,verifyBackup};
