@@ -1,0 +1,51 @@
+<!doctype html><meta charset="utf-8"><title>Mission 874 key-range cursor durability</title><script>
+'use strict';
+const DB='hlm_phase11_m874_keyrange_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=12;
+const value=(s,i)=>({store:s,id:i,revision:1,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s));return req(r)};
+async function seed(db){
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction(STORES,'readwrite');
+  for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).put(value(s,i),i);
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'));
+ });
+}
+async function full(db){
+ const tx=db.transaction(STORES,'readonly');
+ const rows=await Promise.all(STORES.map(s=>req(tx.objectStore(s).getAll())));
+ return {valid:STORES.every((s,j)=>rows[j].length===COUNT&&rows[j].every((v,i)=>JSON.stringify(v)===JSON.stringify(value(s,i)))),counts:rows.map(r=>r.length)};
+}
+async function range(db){
+ return new Promise((resolve,reject)=>{
+  const tx=db.transaction(STORES,'readonly'),found={};let error=null;
+  for(const s of STORES){
+   found[s]=[];
+   const request=tx.objectStore(s).openCursor(IDBKeyRange.bound(3,7));
+   request.onsuccess=()=>{const cursor=request.result;if(!cursor)return;found[s].push({key:cursor.key,value:cursor.value});cursor.continue()};
+   request.onerror=()=>{error=request.error};
+  }
+  tx.oncomplete=()=>resolve({found,valid:STORES.every(s=>JSON.stringify(found[s])===JSON.stringify([3,4,5,6,7].map(i=>({key:i,value:value(s,i)}))))});
+  tx.onabort=()=>reject(error||tx.error||Error('range transaction aborted'));
+ });
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ if(phase==='seed'){
+  const db=await open();await seed(db);const state=await full(db);db.close();mark(state.valid?'seeded':'failed',state);return;
+ }
+ if(phase==='range'){
+  const db=await open(),before=await full(db);
+  if(!before.valid)throw Error('baseline invalid');
+  const subset=await range(db),after=await full(db);db.close();
+  mark(subset.valid&&after.valid?'ranged':'failed',{subsetValid:subset.valid,fullValid:after.valid,found:subset.found,counts:after.counts});return;
+ }
+ if(phase==='verify'){
+  const db=await open(),state=await full(db),subset=await range(db),stores=Array.from(db.objectStoreNames).sort();db.close();
+  mark(state.valid&&subset.valid?'verified':'failed',{fullValid:state.valid,subsetValid:subset.valid,counts:state.counts,stores});return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script>
