@@ -1,0 +1,41 @@
+<!doctype html><meta charset="utf-8"><title>Mission 869 multi-store atomic commit</title><script>
+'use strict';
+const DB='hlm_phase11_m869_atomic_commit_test_only',STORES=['roster','contracts','draftPicks','history'];
+const value=(s,n)=>({store:s,revision:n,payload:'franchise-'+s+'-v'+n});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s));return req(r)};
+async function read(db){
+ const tx=db.transaction(STORES,'readonly');
+ const rows=await Promise.all(STORES.map(s=>req(tx.objectStore(s).get('snapshot'))));
+ return {rows,revision1:STORES.every((s,i)=>JSON.stringify(rows[i])===JSON.stringify(value(s,1))),
+ revision2:STORES.every((s,i)=>JSON.stringify(rows[i])===JSON.stringify(value(s,2)))};
+}
+async function write(db,n){
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction(STORES,'readwrite');
+  STORES.forEach(s=>tx.objectStore(s).put(value(s,n),'snapshot'));
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('transaction aborted'));tx.onerror=()=>reject(tx.error||Error('transaction error'));
+ });
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ if(phase==='seed'){
+  const db=await open();await write(db,1);const state=await read(db);db.close();
+  mark(state.revision1?'seeded':'failed',state);return;
+ }
+ if(phase==='commit'){
+  const db=await open(),before=await read(db);
+  if(!before.revision1)throw Error('baseline missing');
+  await write(db,2);
+  const after=await read(db);db.close();
+  mark(after.revision2?'committed':'failed',{before:before.revision1,after:after.revision2,rows:after.rows});return;
+ }
+ if(phase==='verify'){
+  const db=await open(),state=await read(db),names=Array.from(db.objectStoreNames).sort();db.close();
+  mark(state.revision2?'verified':'failed',{...state,stores:names});return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script>
