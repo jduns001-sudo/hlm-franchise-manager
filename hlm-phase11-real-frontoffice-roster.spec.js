@@ -1,0 +1,20 @@
+'use strict';
+const {test,expect}=require('@playwright/test'),fs=require('node:fs');
+const html=fs.readFileSync('app.html','utf8');
+const origin='https://phase11-real-frontoffice.invalid/';
+const universe={teams:[{id:42,name:'Pittsburgh',abbrev:'PIT'}],players:[{id:100,name:'Base Player',teamId:42,position:'C',positions:['C'],ovr:82,age:25,type:'Playmaker'}],seasons:[],draftPicks:[],rookies:[]};
+const live={schema:7,draftPickDataVersion:1,settings:{controlledTeamId:42,franchiseName:'Test',season:2026,capLimit:88500000},customPlayers:[{id:9001,name:'Imported Rookie',teamId:42,position:'C',positions:['C'],ovr:79,age:20,type:'Playmaker',potential:85}],playerOverrides:{},draftPickOverrides:{},extraDraftPicks:[],decisions:[],transactions:[],lines:{},depth:{},contracts:[],prospects:[],draftBoard:[],history:[{season:2026}],waivers:[],notes:[]};
+test.use({browserName:'chromium',viewport:{width:390,height:844}});
+test('actual app.html initDB and roster render imported custom player after reload without writes',async({page})=>{
+ await page.route(origin+'**',r=>{const u=r.request().url();if(u.endsWith('/hlm-universe.json'))return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(universe)});if(u.endsWith('/app.html'))return r.fulfill({status:200,contentType:'text/html',body:html});return r.fulfill({status:200,contentType:'application/javascript',body:''})});
+ await page.goto(origin+'setup');
+ await page.evaluate(v=>new Promise((resolve,reject)=>{const r=indexedDB.open('hlm_front_office_v8',1);r.onupgradeneeded=()=>r.result.createObjectStore('state');r.onsuccess=()=>{const db=r.result,tx=db.transaction('state','readwrite');tx.objectStore('state').put(v,'db');tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)};r.onerror=()=>reject(r.error)}),live);
+ await page.goto(origin+'app.html');
+ await expect(page.locator('#controlled')).toContainText('Pittsburgh',{timeout:15000});
+ await page.evaluate(()=>go('roster'));
+ await expect(page.locator('#view')).toContainText('Imported Rookie');
+ await page.reload();await expect(page.locator('#controlled')).toContainText('Pittsburgh',{timeout:15000});await page.evaluate(()=>go('roster'));
+ await expect(page.locator('#view')).toContainText('Imported Rookie');
+ const saved=await page.evaluate(()=>new Promise((resolve,reject)=>{const r=indexedDB.open('hlm_front_office_v8');r.onsuccess=()=>{const db=r.result,q=db.transaction('state','readonly').objectStore('state').get('db');q.onsuccess=()=>{db.close();resolve(q.result)};q.onerror=()=>reject(q.error)};r.onerror=()=>reject(r.error)}));
+ expect(saved).toEqual(live);
+});
