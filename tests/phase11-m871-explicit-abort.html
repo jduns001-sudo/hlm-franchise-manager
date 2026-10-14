@@ -1,0 +1,46 @@
+<!doctype html><meta charset="utf-8"><title>Mission 871 explicit abort rollback</title><script>
+'use strict';
+const DB='hlm_phase11_m871_explicit_abort_test_only',STORES=['roster','contracts','draftPicks','history'];
+const value=(s,n)=>({store:s,revision:n,payload:'franchise-'+s+'-v'+n});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s));return req(r)};
+async function read(db){
+ const tx=db.transaction(STORES,'readonly');
+ const rows=await Promise.all(STORES.map(s=>req(tx.objectStore(s).get('snapshot'))));
+ return {baseline:STORES.every((s,i)=>JSON.stringify(rows[i])===JSON.stringify(value(s,1))),rows};
+}
+async function seed(db){
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction(STORES,'readwrite');STORES.forEach(s=>tx.objectStore(s).put(value(s,1),'snapshot'));
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed abort'));
+ });
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ if(phase==='seed'){
+  const db=await open();await seed(db);const state=await read(db);db.close();
+  mark(state.baseline?'seeded':'failed',{baseline:state.baseline});return;
+ }
+ if(phase==='abort'){
+  const db=await open(),before=await read(db);
+  if(!before.baseline)throw Error('missing baseline');
+  const outcome=await new Promise(resolve=>{
+   const tx=db.transaction(STORES,'readwrite');
+   STORES.forEach(s=>tx.objectStore(s).put(value(s,2),'snapshot'));
+   tx.onabort=()=>resolve({aborted:true,error:tx.error?.name});
+   tx.oncomplete=()=>resolve({aborted:false});
+   tx.abort();
+  });
+  const after=await read(db);db.close();
+  const ok=outcome.aborted&&outcome.error==='AbortError'&&after.baseline;
+  mark(ok?'aborted':'failed',{...outcome,baseline:after.baseline});return;
+ }
+ if(phase==='verify'){
+  const db=await open(),state=await read(db),names=Array.from(db.objectStoreNames).sort();db.close();
+  mark(state.baseline?'verified':'failed',{...state,stores:names});return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script>
