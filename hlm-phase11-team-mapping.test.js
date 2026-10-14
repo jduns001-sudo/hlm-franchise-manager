@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict'),{buildTeamMapping}=require('./hlm-phase11-team-mapping');
+const imported={teams:[{id:1,name:'A'},{id:2,name:'B'}],players:[{id:7,teamId:1,position:'C'},{id:8,teamId:2,position:'G'}]};
+const targets=[{id:42,name:'Pittsburgh'},{id:43,name:'Other'}],before=JSON.stringify(imported);
+const plan=buildTeamMapping(imported,targets,{'1':42,'2':43});
+assert.deepEqual(plan.mappedPlayers.map(x=>x.teamId),[42,43]);assert.equal(plan.automaticCutoverAllowed,false);assert.equal(plan.productionWrites,0);assert.equal(JSON.stringify(imported),before);
+assert.throws(()=>buildTeamMapping(imported,targets,{'1':42,'2':42}),/duplicate production/);
+assert.throws(()=>buildTeamMapping(imported,targets,{'1':42}),/explicit mapping/);
+assert.throws(()=>buildTeamMapping(imported,targets,{'1':42,'2':99}),/Unknown/);
+console.log('Phase 11 explicit production team mapping tests passed');
