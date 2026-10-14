@@ -1,0 +1,14 @@
+'use strict';
+const {test,expect}=require('@playwright/test'),fs=require('node:fs'),path=require('node:path');
+const origin='https://phase11-optin-save.invalid/',root=process.cwd();
+test.use({browserName:'chromium',viewport:{width:390,height:844},serviceWorkers:'block'});
+async function route(page){await page.route(origin+'**',r=>{const n=decodeURIComponent(new URL(r.request().url()).pathname.slice(1)||'app.html');if(n.includes('..'))return r.abort();const p=path.join(root,n);return fs.existsSync(p)&&fs.statSync(p).isFile()?r.fulfill({status:200,contentType:n.endsWith('.js')?'application/javascript':'text/html',body:fs.readFileSync(p)}):r.fulfill({status:404,body:'Not found'})})}
+async function state(page,action,key,value){return page.evaluate(({action,key,value})=>new Promise((resolve,reject)=>{const q=indexedDB.open('hlm_front_office_v8',1);q.onupgradeneeded=()=>q.result.createObjectStore('state');q.onsuccess=()=>{const d=q.result,t=d.transaction('state',action==='read'?'readonly':'readwrite'),s=t.objectStore('state');if(action==='read'){const r=s.get(key);r.onsuccess=()=>resolve(r.result)}else s.put(value,key);t.oncomplete=()=>{d.close();if(action!=='read')resolve(true)};t.onerror=()=>reject(t.error)};q.onerror=()=>reject(q.error)}),{action,key,value})}
+test('real app mobile opt-in stale tab refuses overwrite; default remains off',async({browser})=>{const ctx=await browser.newContext(),a=await ctx.newPage(),b=await ctx.newPage();try{await route(a);await route(b);await a.goto(origin+'app.html',{waitUntil:'load'});await b.goto(origin+'app.html',{waitUntil:'load'});expect(await a.evaluate(()=>window.HLM_PHASE11_SAVE_GUARD_OPT_IN===true)).toBe(false);expect(await a.evaluate(()=>typeof HLMPhase11AtomicCutover.guardedSave)).toBe('function');
+const old={schema:7,settings:{controlledTeamId:42},customPlayers:[]},newer={...old,settings:{controlledTeamId:77}};
+await state(b,'write','db',old);await a.evaluate(()=>window.HLM_PHASE11_SAVE_GUARD_OPT_IN=true);
+const rejected=await a.evaluate(async ({old,newer})=>{try{await HLMPhase11AtomicCutover.guardedSave(indexedDB,old,newer);return false}catch{return true}},{old:{...old,settings:{controlledTeamId:999}},newer});
+expect(rejected).toBe(true);expect(await state(b,'read','db')).toEqual(old);
+await state(b,'write','db',newer);const denied=await a.evaluate(async ({old})=>{try{await HLMPhase11AtomicCutover.guardedSave(indexedDB,old,{...old,settings:{controlledTeamId:10}});return false}catch{return true}},{old});expect(denied).toBe(true);expect(await state(b,'read','db')).toEqual(newer);
+await state(b,'write','phase11-atomic-cutover-journal-v1',{phase:'interrupted'});const blocked=await a.evaluate(async ({newer})=>{try{await HLMPhase11AtomicCutover.guardedSave(indexedDB,newer,newer);return false}catch{return true}},{newer});expect(blocked).toBe(true);expect(await state(b,'read','db')).toEqual(newer);
+}finally{await ctx.close()}});
