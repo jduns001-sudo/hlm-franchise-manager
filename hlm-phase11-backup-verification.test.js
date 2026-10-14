@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict');
+const crypto=require('node:crypto').webcrypto;
+const {prepareBackupFile,verifyBackupFile,createAuthorizationGate}=require('./hlm-phase11-backup-verification');
+(async()=>{
+ const snapshot={format:'hlm-phase11-idb-backup-v1',database:'hlm_front_office_v8',store:'state',record:'db',existed:true,state:{schema:7,settings:{controlledTeamId:1},history:[]}};
+ const file=await prepareBackupFile(snapshot,crypto);
+ assert.equal(file.sha256.length,64);
+ const receipt=await verifyBackupFile(file.contents,file,crypto);
+ assert.equal(receipt.verified,true);
+ assert.deepEqual(receipt.snapshot.state,snapshot.state);
+ await assert.rejects(()=>verifyBackupFile(file.contents+' ',file,crypto),/differs/);
+ const gate=createAuthorizationGate();
+ assert.throws(()=>gate.authorize({confirmed:true,sha256:file.sha256}),/verified backup/);
+ gate.recordVerified(receipt);
+ assert.throws(()=>gate.authorize({confirmed:false,sha256:file.sha256}),/Explicit GM/);
+ assert.equal(gate.authorize({confirmed:true,sha256:file.sha256}).authorized,true);
+ gate.reset();
+ assert.throws(()=>gate.authorize({confirmed:true,sha256:file.sha256}),/verified backup/);
+ console.log('Phase 11 reopened backup verification and explicit authorization tests passed');
+})().catch(e=>{console.error(e);process.exitCode=1});

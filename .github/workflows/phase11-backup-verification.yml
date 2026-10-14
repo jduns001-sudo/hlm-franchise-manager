@@ -1,0 +1,17 @@
+name: Phase 11 Portable Backup Verification
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-backup-verification.js'
+      - 'hlm-phase11-backup-verification.test.js'
+      - '.github/workflows/phase11-backup-verification.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-backup-verification.test.js
+      - run: node hlm-phase11-idb-portable-export.test.js
