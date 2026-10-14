@@ -1,0 +1,70 @@
+<!doctype html><meta charset="utf-8"><title>Mission 867 committed migration durability</title><script>
+'use strict';
+const DB='hlm_phase11_m867_successful_upgrade_test_only';
+const STORES=['roster','contracts','draftPicks','history'];
+const original=s=>({store:s,revision:1,payload:'committed-'+s});
+const request=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+function open(version){
+ const r=indexedDB.open(DB,version);
+ if(version===1)r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s));
+ return request(r);
+}
+async function snapshot(db){
+ const tx=db.transaction([...STORES,'migrationMetadata'].filter(s=>db.objectStoreNames.contains(s)),'readonly');
+ const rows=await Promise.all(STORES.map(s=>request(tx.objectStore(s).get('snapshot'))));
+ const metadata=db.objectStoreNames.contains('migrationMetadata')?await request(tx.objectStore('migrationMetadata').get('schema')):null;
+ return {version:db.version,originalRetained:STORES.every((s,i)=>JSON.stringify(rows[i])===JSON.stringify(original(s))),
+  metadata,stores:Array.from(db.objectStoreNames).sort()};
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ if(phase==='seed'){
+  const db=await open(1);
+  await new Promise((resolve,reject)=>{
+   const tx=db.transaction(STORES,'readwrite');
+   STORES.forEach(s=>tx.objectStore(s).put(original(s),'snapshot'));
+   tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'));
+  });
+  const state=await snapshot(db);db.close();
+  mark(state.version===1&&state.originalRetained?'seeded':'failed',state);return;
+ }
+ if(phase==='upgrade'){
+  const r=indexedDB.open(DB,2);
+  let upgradeStarted=false,upgradeCompleted=false;
+  r.onupgradeneeded=()=>{
+   upgradeStarted=true;
+   const db=r.result,tx=r.transaction;
+   db.createObjectStore('migrationMetadata').put({version:2,source:'v1',completed:true},'schema');
+   STORES.forEach(s=>tx.objectStore(s).put({store:s,revision:2},'migrated'));
+  };
+  r.onerror=()=>mark('failed',{error:r.error?.name});
+  r.onsuccess=async()=>{
+   upgradeCompleted=true;
+   const db=r.result;
+   try{
+    const state=await snapshot(db);
+    const tx=db.transaction(STORES,'readonly');
+    const migrated=await Promise.all(STORES.map(s=>request(tx.objectStore(s).get('migrated'))));
+    const migrationRows=migrated.every((row,i)=>row?.store===STORES[i]&&row.revision===2);
+    db.close();
+    mark(state.version===2&&state.originalRetained&&migrationRows&&state.metadata?.completed?'upgraded':'failed',
+      {...state,upgradeStarted,upgradeCompleted,migrationRows});
+   }catch(e){db.close();mark('failed',{error:String(e)})}
+  };
+  return;
+ }
+ if(phase==='verify'){
+  const db=await open(2);
+  const state=await snapshot(db);
+  const tx=db.transaction(STORES,'readonly');
+  const migrated=await Promise.all(STORES.map(s=>request(tx.objectStore(s).get('migrated'))));
+  const migrationRows=migrated.every((row,i)=>row?.store===STORES[i]&&row.revision===2);
+  db.close();
+  mark(state.version===2&&state.originalRetained&&migrationRows&&state.metadata?.completed?'verified':'failed',
+   {...state,migrationRows});return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script>
