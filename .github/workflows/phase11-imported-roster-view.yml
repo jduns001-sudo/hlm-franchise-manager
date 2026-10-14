@@ -1,0 +1,20 @@
+name: Phase 11 Imported Roster Viewer
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-imported-roster-view.js'
+      - 'phase11-imported-roster-view.html'
+      - 'hlm-phase11-imported-roster-view.test.js'
+      - '.github/workflows/phase11-imported-roster-view.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-imported-roster-view.test.js
+      - run: node hlm-phase11-roster-import.test.js
+      - run: node hlm-phase11-roster-mapping.test.js
+      - run: node hlm-phase11-roster-import-browser.test.js
