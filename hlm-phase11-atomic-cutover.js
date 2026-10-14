@@ -44,7 +44,7 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
   if(authorization!=='I AUTHORIZE PRODUCTION ROSTER IMPORT')throw Error('GM approval required');
   const db=await open(idb);try{
    if(!db.objectStoreNames.contains(STORE))throw Error('Production state store missing');
-   const current=await read(db,KEY);if(await read(db,JOURNAL))throw Error('Unresolved cutover journal');
+   const current=await read(db,KEY);if((await read(db,JOURNAL))!==undefined)throw Error('Unresolved cutover journal');
    verifyCandidate(current,candidate);const backupSha256=await verifyBackup(backupText,current);
    const journal={phase:'committed',backupSha256,original:stringify(current),candidateSha256:await digest(stringify(candidate)),createdAt:new Date().toISOString()};
    // The journal and active state update share ONE IndexedDB readwrite transaction.
