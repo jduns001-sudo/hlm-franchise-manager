@@ -42,14 +42,15 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
  async function commit({candidate,backupText,authorization}){
   if(!enabled)throw Error('Production cutover disabled by default');
   if(authorization!=='I AUTHORIZE PRODUCTION ROSTER IMPORT')throw Error('GM approval required');
+  const candidateSnapshot=JSON.parse(stringify(candidate));
   const db=await open(idb);try{
    if(!db.objectStoreNames.contains(STORE))throw Error('Production state store missing');
    const current=await read(db,KEY);if((await read(db,JOURNAL))!==undefined)throw Error('Unresolved cutover journal');
-   verifyCandidate(current,candidate);const backupSha256=await verifyBackup(backupText,current);
-   const journal={phase:'committed',backupSha256,original:stringify(current),candidateSha256:await digest(stringify(candidate)),createdAt:new Date().toISOString()};
+   verifyCandidate(current,candidateSnapshot);const backupSha256=await verifyBackup(backupText,current);
+   const journal={phase:'committed',backupSha256,original:stringify(current),candidateSha256:await digest(stringify(candidateSnapshot)),createdAt:new Date().toISOString()};
    // The journal and active state update share ONE IndexedDB readwrite transaction.
-   await guardedAtomic(db,stringify(current),undefined,[[JOURNAL,journal],[KEY,candidate]]);
-   if(stringify(await read(db,KEY))!==stringify(candidate)||(await read(db,JOURNAL))===undefined)throw Error('Postcommit verification failed: journal retained for recovery');
+   await guardedAtomic(db,stringify(current),undefined,[[JOURNAL,journal],[KEY,candidateSnapshot]]);
+   if(stringify(await read(db,KEY))!==stringify(candidateSnapshot)||(await read(db,JOURNAL))===undefined)throw Error('Postcommit verification failed: journal retained for recovery');
    return {committed:true,backupSha256,rollbackAvailable:true};
   }finally{db.close()}
  }
