@@ -26,7 +26,7 @@ function guardedAtomic(db,expectedCurrent,expectedJournal,changes){
 function verifyCandidate(current,next){
  if(!current||current.schema!==7||!current.settings||!Array.isArray(current.customPlayers)||!next||next.schema!==7||!Array.isArray(next.customPlayers))throw Error('Unsupported schema 7 save');
  const keys=new Set([...Object.keys(current),...Object.keys(next)]);
- for(const key of keys){if(key==='customPlayers')continue;if(stringify(current[key]??null)!==stringify(next[key]??null))throw Error('Protected field changed: '+key)}
+ for(const key of keys){if(key==='customPlayers')continue;const hasCurrent=Object.prototype.hasOwnProperty.call(current,key),hasNext=Object.prototype.hasOwnProperty.call(next,key);if(hasCurrent!==hasNext||(hasCurrent&&stringify(current[key])!==stringify(next[key])))throw Error('Protected field changed: '+key)}
  if(next.customPlayers.length<=current.customPlayers.length)throw Error('No additive roster change');
  const seen=new Set(current.customPlayers.map(p=>String(p.id)));
  for(const p of next.customPlayers.slice(current.customPlayers.length)){if(!p||!Number.isSafeInteger(p.id)||seen.has(String(p.id))||p.teamId===undefined)throw Error('Invalid added player');seen.add(String(p.id))}
