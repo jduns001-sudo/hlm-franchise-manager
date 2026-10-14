@@ -63,6 +63,7 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
    if(await digest(journal.original)!==journal.backupSha256)throw Error('Journal backup mismatch');
    let original;try{original=JSON.parse(journal.original)}catch{throw Error('Journal original save invalid')}
    if(!original||original.schema!==7||!original.settings||!Array.isArray(original.customPlayers)||stringify(original)!==journal.original)throw Error('Journal original save invalid');
+   try{verifyCandidate(original,active)}catch{throw Error('Journal original/candidate mismatch')}
    await guardedAtomic(db,stringify(active),journal,[[KEY,original],[JOURNAL,undefined]]);
    if(stringify(await read(db,KEY))!==journal.original||(await read(db,JOURNAL))!==undefined)throw Error('Rollback verification failed');
    return {rolledBack:true,exactOriginalRestored:true};
