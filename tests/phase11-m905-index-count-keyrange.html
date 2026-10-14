@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>Mission 905 index key range count durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m905_index_range_count_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=12;
+const value=(s,i)=>({store:s,id:i,group:i%4,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details)=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s).createIndex('group','group'));return req(r)};
+async function seed(db){await new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).add(value(s,i),i);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'))})}
+async function inspect(db){const tx=db.transaction(STORES,'readonly');const results=await Promise.all(STORES.map(async s=>{const index=tx.objectStore(s).index('group');const [total,lowerInclusive,upperExclusive,exactTwo,none,keys]=await Promise.all([req(index.count()),req(index.count(IDBKeyRange.lowerBound(2))),req(index.count(IDBKeyRange.upperBound(2,true))),req(index.count(IDBKeyRange.only(2))),req(index.count(IDBKeyRange.bound(8,9))),req(index.getAllKeys(IDBKeyRange.bound(1,2)))]);return {total,lowerInclusive,upperExclusive,exactTwo,none,keys}}));const expected={total:12,lowerInclusive:6,upperExclusive:6,exactTwo:3,none:0,keys:[1,5,9,2,6,10]};return {valid:results.every(x=>JSON.stringify(x)===JSON.stringify(expected)),results}}
+async function run(){const phase=new URLSearchParams(location.search).get('phase'),db=await open();try{if(phase==='seed'){await seed(db);const state=await inspect(db);mark(state.valid?'seeded':'failed',state)}else if(phase==='verify'){const state=await inspect(db);mark(state.valid?'verified':'failed',{...state,stores:Array.from(db.objectStoreNames).sort()})}else throw Error('unknown phase')}finally{db.close()}}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
