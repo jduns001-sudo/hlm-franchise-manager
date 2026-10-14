@@ -1,0 +1,9 @@
+'use strict';
+const {test,expect}=require('@playwright/test'),fs=require('node:fs');
+const html=fs.readFileSync('hlm-phase11-mobile-readiness-screen.html','utf8');
+const readiness=fs.readFileSync('hlm-phase11-mobile-readiness.js','utf8');
+const preview=fs.readFileSync('hlm-phase11-mobile-optin-preview.js','utf8');
+const origin='https://phase11-mobile-screen.invalid/';
+test.use({browserName:'chromium',viewport:{width:390,height:844}});
+test('isolated mobile screen is disabled until file and GM consent',async({page})=>{await page.route(origin+'**',route=>{const url=route.request().url();route.fulfill({status:200,contentType:url.endsWith('.js')?'application/javascript':'text/html',body:url.endsWith('hlm-phase11-mobile-readiness.js')?readiness:url.endsWith('hlm-phase11-mobile-optin-preview.js')?preview:html})});await page.goto(origin);await expect(page.getByRole('button',{name:'Verify backup'})).toBeDisabled();await page.locator('#backup').setInputFiles({name:'backup.json',mimeType:'application/json',buffer:Buffer.from('{}')});await expect(page.getByRole('button',{name:'Verify backup'})).toBeDisabled();await page.locator('#confirm').check();await expect(page.getByRole('button',{name:'Verify backup'})).toBeEnabled();await page.getByRole('button',{name:'Verify backup'}).click();await expect(page.getByRole('status')).toContainText('Verification refused');await expect(page.getByRole('status')).toContainText('No save changes made')});
+test('real Front Office app remains unchanged and never loads the opt-in screen',async()=>{const app=fs.readFileSync('app.html','utf8');expect(app).not.toContain('hlm-phase11-mobile-readiness-screen.html');expect(app).not.toContain('hlm-phase11-mobile-optin-preview.js');expect(app).not.toContain('HLMPhase11AtomicCutover.createController');expect(fs.readFileSync('hlm-phase11-cutover-integration.js','utf8')).toContain('productionCutoverEnabled:false')});
