@@ -1,0 +1,1 @@
+module.exports={testDir:'.',testMatch:'hlm-phase11-full-universe-hardening.spec.js',timeout:60000,retries:1,reporter:'list',use:{headless:true}};
