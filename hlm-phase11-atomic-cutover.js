@@ -60,13 +60,13 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
   const db=await open(idb);try{
    const journal=await read(db,JOURNAL);if(!journal||journal.phase!=='committed')throw Error('No recoverable journal');
    if(typeof journal.createdAt!=='string'||!Number.isFinite(Date.parse(journal.createdAt))||new Date(journal.createdAt).toISOString()!==journal.createdAt)throw Error('Journal timestamp invalid');
-   const active=await read(db,KEY);if(await digest(stringify(active))!==journal.candidateSha256)throw Error('Active save diverged: automatic rollback unsafe');
+   const active=await read(db,KEY),activeSnapshot=stringify(active);if(await digest(activeSnapshot)!==journal.candidateSha256)throw Error('Active save diverged: automatic rollback unsafe');
    if(typeof journal.original!=='string'||typeof journal.backupSha256!=='string')throw Error('Journal backup mismatch');
    if(await digest(journal.original)!==journal.backupSha256)throw Error('Journal backup mismatch');
    let original;try{original=JSON.parse(journal.original)}catch{throw Error('Journal original save invalid')}
    if(!original||original.schema!==7||!original.settings||!Array.isArray(original.customPlayers)||stringify(original)!==journal.original)throw Error('Journal original save invalid');
-   try{verifyCandidate(original,active)}catch{throw Error('Journal original/candidate mismatch')}
-   await guardedAtomic(db,stringify(active),journal,[[KEY,original],[JOURNAL,undefined]]);
+   try{verifyCandidate(original,JSON.parse(activeSnapshot))}catch{throw Error('Journal original/candidate mismatch')}
+   await guardedAtomic(db,activeSnapshot,journal,[[KEY,original],[JOURNAL,undefined]]);
    if(stringify(await read(db,KEY))!==journal.original||(await read(db,JOURNAL))!==undefined)throw Error('Rollback verification failed');
    return {rolledBack:true,exactOriginalRestored:true};
   }finally{db.close()}
