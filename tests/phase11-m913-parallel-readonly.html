@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>Mission 913 concurrent readonly snapshot durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m913_parallel_readonly_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=8;
+const value=(s,i)=>({store:s,id:i,group:i%4,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details)=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s).createIndex('group','group'));return req(r)};
+async function seed(db){await new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).add(value(s,i),i);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'))})}
+function snapshot(db){return new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readonly');let completed=0;const observations=[];tx.oncomplete=()=>resolve({completed,observations});tx.onabort=()=>reject(tx.error||Error('readonly aborted'));for(const s of STORES){const store=tx.objectStore(s),a=store.getAll(),b=store.index('group').getAllKeys(IDBKeyRange.only(2));a.onsuccess=()=>{completed++;observations.push({store:s,type:'records',valid:JSON.stringify(a.result)===JSON.stringify(Array.from({length:COUNT},(_,i)=>value(s,i)))})};b.onsuccess=()=>{completed++;observations.push({store:s,type:'index',valid:JSON.stringify(b.result)===JSON.stringify([2,6])})};for(const q of [a,b])q.onerror=()=>reject(q.error||Error('read failed'))}})}
+async function run(){const phase=new URLSearchParams(location.search).get('phase'),db=await open();try{if(phase==='seed'){await seed(db);mark('seeded',{stores:STORES.length,records:COUNT})}else if(phase==='parallel'||phase==='verify'){const [a,b]=await Promise.all([snapshot(db),snapshot(db)]);const valid=[a,b].every(x=>x.completed===8&&x.observations.length===8&&x.observations.every(y=>y.valid));mark(valid?(phase==='parallel'?'parallel':'verified'):'failed',{valid,transactions:2,reads:[a.completed,b.completed],stores:Array.from(db.objectStoreNames).sort()})}else throw Error('unknown phase')}finally{db.close()}}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
