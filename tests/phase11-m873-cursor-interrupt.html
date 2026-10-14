@@ -1,0 +1,47 @@
+<!doctype html><meta charset="utf-8"><title>Mission 873 interrupted cursor durability</title><script>
+'use strict';
+const DB='hlm_phase11_m873_cursor_interrupt_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=12;
+const value=(s,i)=>({store:s,id:i,revision:1,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s));return req(r)};
+async function readAll(db){
+ const tx=db.transaction(STORES,'readonly');
+ const rows=await Promise.all(STORES.map(s=>req(tx.objectStore(s).getAll())));
+ return {rows,valid:STORES.every((s,j)=>rows[j].length===COUNT&&rows[j].every((v,i)=>JSON.stringify(v)===JSON.stringify(value(s,i))))};
+}
+async function seed(db){
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction(STORES,'readwrite');
+  for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).put(value(s,i),i);
+  tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'));
+ });
+}
+async function run(){
+ const phase=new URLSearchParams(location.search).get('phase');
+ if(phase==='seed'){
+  const db=await open();await seed(db);const state=await readAll(db);db.close();
+  mark(state.valid?'seeded':'failed',{valid:state.valid,counts:state.rows.map(r=>r.length)});return;
+ }
+ if(phase==='interrupt'){
+  const db=await open(),baseline=await readAll(db);
+  if(!baseline.valid)throw Error('baseline invalid');
+  const tx=db.transaction(STORES,'readonly'),cursor=tx.objectStore('roster').openCursor();
+  cursor.onerror=()=>mark('failed',{error:String(cursor.error)});
+  cursor.onsuccess=()=>{
+   if(!cursor.result){mark('failed',{error:'cursor exhausted before interruption'});return;}
+   const first=cursor.result.value;
+   if(JSON.stringify(first)!==JSON.stringify(value('roster',0))){mark('failed',{error:'first row mismatch'});return;}
+   // Intentionally do not call continue(): leave the cursor traversal incomplete.
+   mark('interrupted',{first,visited:1,total:COUNT,baseline:true});
+  };
+  return;
+ }
+ if(phase==='verify'){
+  const db=await open(),state=await readAll(db),stores=Array.from(db.objectStoreNames).sort();db.close();
+  mark(state.valid?'verified':'failed',{valid:state.valid,counts:state.rows.map(r=>r.length),stores});return;
+ }
+ throw Error('unknown phase');
+}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script>
