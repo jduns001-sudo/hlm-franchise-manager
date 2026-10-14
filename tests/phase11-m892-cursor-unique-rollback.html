@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>Mission 892 cursor unique constraint rollback durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m892_cursor_unique_rollback_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=8;
+const value=(s,i)=>({store:s,id:i,slot:'slot-'+i,revision:1,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s).createIndex('slot','slot',{unique:true}));return req(r)};
+async function seed(db){await new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).put(value(s,i),i);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'))})}
+async function inspect(db){const tx=db.transaction(STORES,'readonly'),rows=await Promise.all(STORES.map(s=>req(tx.objectStore(s).getAll()))),indexed=await Promise.all(STORES.map(s=>req(tx.objectStore(s).index('slot').getAll())));return {valid:STORES.every((s,j)=>JSON.stringify(rows[j])===JSON.stringify(Array.from({length:COUNT},(_,i)=>value(s,i)))&&JSON.stringify(indexed[j])===JSON.stringify(Array.from({length:COUNT},(_,i)=>value(s,i)))),counts:rows.map(r=>r.length),indexCounts:indexed.map(r=>r.length)}}
+async function attempt(db){return new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite'),events=[];let sawConstraint=false;
+ tx.oncomplete=()=>reject(Error('unexpected commit'));tx.onabort=()=>resolve({aborted:true,constraint:sawConstraint,events,error:tx.error?.name});
+ tx.onerror=()=>{};
+ for(const s of STORES){const store=tx.objectStore(s),r=store.index('slot').openCursor(IDBKeyRange.only('slot-1'));r.onerror=()=>reject(r.error);r.onsuccess=()=>{const c=r.result;if(!c){reject(Error('missing cursor'));return}const updated={...c.value,revision:2,payload:'temporary-'+s};const u=c.update(updated);u.onerror=()=>reject(u.error);u.onsuccess=()=>{events.push(s);if(s==='history'){const collision=c.update({...updated,slot:'slot-2'});collision.onerror=()=>{sawConstraint=collision.error?.name==='ConstraintError'};collision.onsuccess=()=>reject(Error('unique index accepted collision'))}}}}
+ })}
+async function run(){const phase=new URLSearchParams(location.search).get('phase');if(phase==='seed'){const db=await open();await seed(db);const state=await inspect(db);db.close();mark(state.valid?'seeded':'failed',state);return}if(phase==='rollback'){const db=await open(),before=await inspect(db);if(!before.valid)throw Error('baseline invalid');const result=await attempt(db),after=await inspect(db);db.close();mark(result.aborted&&result.constraint&&after.valid&&result.events.length===STORES.length?'rolledback':'failed',{...result,fullValid:after.valid,counts:after.counts,indexCounts:after.indexCounts});return}if(phase==='verify'){const db=await open(),state=await inspect(db),stores=Array.from(db.objectStoreNames).sort();db.close();mark(state.valid?'verified':'failed',{fullValid:state.valid,counts:state.counts,indexCounts:state.indexCounts,stores});return}throw Error('unknown phase')}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
