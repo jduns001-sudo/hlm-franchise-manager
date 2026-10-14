@@ -1,0 +1,1 @@
+module.exports={testDir:'.',testMatch:'hlm-phase11-end-to-end-cutover.spec.js',timeout:90000,retries:1,reporter:'list',use:{headless:true}};
