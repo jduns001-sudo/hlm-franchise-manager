@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><title>Mission 894 index value cursor continuePrimaryKey durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m894_value_cursor_primary_jump_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=12;
+const value=(s,i)=>({store:s,id:i,group:Math.floor(i/3),revision:1,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details={})=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s).createIndex('group','group'));return req(r)};
+async function seed(db){await new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).put(value(s,i),i);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'))})}
+function traverse(store){return new Promise((resolve,reject)=>{const visited=[],r=store.index('group').openCursor(null,'next');r.onerror=()=>reject(r.error);r.onsuccess=()=>{const c=r.result;if(!c){resolve(visited);return}visited.push({key:c.key,primaryKey:c.primaryKey,value:c.value});if(visited.length===1)c.continuePrimaryKey(1,4);else if(visited.length===2)c.continuePrimaryKey(2,8);else c.continue()}})}
+async function inspect(db){const tx=db.transaction(STORES,'readonly'),rows=await Promise.all(STORES.map(s=>req(tx.objectStore(s).getAll()))),visits=await Promise.all(STORES.map(s=>traverse(tx.objectStore(s))));const ids=[0,4,8,9,10,11];return {valid:STORES.every((s,j)=>JSON.stringify(rows[j])===JSON.stringify(Array.from({length:COUNT},(_,i)=>value(s,i)))&&JSON.stringify(visits[j])===JSON.stringify(ids.map(i=>({key:Math.floor(i/3),primaryKey:i,value:value(s,i)})))),counts:rows.map(r=>r.length),visited:visits.map(v=>v.map(x=>x.primaryKey))}}
+async function run(){const phase=new URLSearchParams(location.search).get('phase');if(phase==='seed'){const db=await open();await seed(db);const state=await inspect(db);db.close();mark(state.valid?'seeded':'failed',state);return}if(phase==='verify'){const db=await open(),state=await inspect(db),stores=Array.from(db.objectStoreNames).sort();db.close();mark(state.valid?'verified':'failed',{...state,stores});return}throw Error('unknown phase')}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
