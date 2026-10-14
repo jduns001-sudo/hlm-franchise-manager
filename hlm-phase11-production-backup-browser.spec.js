@@ -1,0 +1,20 @@
+'use strict';
+const {test,expect}=require('@playwright/test'),fs=require('node:fs'),path=require('node:path');
+const origin='https://phase11-production-backup-test.invalid/';
+const html=fs.readFileSync('phase11-production-backup.html','utf8');
+const script=fs.readFileSync('hlm-phase11-production-backup-browser.js','utf8');
+test.use({browserName:'chromium',acceptDownloads:true,viewport:{width:390,height:844}});
+test('real browser exports and reopens existing production-format save without writing',async({page})=>{
+ await page.route(origin+'**',r=>r.fulfill({status:200,contentType:'text/html',body:html.replace('<script src="./hlm-phase11-production-backup-browser.js"></script>','<script>'+script+'</script>')}));
+ await page.goto(origin);
+ await page.evaluate(()=>new Promise((resolve,reject)=>{const r=indexedDB.open('hlm_front_office_v8',1);r.onupgradeneeded=()=>r.result.createObjectStore('state');r.onsuccess=()=>{const db=r.result,tx=db.transaction('state','readwrite');tx.objectStore('state').put({schema:7,settings:{controlledTeamId:42},history:[{season:2026}]},'db');tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)};r.onerror=()=>reject(r.error)}));
+ const before=await page.evaluate(()=>window.HLMPhase11ProductionBackup.readCurrent());
+ const downloadPromise=page.waitForEvent('download');await page.click('#export');const download=await downloadPromise;
+ const save=path.join(test.info().outputDir,'backup.json');await download.saveAs(save);
+ await page.locator('#reopen').setInputFiles(save);
+ await expect(page.locator('#verify')).toContainText('Verified SHA-256:');
+ const after=await page.evaluate(()=>window.HLMPhase11ProductionBackup.readCurrent());expect(after).toEqual(before);
+ const tampered=JSON.parse(fs.readFileSync(save,'utf8'));tampered.payload=tampered.payload.replace('42','99');
+ const error=await page.evaluate(async s=>{try{await window.HLMPhase11ProductionBackup.verify(s);return 'unexpected'}catch(e){return e.message}},JSON.stringify(tampered));
+ expect(error).toMatch(/integrity mismatch/);
+});
