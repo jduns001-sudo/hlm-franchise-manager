@@ -1,0 +1,12 @@
+<!doctype html><meta charset="utf-8"><title>Mission 906 primary key range count durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m906_primary_range_count_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=12;
+const value=(s,i)=>({store:s,id:i,group:i%4,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details)=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s).createIndex('group','group'));return req(r)};
+async function seed(db){await new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).add(value(s,i),i);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'))})}
+async function inspect(db){const tx=db.transaction(STORES,'readonly');const results=await Promise.all(STORES.map(async s=>{const store=tx.objectStore(s);const [total,bounded,upperExclusive,lowerExclusive,exactSix,none,keys,rows]=await Promise.all([req(store.count()),req(store.count(IDBKeyRange.bound(3,8,true,false))),req(store.count(IDBKeyRange.upperBound(4,true))),req(store.count(IDBKeyRange.lowerBound(9,true))),req(store.count(IDBKeyRange.only(6))),req(store.count(IDBKeyRange.bound(20,25))),req(store.getAllKeys(IDBKeyRange.bound(3,8,true,false))),req(store.getAll(IDBKeyRange.bound(3,8,true,false)))]);return {total,bounded,upperExclusive,lowerExclusive,exactSix,none,keys,rowsValid:JSON.stringify(rows)===JSON.stringify([4,5,6,7,8].map(i=>value(s,i)))}}));const expected={total:12,bounded:5,upperExclusive:4,lowerExclusive:2,exactSix:1,none:0,keys:[4,5,6,7,8],rowsValid:true};return {valid:results.every(x=>JSON.stringify(x)===JSON.stringify(expected)),results}}
+async function run(){const phase=new URLSearchParams(location.search).get('phase'),db=await open();try{if(phase==='seed'){await seed(db);const state=await inspect(db);mark(state.valid?'seeded':'failed',state)}else if(phase==='verify'){const state=await inspect(db);mark(state.valid?'verified':'failed',{...state,stores:Array.from(db.objectStoreNames).sort()})}else throw Error('unknown phase')}finally{db.close()}}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
