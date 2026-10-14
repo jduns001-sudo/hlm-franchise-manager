@@ -16,7 +16,7 @@ function guardedAtomic(db,expectedCurrent,expectedJournal,changes){
   b.onsuccess=()=>{actualJournal=b.result;check()};
   function check(){if(++checked!==2)return;
    try{
-    if(stringify(actualCurrent)!==expectedCurrent||stringify(actualJournal??null)!==stringify(expectedJournal??null))throw Error('Concurrent save or journal change detected');
+    if(stringify(actualCurrent)!==expectedCurrent||stringify(actualJournal===undefined?{__hlmMissingJournal:true}:actualJournal)!==stringify(expectedJournal===undefined||expectedJournal===null?{__hlmMissingJournal:true}:expectedJournal))throw Error('Concurrent save or journal change detected');
     for(const [key,value] of changes){if(value===undefined)store.delete(key);else store.put(value,key)}
    }catch(e){tx.abort();reject(e)}
   }
