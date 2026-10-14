@@ -1,0 +1,20 @@
+name: Phase 11 Integrated Import Workbench Browser
+on:
+  pull_request:
+    paths:
+      - 'phase11-import-workbench.html'
+      - 'hlm-phase11-import-workbench.js'
+      - 'hlm-phase11-import-workbench.spec.js'
+      - 'hlm-phase11-import-workbench.config.js'
+      - '.github/workflows/phase11-import-workbench.yml'
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --package-lock=false @playwright/test@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=hlm-phase11-import-workbench.config.js
