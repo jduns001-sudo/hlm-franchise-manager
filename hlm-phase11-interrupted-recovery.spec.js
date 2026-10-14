@@ -41,3 +41,27 @@ test('authorization and controlled team mismatch cannot stage candidate',async({
  expect(mismatch).toMatch(/Controlled team/);
  expect(await state(page)).toEqual({live:original,staged:undefined,journal:undefined});
 });
+
+
+test('explicit finalization survives reload and retains rollback journal',async({page})=>{
+ await load(page);await page.evaluate(v=>window.recovery.initialize(indexedDB,v),original);
+ await page.evaluate(v=>window.recovery.begin(indexedDB,v,true),candidate);
+ await page.evaluate(()=>window.recovery.commit(indexedDB));
+ expect(await page.evaluate(()=>window.recovery.finalize(indexedDB,true))).toBe('finalized');
+ await page.reload();await page.addScriptTag({content:'window.recovery=(function(){const module={exports:{}};'+adapter+';return module.exports})()'});
+ expect(await page.evaluate(()=>window.recovery.recover(indexedDB))).toBe('clean');
+ expect((await state(page)).live).toEqual(candidate);
+ expect((await state(page)).journal.phase).toBe('finalized');
+ expect((await state(page)).staged).toBeUndefined();
+ expect(await page.evaluate(()=>window.recovery.rollback(indexedDB,true))).toBe('rolled-back');
+ expect(await state(page)).toEqual({live:original,staged:undefined,journal:undefined});
+});
+test('cannot finalize uncommitted or unauthorized candidate',async({page})=>{
+ await load(page);await page.evaluate(v=>window.recovery.initialize(indexedDB,v),original);
+ await page.evaluate(v=>window.recovery.begin(indexedDB,v,true),candidate);
+ const denied=await page.evaluate(async()=>{try{await window.recovery.finalize(indexedDB,false);return 'unexpected'}catch(e){return e.message}});
+ expect(denied).toMatch(/authorization|finalization/);
+ const premature=await page.evaluate(async()=>{try{await window.recovery.finalize(indexedDB,true);return 'unexpected'}catch(e){return e.message}});
+ expect(premature).toMatch(/No written activation/);
+ expect((await state(page)).live).toEqual(original);
+});
