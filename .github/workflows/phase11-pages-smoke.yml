@@ -1,0 +1,16 @@
+name: Phase 11 Pages Read-Only Smoke
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-pages-smoke.js'
+      - '.github/workflows/phase11-pages-smoke.yml'
+  workflow_dispatch:
+jobs:
+  pages-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-pages-smoke.js
