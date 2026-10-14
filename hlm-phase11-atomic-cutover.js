@@ -16,7 +16,7 @@ function guardedAtomic(db,expectedCurrent,expectedJournal,changes){
   b.onsuccess=()=>{actualJournal=b.result;check()};
   function check(){if(++checked!==2)return;
    try{
-    if(stringify(actualCurrent)!==expectedCurrent||stringify(actualJournal??null)!==stringify(expectedJournal??null))throw Error('Concurrent save or journal change detected');
+    if(stringify(actualCurrent)!==expectedCurrent||((actualJournal===undefined)!==(expectedJournal===undefined))||(actualJournal!==undefined&&stringify(actualJournal)!==stringify(expectedJournal)))throw Error('Concurrent save or journal change detected');
     for(const [key,value] of changes){if(value===undefined)store.delete(key);else store.put(value,key)}
    }catch(e){tx.abort();reject(e)}
   }
@@ -48,7 +48,7 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
    verifyCandidate(current,candidate);const backupSha256=await verifyBackup(backupText,current);
    const journal={phase:'committed',backupSha256,original:stringify(current),candidateSha256:await digest(stringify(candidate)),createdAt:new Date().toISOString()};
    // The journal and active state update share ONE IndexedDB readwrite transaction.
-   await guardedAtomic(db,stringify(current),null,[[JOURNAL,journal],[KEY,candidate]]);
+   await guardedAtomic(db,stringify(current),undefined,[[JOURNAL,journal],[KEY,candidate]]);
    if(stringify(await read(db,KEY))!==stringify(candidate)||!(await read(db,JOURNAL)))throw Error('Postcommit verification failed: journal retained for recovery');
    return {committed:true,backupSha256,rollbackAvailable:true};
   }finally{db.close()}
