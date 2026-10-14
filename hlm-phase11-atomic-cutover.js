@@ -61,7 +61,7 @@ function createController(idb,options={}){const enabled=options.allowCutover===t
    const active=await read(db,KEY);if(await digest(stringify(active))!==journal.candidateSha256)throw Error('Active save diverged: automatic rollback unsafe');
    const original=JSON.parse(journal.original);if(await digest(journal.original)!==journal.backupSha256)throw Error('Journal backup mismatch');
    await guardedAtomic(db,stringify(active),journal,[[KEY,original],[JOURNAL,undefined]]);
-   if(stringify(await read(db,KEY))!==journal.original||await read(db,JOURNAL))throw Error('Rollback verification failed');
+   if(stringify(await read(db,KEY))!==journal.original||(await read(db,JOURNAL))!==undefined)throw Error('Rollback verification failed');
    return {rolledBack:true,exactOriginalRestored:true};
   }finally{db.close()}
  }
