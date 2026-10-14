@@ -11,6 +11,7 @@ test.use({browserName:'chromium',viewport:{width:390,height:844},acceptDownloads
 async function setup(page){
  await page.route(origin+'**',r=>{const url=r.request().url();if(url.endsWith('hlm-universe.json'))return r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(universe)});for(const [path,js] of Object.entries(code))if(url.endsWith(path))return r.fulfill({status:200,contentType:'text/javascript',body:js});return r.fulfill({status:200,contentType:'text/html',body:html})});
  await page.goto(origin);
+ await page.addScriptTag({content:code['hlm-phase11-atomic-cutover.js']}); // Test-only controller, never included in production HTML
  await page.evaluate(x=>localStorage.setItem('hlm-phase11-imported-franchise-v1',JSON.stringify(x)),imported);
  await page.evaluate(v=>new Promise((resolve,reject)=>{const r=indexedDB.open('hlm_front_office_v8',1);r.onupgradeneeded=()=>r.result.createObjectStore('state');r.onsuccess=()=>{const db=r.result,tx=db.transaction('state','readwrite');tx.objectStore('state').put(v,'db');tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)};r.onerror=()=>reject(r.error)}),live);
  await page.click('#load');await page.selectOption('#map-1','42');await page.selectOption('#map-2','43');
@@ -27,7 +28,7 @@ test('end to end: real-universe preflight, reopened backup, test-only atomic com
   return {committed,controlledTeamId:plan.controlledTeamId};
  },text);
  expect(result.committed.committed).toBe(true);expect(result.controlledTeamId).toBe(42);
- await page.reload();
+ await page.reload();await page.addScriptTag({content:code['hlm-phase11-atomic-cutover.js']});
  const journal=await page.evaluate(()=>HLMPhase11AtomicCutover.createController(indexedDB,{allowCutover:true}).status());expect(journal.journal.phase).toBe('committed');
  const restored=await page.evaluate(()=>HLMPhase11AtomicCutover.createController(indexedDB,{allowCutover:true}).rollback('I AUTHORIZE PRODUCTION ROLLBACK'));expect(restored.exactOriginalRestored).toBe(true);
  expect(await page.evaluate(()=>HLMPhase11ImportWorkbench.current())).toEqual(live);
