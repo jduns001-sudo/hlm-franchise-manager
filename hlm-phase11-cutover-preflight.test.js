@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {inspectCandidate,snapshotRawRecord,verifySnapshot,prepareReadOnlyCutover}=require('./hlm-phase11-cutover-preflight');
+const state={meta:{controlledTeamId:1},universe:{teams:[{id:1,name:'A'},{id:2,name:'B'}],players:[{id:10,teamId:1,name:'C',position:'C',ovr:80},{id:11,teamId:2,name:'G',position:'G',ovr:75}]}};
+const storage={getItem:()=>JSON.stringify(state),setItem(){throw Error('Unexpected write')}};
+const result=prepareReadOnlyCutover(storage,{present:true,value:{schema:7,settings:{controlledTeamId:1},history:[1]}});
+assert.equal(result.candidate.playerCount,2);assert.equal(result.productionWrites,0);assert.equal(result.readyForCutover,false);
+assert.deepEqual(verifySnapshot(result.backup).value,{schema:7,settings:{controlledTeamId:1},history:[1]});
+assert.deepEqual(verifySnapshot(snapshotRawRecord({present:false})),{present:false});
+assert.throws(()=>verifySnapshot({...result.backup,payload:'not json'}));
+assert.throws(()=>inspectCandidate({getItem:()=>JSON.stringify({...state,meta:{controlledTeamId:99}})}),/Controlled team/);
+assert.throws(()=>inspectCandidate({getItem:()=>JSON.stringify({...state,universe:{...state.universe,players:[state.universe.players[0],state.universe.players[0]]}})}),/Invalid player/);
+assert.throws(()=>snapshotRawRecord({present:true,value:{bad:undefined}}),/round-trip mismatch/);
+console.log('Phase 11 production cutover read-only preflight tests passed');
