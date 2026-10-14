@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>Mission 915 aborted schema upgrade rollback durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m915_upgrade_abort_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=6;
+const value=(s,i)=>({store:s,id:i,group:i%3,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details)=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+function open(version,upgrade){const r=indexedDB.open(DB,version);r.onupgradeneeded=()=>upgrade&&upgrade(r.result,r.transaction);return req(r)}
+const create=db=>STORES.forEach(s=>db.createObjectStore(s).createIndex('group','group'));
+async function seed(db){await new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).add(value(s,i),i);tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('seed aborted'))})}
+async function inspect(db){const tx=db.transaction(STORES,'readonly');const results=await Promise.all(STORES.map(async s=>{const store=tx.objectStore(s),[rows,keys]=await Promise.all([req(store.getAll()),req(store.getAllKeys())]);return {valid:JSON.stringify(rows)===JSON.stringify(Array.from({length:COUNT},(_,i)=>value(s,i)))&&JSON.stringify(keys)===JSON.stringify([0,1,2,3,4,5])&&JSON.stringify(Array.from(store.indexNames))===JSON.stringify(['group']),count:rows.length}}));return {valid:results.every(x=>x.valid),results}}
+async function abortedUpgrade(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB,2);let attempted=0,aborted=false;r.onupgradeneeded=()=>{for(const s of STORES){r.transaction.objectStore(s).createIndex('revision','revision');attempted++}r.transaction.abort()};r.onsuccess=()=>{r.result.close();reject(Error('upgrade unexpectedly committed'))};r.onerror=()=>{aborted=r.error&&r.error.name==='AbortError';resolve({attempted,aborted,error:r.error&&r.error.name})};r.onblocked=()=>reject(Error('upgrade blocked'))})}
+async function run(){const phase=new URLSearchParams(location.search).get('phase');if(phase==='seed'){const db=await open(1,create);try{await seed(db);mark('seeded',{version:db.version,stores:Array.from(db.objectStoreNames).sort()})}finally{db.close()}}else if(phase==='abort'){const attempt=await abortedUpgrade(),db=await open(1);try{const state=await inspect(db);mark(attempt.attempted===4&&attempt.aborted&&state.valid&&db.version===1?'aborted':'failed',{...attempt,...state,version:db.version})}finally{db.close()}}else if(phase==='verify'){const db=await open(1);try{const state=await inspect(db);mark(state.valid&&db.version===1?'verified':'failed',{...state,version:db.version,stores:Array.from(db.objectStoreNames).sort()})}finally{db.close()}}else throw Error('unknown phase')}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
