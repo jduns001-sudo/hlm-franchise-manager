@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><title>Mission 901 put overwrite durability</title><body><script>
+'use strict';
+const DB='hlm_phase11_m901_put_overwrite_test_only',STORES=['roster','contracts','draftPicks','history'],COUNT=10;
+const value=(s,i,rev=1)=>({store:s,id:i,group:rev===2?(i+1)%3:i%3,revision:rev,payload:'franchise-'+s+'-'+i});
+const req=r=>new Promise((resolve,reject)=>{r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+const mark=(stage,details)=>{document.body.dataset.stage=stage;document.body.dataset.details=JSON.stringify(details)};
+const open=()=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>STORES.forEach(s=>r.result.createObjectStore(s).createIndex('group','group'));return req(r)};
+const write=(db,fn)=>new Promise((resolve,reject)=>{const tx=db.transaction(STORES,'readwrite');tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error||Error('aborted'));fn(tx)});
+async function seed(db){await write(db,tx=>{for(const s of STORES)for(let i=0;i<COUNT;i++)tx.objectStore(s).put(value(s,i),i)})}
+async function overwrite(db){await write(db,tx=>{for(const s of STORES)for(const i of [1,4,7])tx.objectStore(s).put(value(s,i,2),i)})}
+async function inspect(db,updated){const tx=db.transaction(STORES,'readonly'),keys=Array.from({length:COUNT},(_,i)=>i);const all=await Promise.all(STORES.map(s=>req(tx.objectStore(s).getAll())));const ids=await Promise.all(STORES.map(s=>req(tx.objectStore(s).getAllKeys())));const indexes=await Promise.all(STORES.map(s=>req(tx.objectStore(s).index('group').getAll())));const expected=s=>keys.map(i=>value(s,i,updated&&[1,4,7].includes(i)?2:1));return {valid:STORES.every((s,j)=>JSON.stringify(all[j])===JSON.stringify(expected(s))&&JSON.stringify(ids[j])===JSON.stringify(keys)&&JSON.stringify(indexes[j])===JSON.stringify(expected(s).sort((a,b)=>a.group-b.group||a.id-b.id))),counts:all.map(x=>x.length),indexCounts:indexes.map(x=>x.length),revisions:all.map(rows=>rows.filter(x=>x.revision===2).map(x=>x.id))}}
+async function run(){const phase=new URLSearchParams(location.search).get('phase'),db=await open();try{if(phase==='seed'){await seed(db);const state=await inspect(db,false);mark(state.valid?'seeded':'failed',state)}else if(phase==='overwrite'){const before=await inspect(db,false);if(!before.valid)throw Error('baseline invalid');await overwrite(db);const after=await inspect(db,true);mark(after.valid?'overwritten':'failed',after)}else if(phase==='verify'){const state=await inspect(db,true);mark(state.valid?'verified':'failed',{...state,stores:Array.from(db.objectStoreNames).sort()})}else throw Error('unknown phase')}finally{db.close()}}
+run().catch(e=>mark('failed',{error:String(e)}));
+</script></body>
