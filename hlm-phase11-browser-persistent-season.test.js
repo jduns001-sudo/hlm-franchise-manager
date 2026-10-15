@@ -31,6 +31,11 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert(savedStandings.every(team=>team.gp===2));
   assert.equal(JSON.parse(await page.locator('#season-history').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
+  const readiness=JSON.parse(await page.locator('#gm-readiness').textContent());
+  assert.equal(readiness.record.gp,2);
+  assert.equal(readiness.lastGames.length,2);
+  assert(readiness.recommendations.every(item=>item.requiresGMApproval&&!item.automaticallyApplied));
+  assert.equal(readiness.productionActivationEnabled,false);
   const multiday=JSON.parse(await page.locator('#multiday-results').textContent());
   assert.equal(multiday.advancedDays,1);
   assert.equal(multiday.days.length,1);
@@ -40,6 +45,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(JSON.parse(await page.locator('#saved-standings').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#season-history').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
+  assert.equal(JSON.parse(await page.locator('#gm-readiness').textContent()).record.gp,2);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
