@@ -1,0 +1,10 @@
+'use strict';const assert=require('node:assert/strict'),{createGameStateEnvelope}=require('./hlm-game-state'),{writeFinanceSnapshot,advanceWithFinances}=require('./hlm-phase11-finance-state-commit');
+const policy={salaryCap:90000000,ownerBudget:105000000,attendance:18000,arenaCapacity:20000,ticketPrice:100,merchandiseRevenue:5000000,sponsorshipRevenue:30000000,mediaRevenue:80000000,arenaExpense:12000000,operationsExpense:5000000};
+const state=createGameStateEnvelope({meta:{saveId:'finance',currentDate:'2026-10-12',controlledTeamId:1},teams:[{id:1,name:'A'},{id:2,name:'B'}],contracts:[{id:1,teamId:1,annualSalary:85000000},{id:2,teamId:2,annualSalary:70000000}],games:[{id:'tomorrow',status:'scheduled',date:'2026-10-13',homeTeamId:1,awayTeamId:2}]});
+const before=JSON.stringify(state);assert.throws(()=>writeFinanceSnapshot(state,1,policy),/confirmation/);
+const snapshot=writeFinanceSnapshot(state,1,policy,{confirmed:true});assert.equal(snapshot.finances.teamSnapshots['1'].policy.payroll,85000000);assert.equal(JSON.stringify(state),before);
+assert.throws(()=>advanceWithFinances(state,1,[1,2],{'1':policy,'2':policy}),/confirmation/);
+const result=advanceWithFinances(state,1,[1,2],{'1':policy,'2':policy},{confirmed:true});assert.equal(result.results,1);assert.equal(result.nextState.finances.teamSnapshots['1'].calendar.homeGamesPlayed,1);assert.equal(result.nextState.finances.teamSnapshots['2'].policy.payroll,70000000);assert.equal(JSON.stringify(state),before);
+assert.throws(()=>advanceWithFinances(state,1,[1,1],{'1':policy},{confirmed:true}),/Duplicate/);
+assert.throws(()=>advanceWithFinances(state,1,[1,2],{'1':policy},{confirmed:true}),/Missing financial policy/);
+console.log('PASS: explicit finance GameState snapshot persistence candidate, multi-team day simulation, unchanged source and opt-in required');
