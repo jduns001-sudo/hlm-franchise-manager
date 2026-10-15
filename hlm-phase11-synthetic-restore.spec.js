@@ -5,7 +5,7 @@ test.use({browserName:'chromium',viewport:{width:390,height:844},serviceWorkers:
 test('synthetic franchise backup import persists player metadata and team assignment across mobile reload',async({browser})=>{
  const context=await browser.newContext({viewport:{width:390,height:844},serviceWorkers:'block'});
  const page=await context.newPage();
- const synthetic={id:9901034,name:'Synthetic Phase11 Test Skater',age:19,position:'C',positions:['C','RW'],ovr:83,potential:94,potentialMin:90,potentialMax:96,potentialLabel:'Elite',type:'Playmaker',aav:0,retired:false};
+ const synthetic={id:9901034,name:'Synthetic Phase11 Test Skater',age:19,position:'C',positions:['C','RW'],ovr:83,potential:99,potentialMin:95,potentialMax:100,potentialLabel:'Elite',type:'Playmaker',aav:0,retired:false};
  try{
   const response=await page.goto(origin+'app.html',{waitUntil:'domcontentloaded',timeout:45000});
   expect(response?.status()).toBe(200);
