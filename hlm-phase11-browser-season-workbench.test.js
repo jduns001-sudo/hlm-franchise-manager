@@ -27,6 +27,10 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(result.days.length,2);
   const standings=JSON.parse(await page.locator('#standings').textContent());
   assert.equal(standings.length,2);
+  const gameResults=JSON.parse(await page.locator('#results').textContent());
+  assert.equal(gameResults.length,2);
+  assert.deepEqual(gameResults.map(g=>g.gameId),['G1','G2']);
+  assert(gameResults.every(g=>g.official===false&&Number.isInteger(g.homeGoals)&&Number.isInteger(g.awayGoals)));
   assert.equal(standings[1].date,'2026-10-14');
   assert.equal(result.persistencePerformed,false);
   assert.equal(await page.evaluate(()=>localStorage.length),0);
@@ -34,6 +38,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#preview').isDisabled(),true);
   assert.match(await page.locator('#output').textContent(),/No preview generated/);
   assert.match(await page.locator('#standings').textContent(),/No standings preview/);
+  assert.match(await page.locator('#results').textContent(),/No game results preview/);
   assert.equal(await page.locator('#team option').count(),0);
   console.log('Phase 11 mobile browser two-day real-roster preview and no-save regression passed');
  }finally{await browser.close();await new Promise(r=>server.close(r))}
