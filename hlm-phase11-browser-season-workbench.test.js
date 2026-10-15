@@ -1,0 +1,32 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium}=require('playwright');
+const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[0].slice(1);if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':'text/html');res.end(b)})});
+(async()=>{
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ const browser=await chromium.launch();
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-browser-season-workbench.html');
+  assert.equal(await page.locator('#preview').isDisabled(),true);
+  assert.equal(await page.evaluate(()=>localStorage.length),0);
+  const positions=['C','LW','RW','D','D','G'];
+  const players=[1,2].flatMap(teamId=>positions.map((position,i)=>({id:teamId*100+i,teamId,position,ovr:teamId===1?85:75})));
+  const legacy={teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],players,contracts:players.map(p=>({playerId:p.id,teamId:p.teamId,status:'Active'})),injuries:players.map(p=>({playerId:p.id,status:'Recovered'})),games:[{id:'G1',date:'2026-10-13',status:'scheduled',homeTeamId:1,awayTeamId:2},{id:'G2',date:'2026-10-14',status:'scheduled',homeTeamId:2,awayTeamId:1}]};
+  await page.locator('#file').setInputFiles({name:'franchise.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});
+  assert.equal(await page.locator('#preview').isDisabled(),true);
+  await page.locator('#enable').check();
+  await page.locator('#preview').click();
+  assert.match(await page.locator('#status').textContent(),/Preview complete/);
+  const result=JSON.parse(await page.locator('#output').textContent());
+  assert.equal(result.advancedDays,2);
+  assert.equal(result.days.length,2);
+  assert.equal(result.persistencePerformed,false);
+  assert.equal(await page.evaluate(()=>localStorage.length),0);
+  await page.locator('#clear').click();
+  assert.equal(await page.locator('#preview').isDisabled(),true);
+  assert.match(await page.locator('#output').textContent(),/No preview generated/);
+  console.log('Phase 11 mobile browser two-day real-roster preview and no-save regression passed');
+ }finally{await browser.close();await new Promise(r=>server.close(r))}
+})().catch(e=>{console.error(e);process.exitCode=1});
