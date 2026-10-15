@@ -1,0 +1,23 @@
+name: Phase 11 Real Universe Gameplay Acceptance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-real-universe-gameplay-acceptance.js'
+      - 'hlm-phase11-real-universe-gameplay-acceptance.test.js'
+      - 'hlm-phase11-real-universe-gameplay-browser.test.js'
+      - '.github/workflows/phase11-real-universe-gameplay-acceptance.yml'
+  workflow_dispatch:
+jobs:
+  real-universe-gameplay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real universe Front Office import and roster simulation acceptance
+        run: node hlm-phase11-real-universe-gameplay-acceptance.test.js
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Mobile Chromium Front Office and roster lab smoke
+        run: node hlm-phase11-real-universe-gameplay-browser.test.js
