@@ -1,0 +1,13 @@
+'use strict';const assert=require('node:assert/strict'),f=require('./hlm-phase11-finance-integration.js');
+const team={salaryCap:90000000,payroll:85000000,ownerBudget:105000000,attendance:18000,arenaCapacity:20000,ticketPrice:100,merchandiseRevenue:5000000,sponsorshipRevenue:30000000,mediaRevenue:80000000,arenaExpense:12000000,operationsExpense:5000000};
+const snapshot=JSON.stringify(team),calendar={homeGamesPlayed:20,remainingHomeGames:21},season=f.computeSeason(team,calendar);
+assert.equal(season.earnedTickets,36000000);assert.equal(season.revenue,151000000);assert.equal(season.expenses,102000000);assert.equal(season.profit,49000000);assert.equal(season.forecastTicketRevenue,37800000);
+assert.equal(f.evaluateDecision(team,{type:'sign',annualSalary:6000000}).allowed,false);
+assert.deepEqual(f.evaluateDecision(team,{type:'sign',annualSalary:6000000}).reasons,['SALARY_CAP_EXCEEDED','OWNER_BUDGET_EXCEEDED']);
+assert.equal(f.evaluateDecision(team,{type:'sign',annualSalary:1000000}).allowed,true);
+assert.equal(f.evaluateDecision(team,{type:'release',annualSalary:5000000}).nextPayroll,80000000);
+assert.equal(f.cpuRecommendation({...team,payroll:91000000}).priority,'REDUCE_PAYROLL');
+assert.equal(f.cpuRecommendation({...team,ownerBudget:100000000}).priority,'REDUCE_EXPENSES');
+const view=f.dashboard(team,calendar);assert.equal(view.cards.length,6);assert.equal(view.cards[0].value,season.revenue);assert.equal(view.warning,false);
+assert.equal(JSON.stringify(team),snapshot);assert.throws(()=>f.computeSeason(team,{homeGamesPlayed:-1,remainingHomeGames:1}));assert.throws(()=>f.evaluateDecision(team,{type:'sign',annualSalary:-2}));
+console.log('PASS: season finance integration, owner and salary-cap decision gates, CPU priorities, read-only Front Office dashboard model, no save mutations');
