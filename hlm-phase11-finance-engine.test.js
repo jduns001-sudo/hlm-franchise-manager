@@ -1,0 +1,11 @@
+'use strict';const assert=require('node:assert/strict'),finance=require('./hlm-phase11-finance-engine.js');
+const sample={salaryCap:90000000,payroll:85000000,ownerBudget:105000000,attendance:18000,arenaCapacity:20000,ticketPrice:100,merchandiseRevenue:5000000,sponsorshipRevenue:30000000,mediaRevenue:80000000,arenaExpense:12000000,operationsExpense:5000000};
+const original=JSON.stringify(sample);const a=finance.evaluate(sample);
+assert.equal(a.ticketRevenue,1800000);assert.equal(a.revenue,116800000);assert.equal(a.expenses,102000000);assert.equal(a.profit,14800000);assert.equal(a.capSpace,5000000);assert.equal(a.ownerBudgetRemaining,3000000);assert.equal(a.overCap,false);assert.equal(a.overBudget,false);
+assert.equal(JSON.stringify(sample),original);assert.equal(finance.projectSeason(sample,40).projectedTicketRevenue,72000000);
+assert.equal(finance.evaluate({...sample,payroll:95000000}).overCap,true);
+assert.equal(finance.evaluate({...sample,ownerBudget:90000000}).overBudget,true);
+assert.equal(finance.evaluate({...sample,attendance:0}).ticketRevenue,0);
+for(const changed of [{attendance:20001},{ticketPrice:-1},{payroll:NaN},{arenaExpense:1.5},{sponsorshipRevenue:Number.MAX_SAFE_INTEGER},{salaryCap:-1}])assert.throws(()=>finance.evaluate({...sample,...changed}));
+assert.throws(()=>finance.projectSeason(sample,-1));
+console.log('PASS: isolated Phase 11 finance engine, owner budget, payroll cap, ticketing, revenue, expenses, profitability, projections, immutability and invalid inputs');
