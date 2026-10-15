@@ -1,0 +1,20 @@
+name: Phase 11 Finance Gameplay Controller
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-finance-gameplay-controller.js'
+      - 'hlm-phase11-finance-gameplay-controller.test.js'
+      - '.github/workflows/phase11-finance-gameplay-controller.yml'
+  workflow_dispatch:
+jobs:
+  controller:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-finance-gameplay-controller.test.js
+      - run: node hlm-phase11-browser-advance.test.js
+      - run: bash scripts/build-phase11-browser-simulation.sh
+      - run: node --check hlm-phase11-browser-simulation.bundle.js
