@@ -1,0 +1,22 @@
+name: Phase 11 Multiday Safety Chromium
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-real-finance.html'
+      - 'hlm-phase11-finance-gameplay-controller.js'
+      - 'hlm-phase11-multiday-safety-chromium.test.js'
+      - '.github/workflows/phase11-multiday-safety-chromium.yml'
+  workflow_dispatch:
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-multiday-safety-chromium.test.js
+      - run: node hlm-phase11-finance-gameplay-controller.test.js
