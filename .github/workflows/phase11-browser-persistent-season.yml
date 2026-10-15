@@ -12,6 +12,9 @@ on:
       - 'hlm-phase11-gm-readiness.js'
       - 'hlm-phase11-gm-readiness.bundle.js'
       - 'hlm-phase11-gm-readiness.test.js'
+      - 'hlm-phase11-league-trends.js'
+      - 'hlm-phase11-league-trends.bundle.js'
+      - 'hlm-phase11-league-trends.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -23,6 +26,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental owner CPU form and history regression
+        run: node hlm-phase11-league-trends.test.js
       - name: Experimental GM readiness and approval regression
         run: node hlm-phase11-gm-readiness.test.js
       - name: Experimental season history and GM decision regression
