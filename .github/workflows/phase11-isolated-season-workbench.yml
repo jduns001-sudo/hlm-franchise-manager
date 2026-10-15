@@ -1,0 +1,24 @@
+name: Phase 11 Isolated Season Workbench
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-season-workbench.js'
+      - 'hlm-phase11-isolated-season-workbench.test.js'
+      - '.github/workflows/phase11-isolated-season-workbench.yml'
+  workflow_dispatch:
+jobs:
+  isolated-season:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Workbench read-only gameplay regression
+        run: node hlm-phase11-isolated-season-workbench.test.js
+      - name: Integrated two-day roster regression
+        run: node hlm-phase11-real-roster-multiday-preview.test.js
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Mobile Front Office and roster lab smoke
+        run: node hlm-phase11-real-universe-gameplay-browser.test.js
