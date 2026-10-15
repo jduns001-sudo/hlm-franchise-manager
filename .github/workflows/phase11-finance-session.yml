@@ -1,0 +1,18 @@
+name: Phase 11 Finance Session
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-finance-session.js'
+      - 'hlm-phase11-finance-session.test.js'
+      - '.github/workflows/phase11-finance-session.yml'
+  workflow_dispatch:
+jobs:
+  finance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-finance-session.test.js
+      - run: node hlm-phase11-finance-state-commit.test.js
