@@ -25,7 +25,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   await page.reload();
   await page.locator('#reload-isolated').click();
   assert.match(await page.locator('#saved-status').textContent(),/2026-10-13/);
-  assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage),['hlm-phase11-isolated-season-v1']));
+  assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
  }finally{await browser.close();await new Promise(r=>server.close(r))}
