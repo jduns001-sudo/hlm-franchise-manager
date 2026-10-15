@@ -11,16 +11,17 @@
 <label>Simulation days <input id="days" type="number" min="1" max="31" value="2"></label>
 <label>Seed <input id="seed" type="number" min="0" value="11"></label>
 <button id="preview" disabled>Preview scheduled games</button>
-<button id="clear">Clear preview</button><h2>Isolated experimental franchise save</h2><p>Separate from Front Office. Explicit confirmation required for every save or day advance.</p><button id="save-isolated" disabled>Save imported season</button> <button id="advance-isolated">Advance one saved day</button> <button id="reload-isolated">Reload isolated save</button> <button id="recover-isolated">Recover interrupted save</button><pre id="saved-status" aria-label="Isolated save status">No isolated save loaded.</pre>
+<button id="clear">Clear preview</button><h2>Isolated experimental franchise save</h2><p>Separate from Front Office. Explicit confirmation required for every save or day advance.</p><button id="save-isolated" disabled>Save imported season</button> <button id="advance-isolated">Advance one saved day</button> <button id="advance-multiday">Advance saved days atomically</button> <button id="reload-isolated">Reload isolated save</button> <button id="recover-isolated">Recover interrupted save</button><pre id="multiday-results" aria-label="Saved multiday results">No saved multiday results.</pre><pre id="saved-status" aria-label="Isolated save status">No isolated save loaded.</pre>
 <p id="status" role="status">Opt-in and select a JSON file to begin.</p>
 <h2>Imported schedule</h2><pre id="schedule" aria-label="Imported scheduled games">No schedule imported.</pre><h2>Simulated game results</h2><pre id="results" aria-label="Simulated game results">No game results preview.</pre><h2>Preview standings</h2><pre id="standings" aria-label="Preview standings">No standings preview.</pre><h2>Full simulation details</h2><pre id="output" aria-label="Season preview results">No preview generated.</pre>
-<script src="hlm-phase11-browser-season-workbench.bundle.js"></script><script src="hlm-phase11-isolated-season-store.bundle.js"></script>
+<script src="hlm-phase11-browser-season-workbench.bundle.js"></script><script src="hlm-phase11-isolated-season-store.bundle.js"></script><script src="hlm-phase11-persistent-multiday-season.bundle.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 let source=null;
 const adapter={read:key=>localStorage.getItem(key),write:(key,value)=>localStorage.setItem(key,value),remove:key=>localStorage.removeItem(key)};
 const isolated=HLMPhase11IsolatedSeasonStore.createIsolatedSeasonStore(adapter);
+const multiday=HLMPhase11PersistentMultidaySeason.createPersistentMultidaySeason(adapter);
 function confirmIsolated(message){return $('enable').checked&&window.confirm(message)};
 function reportSaved(state){$('saved-status').textContent=state?JSON.stringify({date:state.meta.currentDate,controlledTeamId:state.meta.controlledTeamId,games:state.activity.games,official:false,productionActivationEnabled:false},null,2):'No isolated save loaded.'}
 function reset(){source=null;$('save-isolated').disabled=true;$('team').replaceChildren();$('schedule').textContent='No schedule imported.';$('standings').textContent='No standings preview.';$('results').textContent='No game results preview.';$('output').textContent='No preview generated.';$('preview').disabled=true;$('status').textContent='Preview cleared.'}
@@ -31,7 +32,7 @@ $('file').addEventListener('change',async()=>{
  try{const value=JSON.parse(await file.text());if(!value||typeof value!=='object'||!Array.isArray(value.teams)||!Array.isArray(value.players))throw Error('JSON must contain teams and players arrays');if(!value.teams.length||!value.teams.every(team=>team&&team.id!=null&&String(team.id).trim()))throw Error('Each team must have an ID');source=value;$('save-isolated').disabled=!$('enable').checked;for(const team of value.teams){const option=document.createElement('option');option.value=String(team.id);option.textContent=String(team.name||team.id);$('team').append(option)}$('schedule').textContent=JSON.stringify(Array.isArray(value.games)?value.games:[],null,2);$('preview').disabled=!$('enable').checked;$('status').textContent='Imported preview data in memory only.'}
  catch(error){$('status').textContent='Invalid import: '+error.message}
 });
-$('clear').addEventListener('click',()=>{reset();$('file').value='';$('enable').checked=false});
+$('clear').addEventListener('click',()=>{reset();$('file').value='';$('enable').checked=false;$('multiday-results').textContent='No saved multiday results.'});
 $('preview').addEventListener('click',()=>{
  if(!$('enable').checked||!source)return;
  try{
@@ -53,6 +54,17 @@ $('save-isolated').addEventListener('click',()=>{
   const next=HLMPhase11BrowserSeasonWorkbench.prepareImportedState(source,{controlledTeamId:$('team').value,currentDate:$('date').value,games:source.games});
   isolated.save(next);reportSaved(isolated.load());$('status').textContent='Isolated experimental franchise saved.';
  }catch(error){$('status').textContent='Isolated save blocked: '+error.message}
+});
+$('advance-multiday').addEventListener('click',()=>{
+ const days=Number($('days').value);
+ if(!Number.isSafeInteger(days)||days<1||days>31){$('status').textContent='Choose 1 to 31 days.';return}
+ if(!confirmIsolated('Atomically simulate and save '+days+' experimental franchise days?'))return;
+ try{
+  const result=multiday.advanceDays(days,{confirmed:true,seed:Number($('seed').value)});
+  reportSaved(multiday.load());
+  $('multiday-results').textContent=JSON.stringify({advancedDays:result.advancedDays,days:result.days,blocked:result.blocked,official:false},null,2);
+  $('status').textContent=result.saved?'Saved '+days+' experimental franchise days atomically.':'Multiday simulation blocked; save unchanged.';
+ }catch(error){$('status').textContent='Multiday save blocked: '+error.message}
 });
 $('advance-isolated').addEventListener('click',()=>{
  if(!confirmIsolated('Advance and save one day in isolated experimental franchise?'))return;
