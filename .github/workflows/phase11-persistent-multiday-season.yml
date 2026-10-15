@@ -1,0 +1,25 @@
+name: Phase 11 Persistent Multiday Season
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-persistent-multiday-season.js'
+      - 'hlm-phase11-persistent-multiday-season.test.js'
+      - '.github/workflows/phase11-persistent-multiday-season.yml'
+  workflow_dispatch:
+jobs:
+  multiday:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Atomic two-day owner CPU standings and recovery
+        run: node hlm-phase11-persistent-multiday-season.test.js
+      - name: Atomic save rollback and stale conflict
+        run: node hlm-phase11-isolated-season-atomic-store.test.js
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Real mobile browser saved franchise workflow
+        run: node hlm-phase11-browser-persistent-season.test.js
