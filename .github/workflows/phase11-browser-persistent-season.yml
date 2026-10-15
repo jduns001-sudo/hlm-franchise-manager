@@ -6,6 +6,9 @@ on:
       - 'hlm-phase11-browser-season-workbench.bundle.js'
       - 'hlm-phase11-isolated-season-store.bundle.js'
       - 'hlm-phase11-browser-persistent-season.test.js'
+      - 'hlm-phase11-season-decision-history.js'
+      - 'hlm-phase11-season-decision-history.bundle.js'
+      - 'hlm-phase11-season-decision-history.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -17,6 +20,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental season history and GM decision regression
+        run: node hlm-phase11-season-decision-history.test.js
       - name: Atomic save and recovery regressions
         run: node hlm-phase11-isolated-season-atomic-store.test.js
       - name: Integrated roster season regression
