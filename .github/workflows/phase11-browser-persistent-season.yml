@@ -18,6 +18,9 @@ on:
       - 'hlm-phase11-season-momentum.js'
       - 'hlm-phase11-season-momentum.bundle.js'
       - 'hlm-phase11-season-momentum.test.js'
+      - 'hlm-phase11-performance-advisory.js'
+      - 'hlm-phase11-performance-advisory.bundle.js'
+      - 'hlm-phase11-performance-advisory.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -29,6 +32,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental performance advisory and human GM authority regression
+        run: node hlm-phase11-performance-advisory.test.js
       - name: Experimental owner CPU season momentum and GM advisory regression
         run: node hlm-phase11-season-momentum.test.js
       - name: Experimental owner CPU form and history regression
