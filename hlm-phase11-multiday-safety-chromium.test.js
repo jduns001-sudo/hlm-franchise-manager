@@ -35,6 +35,22 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
  assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).meta.currentDate,key),'2026-10-14');
  const second=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).finances.teamSnapshots,key);
  assert.ok(Object.keys(second).length>=2);
+ // Two actual browser tabs share localStorage but retain independent preview candidates.
+ const other=await page.context().newPage();
+ await other.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-real-finance.html');
+ await other.locator('#enable').check();
+ other.on('dialog',d=>d.accept());
+ await page.locator('#previewDay').click();
+ await other.locator('#previewDay').click();
+ await other.locator('#commitDay').click();
+ assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).meta.currentDate,key),'2026-10-15');
+ await page.locator('#commitDay').click();
+ assert.match(await page.locator('#status').textContent(),/Isolated save changed since preview/);
+ assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).meta.currentDate,key),'2026-10-15');
+ await page.locator('#previewDay').click();
+ await page.locator('#commitDay').click();
+ assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).meta.currentDate,key),'2026-10-16');
+ await other.close();
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase10-save')),'ORIGINAL');
- console.log('PASS: cancel and reject confirmation, reload recovery, two real simulated days, CPU/owner snapshot continuity and production untouched');
+ console.log('PASS: cancel and reject confirmation, reload recovery, four real simulated days, cross-tab stale-preview rejection, CPU/owner snapshot continuity and production untouched');
 }finally{await browser.close();server.close()}})().catch(e=>{console.error(e);server.close();process.exitCode=1});
