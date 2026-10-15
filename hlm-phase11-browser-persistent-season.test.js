@@ -26,12 +26,16 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   await page.locator('#advance-multiday').click();
   assert.match(await page.locator('#status').textContent(),/Saved 1 experimental franchise days atomically/);
   assert.match(await page.locator('#saved-status').textContent(),/2026-10-14/);
+  const savedStandings=JSON.parse(await page.locator('#saved-standings').textContent());
+  assert.equal(savedStandings.length,2);
+  assert(savedStandings.every(team=>team.gp===2));
   const multiday=JSON.parse(await page.locator('#multiday-results').textContent());
   assert.equal(multiday.advancedDays,1);
   assert.equal(multiday.days.length,1);
   await page.reload();
   await page.locator('#reload-isolated').click();
   assert.match(await page.locator('#saved-status').textContent(),/2026-10-14/);
+  assert.equal(JSON.parse(await page.locator('#saved-standings').textContent()).length,2);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
