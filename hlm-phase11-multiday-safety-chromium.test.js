@@ -12,7 +12,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
  const key='hlm-phase11-finance-browser-preview-v1';
  await page.evaluate(()=>localStorage.setItem('hlm-phase10-save','ORIGINAL'));
  await page.locator('#enable').check();
- page.on('dialog',d=>d.accept());
+ let dismissNext=false;page.on('dialog',d=>{const reject=dismissNext;dismissNext=false;return reject?d.dismiss():d.accept()});
  await page.locator('#file').setInputFiles({name:'state.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
  await page.locator('#import').click();await page.waitForFunction(()=>document.querySelector('#status').textContent.includes('Imported'));
  await page.locator('#previewDay').click();await page.locator('#cancelDay').click();
@@ -20,7 +20,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
  assert.equal(await page.locator('#commitDay').isDisabled(),true);
  assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).meta.currentDate,key),'2026-10-12');
  await page.locator('#previewDay').click();
- page.once('dialog',d=>d.dismiss());
+ dismissNext=true;
  await page.locator('#commitDay').click();
  assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).meta.currentDate,key),'2026-10-12');
  await page.locator('#commitDay').click();
