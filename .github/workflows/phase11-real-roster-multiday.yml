@@ -4,7 +4,6 @@ on:
     paths:
       - 'hlm-phase11-real-roster-multiday-preview.js'
       - 'hlm-phase11-real-roster-multiday-preview.test.js'
-      - 'hlm-phase11-real-roster-multiday-browser.test.js'
       - '.github/workflows/phase11-real-roster-multiday.yml'
   workflow_dispatch:
 jobs:
