@@ -1,0 +1,24 @@
+name: Phase 11 Browser Simulation Bundle
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-browser-simulation-entry.js'
+      - 'hlm-phase11-browser-simulation-entry.test.js'
+      - 'scripts/build-phase11-browser-simulation.sh'
+      - '.github/workflows/phase11-browser-simulation.yml'
+  workflow_dispatch:
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-browser-simulation-entry.test.js
+      - run: bash scripts/build-phase11-browser-simulation.sh
+      - run: node --check hlm-phase11-browser-simulation.bundle.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase11-browser-simulation-bundle
+          path: hlm-phase11-browser-simulation.bundle.js
