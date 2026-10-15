@@ -1,0 +1,26 @@
+name: Phase 11 Browser Multiday Persistent Season
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-browser-season-workbench.html'
+      - 'hlm-phase11-persistent-multiday-season.bundle.js'
+      - 'hlm-phase11-browser-persistent-season.test.js'
+      - '.github/workflows/phase11-browser-multiday-season.yml'
+  workflow_dispatch:
+jobs:
+  browser-multiday:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Atomic multiday CPU continuity and blocked rollback
+        run: node hlm-phase11-persistent-multiday-season.test.js
+      - name: Isolated atomic recovery and stale save regression
+        run: node hlm-phase11-isolated-season-atomic-store.test.js
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Real mobile browser saved multiday gameplay and reload
+        run: node hlm-phase11-browser-persistent-season.test.js
