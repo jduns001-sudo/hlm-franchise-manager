@@ -1,0 +1,23 @@
+name: Phase 11 Real Roster Multiday Acceptance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-real-roster-multiday-preview.js'
+      - 'hlm-phase11-real-roster-multiday-preview.test.js'
+      - 'hlm-phase11-real-roster-multiday-browser.test.js'
+      - '.github/workflows/phase11-real-roster-multiday.yml'
+  workflow_dispatch:
+jobs:
+  multiday-roster:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real roster two-day simulation and isolated-save regression
+        run: node hlm-phase11-real-roster-multiday-preview.test.js
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Mobile Chromium real Front Office and roster lab
+        run: node hlm-phase11-real-universe-gameplay-browser.test.js
