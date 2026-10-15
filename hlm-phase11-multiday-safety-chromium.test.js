@@ -7,7 +7,7 @@ const html=fs.readFileSync('hlm-phase11-real-finance.html','utf8');
 assert.match(html,/id="cancelDay" disabled/);
 const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[0].slice(1);if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':'text/html');res.end(b)})});
 (async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch();try{
- const page=await browser.newPage();await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-real-finance.html');
+ const context=await browser.newContext();const page=await context.newPage();await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-real-finance.html');
  const state=createGameStateEnvelope({meta:{saveId:'multiday',currentDate:'2026-10-12',controlledTeamId:1},teams:[{id:1,name:'Home'},{id:2,name:'Away'}],contracts:[{id:1,teamId:1,annualSalary:80000000}],games:[{id:'g1',date:'2026-10-13',homeTeamId:1,awayTeamId:2,status:'scheduled'}]});
  const key='hlm-phase11-finance-browser-preview-v1';
  await page.evaluate(()=>localStorage.setItem('hlm-phase10-save','ORIGINAL'));
