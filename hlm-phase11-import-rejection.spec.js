@@ -49,3 +49,5 @@ test('malformed and incompatible imports reject without replacing an isolated sy
   console.log('PASS: malformed and incompatible backups rejected, synthetic save unchanged before and after reload');
  }finally{await ctx.close()}
 });
+
+// Re-run against published Pages after Phase 11 backup validation deployment.
