@@ -1,0 +1,12 @@
+'use strict';const assert=require('node:assert/strict'),{createGameStateEnvelope}=require('./hlm-game-state'),{createFinanceSession}=require('./hlm-phase11-finance-session');
+const policy={salaryCap:90000000,ownerBudget:105000000,attendance:18000,arenaCapacity:20000,ticketPrice:100,merchandiseRevenue:5000000,sponsorshipRevenue:30000000,mediaRevenue:80000000,arenaExpense:12000000,operationsExpense:5000000};
+const db=new Map([['hlm-phase10-save','KEEP_THIS_SAVE']]),adapter={read:k=>db.get(k)??null,write:(k,v)=>db.set(k,v)};
+assert.throws(()=>createFinanceSession(adapter),/enabled/);assert.throws(()=>createFinanceSession(adapter,{enabled:true,key:'hlm-phase10-save'}),/Production/);
+const session=createFinanceSession(adapter,{enabled:true}),state=createGameStateEnvelope({meta:{saveId:'preview',currentDate:'2026-10-12',controlledTeamId:1},teams:[{id:1,name:'A'},{id:2,name:'B'}],contracts:[{id:1,teamId:1,annualSalary:85000000},{id:2,teamId:2,annualSalary:70000000}],games:[{id:'tomorrow',status:'scheduled',date:'2026-10-13',homeTeamId:1,awayTeamId:2}]});
+assert.throws(()=>session.importState(state),/confirmation/);session.importState(state,{confirmed:true});
+assert.equal(session.finance(1,policy).policy.payroll,85000000);assert.equal(session.signing(1,policy,6000000).allowed,false);
+assert.throws(()=>session.snapshot(1,policy),/confirmation/);session.snapshot(1,policy,{confirmed:true});assert.equal(session.load().finances.teamSnapshots['1'].teamName,'A');
+assert.throws(()=>session.advance(4,[1,2],{'1':policy,'2':policy}),/confirmation/);
+const result=session.advance(4,[1,2],{'1':policy,'2':policy},{confirmed:true});assert.equal(result.results,1);assert.equal(session.load().finances.teamSnapshots['1'].calendar.homeGamesPlayed,1);
+assert.equal(db.get('hlm-phase10-save'),'KEEP_THIS_SAVE');assert.equal(JSON.stringify(state.activity.games[0].status),'"scheduled"');
+console.log('PASS: isolated opt-in finance save, real GameState dashboard data, payroll and CPU, confirmed snapshot and day advance, production save untouched');
