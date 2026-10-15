@@ -13,7 +13,9 @@ function createPersistentMultidaySeason(adapter,options){
   if(!initial)throw Error('No isolated season save');
   let candidate=initial;const daysResults=[];
   for(let i=0;i<days;i++){
-   const result=simulateControlledRosterDay(candidate,seed+i,{experimental:true,persist:false});
+   let result;
+   try{result=simulateControlledRosterDay(candidate,seed+i,{experimental:true,persist:false})}
+   catch(error){return {saved:false,advancedDays:0,blocked:[{day:i+1,reason:error.code||error.message}],days:[],official:false,persistencePerformed:false}}
    if(!result.advanced)return {saved:false,advancedDays:0,blocked:[{day:i+1,blockers:result.blocked}],days:[],official:false,persistencePerformed:false};
    candidate=result.nextState;
    daysResults.push({date:result.toDate,games:result.results,standings:result.standings});
