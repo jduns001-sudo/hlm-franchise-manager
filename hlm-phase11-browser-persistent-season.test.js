@@ -22,9 +22,16 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.deepEqual(keys,['hlm-phase11-isolated-season-v1']);
   await page.locator('#advance-isolated').click();
   assert.match(await page.locator('#saved-status').textContent(),/2026-10-13/);
+  await page.locator('#days').fill('1');
+  await page.locator('#advance-multiday').click();
+  assert.match(await page.locator('#status').textContent(),/Saved 1 experimental franchise days atomically/);
+  assert.match(await page.locator('#saved-status').textContent(),/2026-10-14/);
+  const multiday=JSON.parse(await page.locator('#multiday-results').textContent());
+  assert.equal(multiday.advancedDays,1);
+  assert.equal(multiday.days.length,1);
   await page.reload();
   await page.locator('#reload-isolated').click();
-  assert.match(await page.locator('#saved-status').textContent(),/2026-10-13/);
+  assert.match(await page.locator('#saved-status').textContent(),/2026-10-14/);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
