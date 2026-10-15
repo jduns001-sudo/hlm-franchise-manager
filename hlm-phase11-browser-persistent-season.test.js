@@ -1,0 +1,32 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium}=require('playwright');
+const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[0].slice(1);if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':'text/html');res.end(b)})});
+(async()=>{
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));
+ const browser=await chromium.launch();
+ try{
+  const page=await browser.newPage({viewport:{width:390,height:844}});
+  await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-browser-season-workbench.html');
+  const positions=['C','LW','RW','D','D','G'];
+  const players=[1,2].flatMap(teamId=>positions.map((position,i)=>({id:teamId*100+i,teamId,position,ovr:teamId===1?85:75})));
+  const legacy={teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],players,contracts:players.map(p=>({playerId:p.id,teamId:p.teamId,status:'Active'})),injuries:players.map(p=>({playerId:p.id,status:'Recovered'})),games:[{id:'G1',date:'2026-10-13',status:'scheduled',homeTeamId:1,awayTeamId:2},{id:'G2',date:'2026-10-14',status:'scheduled',homeTeamId:2,awayTeamId:1}]};
+  await page.locator('#file').setInputFiles({name:'franchise.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});
+  assert.equal(await page.locator('#save-isolated').isDisabled(),true);
+  await page.locator('#enable').check();
+  page.on('dialog',dialog=>dialog.accept());
+  await page.locator('#save-isolated').click();
+  assert.match(await page.locator('#status').textContent(),/saved/);
+  assert.match(await page.locator('#saved-status').textContent(),/2026-10-12/);
+  const keys=await page.evaluate(()=>Object.keys(localStorage));
+  assert.deepEqual(keys,['hlm-phase11-isolated-season-v1']);
+  await page.locator('#advance-isolated').click();
+  assert.match(await page.locator('#saved-status').textContent(),/2026-10-13/);
+  await page.reload();
+  await page.locator('#reload-isolated').click();
+  assert.match(await page.locator('#saved-status').textContent(),/2026-10-13/);
+  assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
+  assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
+  console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
+ }finally{await browser.close();await new Promise(r=>server.close(r))}
+})().catch(e=>{console.error(e);process.exitCode=1});
