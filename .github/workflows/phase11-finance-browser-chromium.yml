@@ -1,0 +1,25 @@
+name: Phase 11 Finance Browser Chromium
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-real-finance.html'
+      - 'hlm-phase11-finance-browser-chromium.test.js'
+      - '.github/workflows/phase11-finance-browser-chromium.yml'
+  workflow_dispatch:
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: bash scripts/build-phase11-browser-simulation.sh
+      - run: node hlm-phase11-finance-browser-chromium.test.js
+      - run: node hlm-phase11-finance-gameplay-controller.test.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase11-browser-simulation-bundle
+          path: hlm-phase11-browser-simulation.bundle.js
