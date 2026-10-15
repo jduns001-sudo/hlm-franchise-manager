@@ -23,7 +23,7 @@ function auditIntegratedSeason(state){
  }
  let scheduled=0,completed=0;
  for(const game of games){
-  if(!game||game.id==null||!String(game.id).trim()||gameIds.has(String(game.id)))issues.push({code:'INVALID_OR_DUPLICATE_GAME_ID',id:game&&game.id??null});
+  if(!game||game.id==null||!String(game.id).trim()||gameIds.has(String(game.id)))issues.push({code:'INVALID_OR_DUPLICATE_GAME_ID',id:game?.id??null});
   else gameIds.add(String(game.id));
   if(game&&(!teamIds.has(String(game.homeTeamId))||!teamIds.has(String(game.awayTeamId))||String(game.homeTeamId)===String(game.awayTeamId)))issues.push({code:'INVALID_GAME_TEAMS',id:game.id??null});
   if(game&&game.status==='scheduled')scheduled++;
