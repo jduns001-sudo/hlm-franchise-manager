@@ -1,0 +1,11 @@
+'use strict';const assert=require('node:assert/strict'),{createGameStateEnvelope}=require('./hlm-game-state'),bridge=require('./hlm-phase11-gamestate-finance.js');
+const policy={salaryCap:90000000,ownerBudget:105000000,attendance:18000,arenaCapacity:20000,ticketPrice:100,merchandiseRevenue:5000000,sponsorshipRevenue:30000000,mediaRevenue:80000000,arenaExpense:12000000,operationsExpense:5000000};
+const state=createGameStateEnvelope({meta:{saveId:'finance',currentDate:'2026-10-12',controlledTeamId:1},teams:[{id:1,name:'A'},{id:2,name:'B'}],contracts:[{id:1,teamId:1,annualSalary:85000000},{id:2,teamId:2,annualSalary:70000000}],games:[{id:'yesterday',status:'completed',date:'2026-10-12',homeTeamId:1,awayTeamId:2},{id:'tomorrow',status:'scheduled',date:'2026-10-13',homeTeamId:1,awayTeamId:2},{id:'future',status:'scheduled',date:'2026-10-14',homeTeamId:2,awayTeamId:1}]});
+const old=JSON.stringify(state),view=bridge.derive(state,1,policy);
+assert.equal(view.teamName,'A');assert.equal(view.contractCount,1);assert.equal(view.policy.payroll,85000000);assert.deepEqual(view.calendar,{homeGamesPlayed:1,remainingHomeGames:1});assert.equal(view.financials.earnedTickets,1800000);
+assert.equal(bridge.previewSigning(state,1,policy,6000000).allowed,false);
+assert.equal(bridge.previewSigning(state,1,policy,1000000).allowed,true);
+const simulated=bridge.previewDay(state,17,1,policy);assert.equal(simulated.gameResults,1);assert.equal(simulated.after.calendar.homeGamesPlayed,2);assert.equal(simulated.after.calendar.remainingHomeGames,0);assert.equal(JSON.stringify(state),old);
+assert.throws(()=>bridge.derive(state,999,policy),/Unknown team/);assert.throws(()=>bridge.derive(state,1,null),/policy/);
+const invalid=structuredClone(state);invalid.assets.contracts[0].annualSalary=-10;assert.throws(()=>bridge.derive(invalid,1,policy),/contract annualSalary/);
+console.log('PASS: real GameState contract payroll, home schedule revenue, daily simulation finance preview, CPU/owner gates, no save mutation');
