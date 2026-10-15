@@ -1,30 +1,30 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Experimental Franchise Season Workbench</title>
-<style>body{font:16px system-ui,sans-serif;max-width:800px;margin:24px auto;padding:0 16px;background:#101923;color:#f1f5f9}label{display:block;margin:12px 0}button,input{font:inherit;padding:9px;border-radius:6px}button{cursor:pointer}button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1d2b3a;padding:12px;border-radius:8px}a{color:#8ed0ff}</style></head>
+<style>body{font:16px system-ui,sans-serif;max-width:800px;margin:24px auto;padding:0 16px;background:#101923;color:#f1f5f9}label{display:block;margin:12px 0}button,input,select{font:inherit;padding:9px;border-radius:6px}button{cursor:pointer}button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#1d2b3a;padding:12px;border-radius:8px}a{color:#8ed0ff}</style></head>
 <body><h1>Experimental Season Workbench</h1><p>Read-only roster-backed season preview. No official game results, save writes, or production activation.</p>
 <p><a href="app.html">Return to Front Office</a></p>
 <label><input id="enable" type="checkbox"> Enable isolated experimental preview</label>
 <label>Front Office JSON <input id="file" type="file" accept=".json,application/json"></label>
-<label>Controlled team ID <input id="team" value="1"></label>
+<label>Controlled team <select id="team" aria-label="Controlled team"></select></label>
 <label>Current date <input id="date" type="date" value="2026-10-12"></label>
 <label>Simulation days <input id="days" type="number" min="1" max="31" value="2"></label>
 <label>Seed <input id="seed" type="number" min="0" value="11"></label>
 <button id="preview" disabled>Preview scheduled games</button>
 <button id="clear">Clear preview</button>
 <p id="status" role="status">Opt-in and select a JSON file to begin.</p>
-<pre id="output" aria-label="Season preview results">No preview generated.</pre>
+<h2>Imported schedule</h2><pre id="schedule" aria-label="Imported scheduled games">No schedule imported.</pre><h2>Preview standings</h2><pre id="standings" aria-label="Preview standings">No standings preview.</pre><h2>Full simulation details</h2><pre id="output" aria-label="Season preview results">No preview generated.</pre>
 <script src="hlm-phase11-browser-season-workbench.bundle.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
 let source=null;
-function reset(){source=null;$('output').textContent='No preview generated.';$('preview').disabled=true;$('status').textContent='Preview cleared.'}
-$('enable').addEventListener('change',()=>{$('preview').disabled=!$('enable').checked||!source;if(!$('enable').checked)$('output').textContent='No preview generated.'});
+function reset(){source=null;$('team').replaceChildren();$('schedule').textContent='No schedule imported.';$('standings').textContent='No standings preview.';$('output').textContent='No preview generated.';$('preview').disabled=true;$('status').textContent='Preview cleared.'}
+$('enable').addEventListener('change',()=>{$('preview').disabled=!$('enable').checked||!source;if(!$('enable').checked){$('output').textContent='No preview generated.';$('standings').textContent='No standings preview.'}});
 $('file').addEventListener('change',async()=>{
- source=null;$('preview').disabled=true;
+ source=null;$('preview').disabled=true;$('team').replaceChildren();$('schedule').textContent='No schedule imported.';$('standings').textContent='No standings preview.';$('output').textContent='No preview generated.';
  const file=$('file').files[0];if(!file)return;
- try{const value=JSON.parse(await file.text());if(!value||typeof value!=='object'||!Array.isArray(value.teams)||!Array.isArray(value.players))throw Error('JSON must contain teams and players arrays');source=value;$('preview').disabled=!$('enable').checked;$('status').textContent='Imported preview data in memory only.'}
+ try{const value=JSON.parse(await file.text());if(!value||typeof value!=='object'||!Array.isArray(value.teams)||!Array.isArray(value.players))throw Error('JSON must contain teams and players arrays');if(!value.teams.length||!value.teams.every(team=>team&&team.id!=null&&String(team.id).trim()))throw Error('Each team must have an ID');source=value;for(const team of value.teams){const option=document.createElement('option');option.value=String(team.id);option.textContent=String(team.name||team.id);$('team').append(option)}$('schedule').textContent=JSON.stringify(Array.isArray(value.games)?value.games:[],null,2);$('preview').disabled=!$('enable').checked;$('status').textContent='Imported preview data in memory only.'}
  catch(error){$('status').textContent='Invalid import: '+error.message}
 });
 $('clear').addEventListener('click',()=>{reset();$('file').value='';$('enable').checked=false});
@@ -33,8 +33,9 @@ $('preview').addEventListener('click',()=>{
  try{
   const games=source.games;
   const result=HLMPhase11BrowserSeasonWorkbench.preview(source,{controlledTeamId:$('team').value,currentDate:$('date').value,games,days:Number($('days').value),seed:Number($('seed').value),experimental:true});
+  $('standings').textContent=JSON.stringify(result.days.map(day=>({date:day.toDate,standings:day.standings})),null,2);
   $('output').textContent=JSON.stringify({advancedDays:result.advancedDays,blocked:result.blocked,days:result.days,summary:result.summary,official:false,persistencePerformed:false},null,2);
   $('status').textContent=result.blocked.length?'Preview blocked; no save changed.':'Preview complete; no save changed.';
- }catch(error){$('status').textContent='Preview failed: '+error.message;$('output').textContent='No preview generated.'}
+ }catch(error){$('status').textContent='Preview failed: '+error.message;$('output').textContent='No preview generated.';$('standings').textContent='No standings preview.'}
 });
 </script></body></html>
