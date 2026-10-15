@@ -53,7 +53,13 @@ test('repeated real browser SIGKILL during separate guarded saves preserves mono
   const pid=browserPid(profile);process.kill(pid,'SIGKILL');
   await new Promise(resolve=>setTimeout(resolve,1200));
   session=await launch(profile);
-  expect(await read(session.p,'db')).toEqual(final);
+  const afterFourth=await read(session.p,'db');
+  if(JSON.stringify(afterFourth)!==JSON.stringify(final)){
+   const databases=await session.p.evaluate(async()=>indexedDB.databases());
+   const entries=fs.readdirSync(profile,{recursive:true}).filter(x=>String(x).includes('indexeddb')||String(x).includes('IndexedDB')).map(String).slice(0,35);
+   console.error('PHASE11_1048_RECOVERY_DIAGNOSTIC',JSON.stringify({expected:final,received:afterFourth===undefined?'undefined':afterFourth,databases,profileIndexedDBEntries:entries,origin:await session.p.evaluate(()=>location.origin)}));
+  }
+  expect(afterFourth).toEqual(final);
   expect(await read(session.p,J)).toBeUndefined();
   expect(await session.p.evaluate(()=>window.HLM_PHASE11_SAVE_GUARD_OPT_IN===true)).toBe(false);
   console.log('PASS: three separate guardedSave write SIGKILL rounds, monotonic committed recovery, stale rejection, journal absent, final save survives fourth SIGKILL');
