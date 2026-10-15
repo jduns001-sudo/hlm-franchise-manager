@@ -1,0 +1,42 @@
+name: Phase 11 Publish Browser Simulation Bundle
+on:
+  push:
+    branches:
+      - phase11-m1063-bundle-release
+  pull_request:
+    paths:
+      - 'hlm-phase11-browser-simulation.bundle.js'
+      - '.github/workflows/phase11-publish-browser-bundle.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: bash scripts/build-phase11-browser-simulation.sh
+      - run: node --check hlm-phase11-browser-simulation.bundle.js
+      - run: node hlm-phase11-browser-simulation-entry.test.js
+      - run: node hlm-phase11-browser-advance.test.js
+      - run: node hlm-phase11-finance-gameplay-controller.test.js
+      - run: test -s hlm-phase11-browser-simulation.bundle.js
+      - name: Commit deterministic browser bundle to release branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/phase11-m1063-bundle-release'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f hlm-phase11-browser-simulation.bundle.js
+          if ! git diff --cached --quiet; then
+            git commit -m "build(phase11): publish real Phase 10 browser simulator bundle"
+            git push origin HEAD:phase11-m1063-bundle-release
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase11-release-browser-simulation-bundle
+          path: hlm-phase11-browser-simulation.bundle.js
