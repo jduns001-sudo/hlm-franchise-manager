@@ -9,6 +9,9 @@ on:
       - 'hlm-phase11-season-decision-history.js'
       - 'hlm-phase11-season-decision-history.bundle.js'
       - 'hlm-phase11-season-decision-history.test.js'
+      - 'hlm-phase11-gm-readiness.js'
+      - 'hlm-phase11-gm-readiness.bundle.js'
+      - 'hlm-phase11-gm-readiness.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -20,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental GM readiness and approval regression
+        run: node hlm-phase11-gm-readiness.test.js
       - name: Experimental season history and GM decision regression
         run: node hlm-phase11-season-decision-history.test.js
       - name: Atomic save and recovery regressions
