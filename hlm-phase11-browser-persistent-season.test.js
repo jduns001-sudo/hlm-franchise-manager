@@ -31,6 +31,12 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert(savedStandings.every(team=>team.gp===2));
   assert.equal(JSON.parse(await page.locator('#season-history').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
+  const momentum=JSON.parse(await page.locator('#season-momentum').textContent());
+  assert.equal(momentum.teams.length,2);
+  assert.equal(momentum.teams.find(t=>t.role==='human-GM').gamesSampled,2);
+  assert.equal(momentum.teams.find(t=>t.role==='human-GM').requiresGMApproval,true);
+  assert.equal(momentum.advisoryOnly,true);
+  assert.equal(momentum.productionActivationEnabled,false);
   const trends=JSON.parse(await page.locator('#league-trends').textContent());
   assert.equal(trends.teams.length,2);
   assert.equal(trends.franchiseHistory.length,2);
@@ -53,6 +59,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
   assert.equal(JSON.parse(await page.locator('#gm-readiness').textContent()).record.gp,2);
   assert.deepEqual(JSON.parse(await page.locator('#league-trends').textContent()),trends);
+  assert.deepEqual(JSON.parse(await page.locator('#season-momentum').textContent()),momentum);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
