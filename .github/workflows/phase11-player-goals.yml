@@ -1,0 +1,24 @@
+name: Phase 11 Player Goals
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-player-goals*'
+      - 'hlm-phase11-goal-timeline*'
+      - 'hlm-phase11-browser-season-workbench.html'
+      - 'hlm-phase11-browser-persistent-season.test.js'
+      - '.github/workflows/phase11-player-goals.yml'
+  workflow_dispatch:
+jobs:
+  player-goals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-player-goals.test.js
+      - run: node hlm-phase11-goal-timeline.test.js
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-browser-persistent-season.test.js
