@@ -15,6 +15,38 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-multigame-consistency').isDisabled(),false);
+  const storageBeforeConsistency=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('3');
+  await page.locator('#preview-multigame-consistency').click();
+  const consistency=JSON.parse(await page.locator('#multigame-consistency-results').textContent());
+  assert.equal(consistency.games,3);
+  for(const side of ['home','away']){
+    const members=consistency.players.filter(p=>p.team===side);
+    assert.equal(members.reduce((n,p)=>n+p.shots,0),consistency.teams[side].shots);
+    assert.equal(members.reduce((n,p)=>n+p.goals,0),consistency.teams[side].goals);
+    assert.equal(consistency.teams[side].gameTrends.length,3);
+    assert(members.every(p=>p.gameTrends.length===3));
+    assert(members.every(p=>p.gameTrends.reduce((n,g)=>n+g.shots,0)===p.shots));
+    assert(consistency.teams[side].shotVolumeVariance>=0);
+  }
+  assert.equal(consistency.productionActivationEnabled,false);
+  assert.equal(consistency.automaticallyApplied,false);
+  assert.equal(consistency.requiresGMApproval,true);
+  await page.locator('#preview-multigame-consistency').click();
+  assert.deepEqual(JSON.parse(await page.locator('#multigame-consistency-results').textContent()),consistency);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeConsistency);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-multigame-consistency').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#multigame-consistency-results').textContent()).teams,consistency.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-multigame-consistency').click();
+  assert.deepEqual(JSON.parse(await page.locator('#multigame-consistency-results').textContent()),consistency);
+  await page.locator('#consistency-games').fill('0');
+  await page.locator('#preview-multigame-consistency').click();
+  assert.match(await page.locator('#multigame-consistency-results').textContent(),/games must be between 1 and 30/);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeConsistency);
+  await page.locator('#consistency-games').fill('5');
   assert.equal(await page.locator('#preview-finishing-trends').isDisabled(),false);
   const storageBeforeFinishing=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#preview-finishing-trends').click();
