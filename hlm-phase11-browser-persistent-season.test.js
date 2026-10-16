@@ -15,6 +15,43 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-performance-volatility').isDisabled(),false);
+  const storageBeforeVolatility=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('7');
+  await page.locator('#preview-performance-volatility').click();
+  const volatilityReport=JSON.parse(await page.locator('#performance-volatility-results').textContent());
+  assert.equal(volatilityReport.games,7);
+  for(const side of ['home','away']){
+    const members=volatilityReport.players.filter(p=>p.team===side),team=volatilityReport.teams[side];
+    for(const key of ['volatility']){
+      assert.equal(members.reduce((n,p)=>n+p[key].shots,0),team[key].shots);
+      assert.equal(members.reduce((n,p)=>n+p[key].goals,0),team[key].goals);
+    }
+    for(const size of [3,5]){
+      const key='rolling'+size+'Volatility';
+      assert.equal(team[key].length,8-size);
+      for(const w of team[key]){
+        const rows=members.map(p=>p[key].find(x=>x.endingGame===w.endingGame));
+        assert.equal(rows.reduce((n,p)=>n+p.shots,0),w.shots);
+        assert.equal(rows.reduce((n,p)=>n+p.goals,0),w.goals);
+      }
+    }
+    assert(members.every(p=>p.volatility.descriptiveOnly&&p.volatility.notPredictive));
+  }
+  assert.equal(volatilityReport.productionActivationEnabled,false);
+  assert.equal(volatilityReport.automaticallyApplied,false);
+  assert.equal(volatilityReport.requiresGMApproval,true);
+  await page.locator('#preview-performance-volatility').click();
+  assert.deepEqual(JSON.parse(await page.locator('#performance-volatility-results').textContent()),volatilityReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeVolatility);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-performance-volatility').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#performance-volatility-results').textContent()).teams,volatilityReport.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-performance-volatility').click();
+  assert.deepEqual(JSON.parse(await page.locator('#performance-volatility-results').textContent()),volatilityReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeVolatility);
+  await page.locator('#consistency-games').fill('5');
   assert.equal(await page.locator('#preview-finishing-confidence').isDisabled(),false);
   const storageBeforeConfidence=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#consistency-games').fill('7');
