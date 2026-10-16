@@ -15,6 +15,34 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-consistency-rankings').isDisabled(),false);
+  const storageBeforeRankings=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('7');
+  await page.locator('#preview-consistency-rankings').click();
+  const rankingReport=JSON.parse(await page.locator('#consistency-rankings-results').textContent());
+  assert.equal(rankingReport.games,7);
+  assert.equal(rankingReport.rankings.length,rankingReport.players.length);
+  assert.deepEqual(rankingReport.rankings.map(p=>p.rank),Array.from({length:rankingReport.players.length},(_,i)=>i+1));
+  for(const side of ['home','away']){
+    const members=rankingReport.players.filter(p=>p.team===side),team=rankingReport.teams[side];
+    assert.equal(members.reduce((n,p)=>n+p.consistencyScore.shots,0),team.consistencyScore.shots);
+    assert.equal(members.reduce((n,p)=>n+p.consistencyScore.goals,0),team.consistencyScore.goals);
+    assert(members.every(p=>p.consistencyScore.descriptiveOnly&&p.consistencyScore.notPredictive));
+  }
+  assert.equal(rankingReport.productionActivationEnabled,false);
+  assert.equal(rankingReport.automaticallyApplied,false);
+  assert.equal(rankingReport.requiresGMApproval,true);
+  await page.locator('#preview-consistency-rankings').click();
+  assert.deepEqual(JSON.parse(await page.locator('#consistency-rankings-results').textContent()),rankingReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeRankings);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-consistency-rankings').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#consistency-rankings-results').textContent()).teams,rankingReport.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-consistency-rankings').click();
+  assert.deepEqual(JSON.parse(await page.locator('#consistency-rankings-results').textContent()),rankingReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeRankings);
+  await page.locator('#consistency-games').fill('5');
   assert.equal(await page.locator('#preview-performance-volatility').isDisabled(),false);
   const storageBeforeVolatility=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#consistency-games').fill('7');
