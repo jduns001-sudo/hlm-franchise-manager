@@ -72,6 +72,9 @@ on:
       - 'hlm-phase11-gm-evidence-review-action-plan.js'
       - 'hlm-phase11-gm-evidence-review-action-plan.bundle.js'
       - 'hlm-phase11-gm-evidence-review-action-plan.test.js'
+      - 'hlm-phase11-lineup-ice-time.js'
+      - 'hlm-phase11-lineup-ice-time.bundle.js'
+      - 'hlm-phase11-lineup-ice-time.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -83,6 +86,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental five-skater lineup ice-time gameplay regression
+        run: node hlm-phase11-lineup-ice-time.test.js
       - name: Experimental GM evidence review action plan and human approval regression
         run: node hlm-phase11-gm-evidence-review-action-plan.test.js
       - name: Experimental GM evidence review priority summary and human approval regression
