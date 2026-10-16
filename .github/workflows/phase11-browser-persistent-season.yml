@@ -78,6 +78,9 @@ on:
       - 'hlm-phase11-shift-rotation.js'
       - 'hlm-phase11-shift-rotation.bundle.js'
       - 'hlm-phase11-shift-rotation.test.js'
+      - 'hlm-phase11-shift-shot-events.js'
+      - 'hlm-phase11-shift-shot-events.bundle.js'
+      - 'hlm-phase11-shift-shot-events.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -89,6 +92,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental shift shot-event gameplay regression
+        run: node hlm-phase11-shift-shot-events.test.js
       - name: Experimental positional shift rotation gameplay regression
         run: node hlm-phase11-shift-rotation.test.js
       - name: Experimental five-skater lineup ice-time gameplay regression
