@@ -20,14 +20,14 @@ function score(record){
   sampleSizeTier:c.sampleSizeTier,descriptiveOnly:true,notPredictive:true};
 }
 function rank(players){
- const sorted=players.map(p=>({id:String(p.id),team:p.team,...p.consistencyScore})).sort((a,b)=>{
+ const sorted=players.map(p=>({playerId:String(p.playerId),team:p.team,...p.consistencyScore})).sort((a,b)=>{
   const aEligible=a.eligibility==='comparable',bEligible=b.eligibility==='comparable';
   if(aEligible!==bEligible)return aEligible?-1:1;
   if(a.stabilityScore===null||b.stabilityScore===null){if(a.stabilityScore===null&&b.stabilityScore!==null)return 1;if(b.stabilityScore===null&&a.stabilityScore!==null)return -1}
   if(a.stabilityScore!==b.stabilityScore)return b.stabilityScore-a.stabilityScore;
   if(a.shots!==b.shots)return b.shots-a.shots;
   if(a.team!==b.team)return a.team.localeCompare(b.team);
-  return a.id.localeCompare(b.id);
+  return a.playerId.localeCompare(b.playerId);
  });
  return sorted.map((p,i)=>({...p,rank:i+1,comparisonEligible:p.eligibility==='comparable'}));
 }
@@ -46,7 +46,7 @@ function summarizeConsistencyRankings(homeLineup,awayLineup,options={}){
    Math.abs(p.consistencyScore.expectedGoals-p.expectedGoals)>0.000003)
    throw Error('Consistency ranking player conservation mismatch');
  }
- if(new Set(rankings.map(p=>p.team+':'+p.id)).size!==players.length)throw Error('Consistency ranking duplicate player identity');
+ if(new Set(rankings.map(p=>p.team+':'+p.playerId)).size!==players.length)throw Error('Consistency ranking duplicate player identity');
  return {experimental:true,official:false,productionActivationEnabled:false,automaticallyApplied:false,requiresGMApproval:true,
   seed:base.seed,games:base.games,teams,players,rankings,
   summaryModel:'experimental-consistency-rankings-v1',
