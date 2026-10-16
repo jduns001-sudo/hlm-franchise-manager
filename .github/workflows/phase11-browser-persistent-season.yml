@@ -42,6 +42,9 @@ on:
       - 'hlm-phase11-gm-evidence-coverage.js'
       - 'hlm-phase11-gm-evidence-coverage.bundle.js'
       - 'hlm-phase11-gm-evidence-coverage.test.js'
+      - 'hlm-phase11-gm-evidence-trend.js'
+      - 'hlm-phase11-gm-evidence-trend.bundle.js'
+      - 'hlm-phase11-gm-evidence-trend.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -53,6 +56,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental GM evidence trend and human approval regression
+        run: node hlm-phase11-gm-evidence-trend.test.js
       - name: Experimental GM evidence coverage and human approval regression
         run: node hlm-phase11-gm-evidence-coverage.test.js
       - name: Experimental GM evidence action queue and human approval regression
