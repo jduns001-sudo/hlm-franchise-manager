@@ -4,6 +4,8 @@ on:
     paths:
       - 'hlm-phase11-shot-quality*'
       - 'hlm-phase11-shift-shot-events*'
+      - 'hlm-phase11-browser-season-workbench.html'
+      - 'hlm-phase11-browser-persistent-season.test.js'
       - '.github/workflows/phase11-shot-quality.yml'
   workflow_dispatch:
 jobs:
