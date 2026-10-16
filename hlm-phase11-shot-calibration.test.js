@@ -8,7 +8,7 @@ assert.deepEqual(calibrateShotEvents(lineup,{samples:500}),a);
 assert(a.projectedShotsPer60>20&&a.projectedShotsPer60<40,'plausible baseline');
 assert(a.forwardShotShare>0.6&&a.forwardShotShare<0.9,'position weighted');
 assert(Math.abs(a.forwardShotShare+a.defenseShotShare-1)<1e-10);
-assert.equal(a.playerShots.reduce((sum,p)=>sum+p.meanShotsPerPeriod,0),a.meanShotsPerPeriod);
+assert(Math.abs(a.playerShots.reduce((sum,p)=>sum+p.meanShotsPerPeriod,0)-a.meanShotsPerPeriod)<1e-9);
 assert.equal(a.productionActivationEnabled,false);
 assert.equal(a.automaticallyApplied,false);
 assert.equal(a.requiresGMApproval,true);
