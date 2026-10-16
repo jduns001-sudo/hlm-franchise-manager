@@ -17,3 +17,17 @@ assert.throws(()=>summarize([g(1,2,0)]),/goals exceed shots/);
 assert.throws(()=>summarize([g(-1,0,0)]),/invalid box score/);
 assert.throws(()=>summarize(a,0),/windowSize/);
 console.log('Mission 1147 deterministic performance insight regressions passed');
+
+const {aggregateTeam,seededRank,interpret}=require('./hlm-player-performance-comparison-insights');
+const team=[{id:'p1',games:[{gameId:'001',...g(4,1,1)},{gameId:'002',...g(2,0,1)}]},{id:'p2',games:[{gameId:'001',...g(3,1,0)},{gameId:'002',...g(5,2,0)}]}];
+const snapshot=JSON.stringify(team),t=aggregateTeam(team);
+assert.deepEqual(t.gameIds,['001','002']);
+assert.deepEqual(t.summary.totals,{shots:14,goals:4,assists:2});
+assert.equal(t.summary.games,2);
+assert.equal(JSON.stringify(team),snapshot);
+assert.deepEqual(seededRank([{id:'x',games:a},{id:'y',games:a}],42),seededRank([{id:'x',games:a},{id:'y',games:a}],42));
+assert.equal(interpret(a,[]).sample,'limited');
+assert.throws(()=>aggregateTeam([{id:'a',games:[]},{id:'a',games:[]}]),/duplicate/);
+assert.throws(()=>aggregateTeam([{id:'a',games:[{gameId:'1',...g(1,2,0)}]}]),/invalid/);
+assert.throws(()=>seededRank([], -1),/seed/);
+console.log('Team conservation, seeded determinism, and sample-aware interpretation passed');
