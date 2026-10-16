@@ -51,6 +51,9 @@ on:
       - 'hlm-phase11-gm-evidence-trend-priorities.js'
       - 'hlm-phase11-gm-evidence-trend-priorities.bundle.js'
       - 'hlm-phase11-gm-evidence-trend-priorities.test.js'
+      - 'hlm-phase11-gm-evidence-priority-decisions.js'
+      - 'hlm-phase11-gm-evidence-priority-decisions.bundle.js'
+      - 'hlm-phase11-gm-evidence-priority-decisions.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -62,6 +65,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental GM evidence priority decisions and human approval regression
+        run: node hlm-phase11-gm-evidence-priority-decisions.test.js
       - name: Experimental GM evidence trend priorities and human approval regression
         run: node hlm-phase11-gm-evidence-trend-priorities.test.js
       - name: Experimental GM evidence trend alerts and human approval regression
