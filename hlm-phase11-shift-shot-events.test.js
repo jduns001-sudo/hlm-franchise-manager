@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {simulateShiftShotEvents}=require('./hlm-phase11-shift-shot-events');
+const lineup=Array.from({length:10},(_,i)=>({id:'P'+i,position:i<6?'F':'D'}));
+const before=JSON.stringify(lineup),report=simulateShiftShotEvents(lineup,{seed:11});
+assert(report.events.length>0);
+assert(report.events.every(e=>e.type==='shot'&&e.second>=0&&e.second<1200&&report.playerShots.some(p=>p.id===e.shooterId)));
+assert.equal(report.events.length,report.playerShots.reduce((sum,p)=>sum+p.shots,0));
+assert.equal(report.playerIceTime.reduce((sum,p)=>sum+p.iceTimeSeconds,0),6000);
+assert.equal(report.productionActivationEnabled,false);
+assert.equal(report.automaticallyApplied,false);
+assert.equal(report.requiresGMApproval,true);
+assert.equal(JSON.stringify(lineup),before);
+assert.deepEqual(simulateShiftShotEvents(JSON.parse(before),{seed:11}),report);
+assert.throws(()=>simulateShiftShotEvents(lineup,{seed:-1}),TypeError);
+console.log('Deterministic shift shot events and isolation safeguards passed');
