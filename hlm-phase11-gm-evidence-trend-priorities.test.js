@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {buildGMEvidenceTrendPriorities}=require('./hlm-phase11-gm-evidence-trend-priorities');
+const state={meta:{controlledTeamId:1,currentDate:'2026-10-15'},activity:{games:[]}};
+const snapshots=[{saveId:'one',state},{saveId:'two',state:JSON.parse(JSON.stringify(state))}];
+const before=JSON.stringify(snapshots),report=buildGMEvidenceTrendPriorities(snapshots);
+assert.equal(report.pendingGMReviews,report.priorities.length);
+assert(report.priorities.every(x=>x.requiresGMApproval&&x.automaticallyApplied===false&&x.decision==='pending'));
+assert(report.priorities.every((x,i)=>i===0||report.priorities[i-1].priority<=x.priority));
+assert.equal(report.productionActivationEnabled,false);
+assert.equal(report.automaticallyApplied,false);
+assert.equal(JSON.stringify(snapshots),before);
+assert.deepEqual(buildGMEvidenceTrendPriorities(JSON.parse(before)),report);
+assert.throws(()=>buildGMEvidenceTrendPriorities(null),TypeError);
+console.log('GM evidence trend priority review and production isolation passed');
