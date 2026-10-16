@@ -31,6 +31,10 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert(savedStandings.every(team=>team.gp===2));
   assert.equal(JSON.parse(await page.locator('#season-history').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
+  const audit=JSON.parse(await page.locator('#gm-decision-audit').textContent());
+  assert.equal(audit.advisoryOnly,true);
+  assert.equal(audit.productionActivationEnabled,false);
+  assert(audit.entries.every(x=>x.decision==='pending'&&x.requiresGMApproval&&!x.automaticallyApplied));
   const provenance=JSON.parse(await page.locator('#gm-priority-history').textContent());
   assert.equal(provenance.advisoryOnly,true);
   assert.equal(provenance.productionActivationEnabled,false);
@@ -75,6 +79,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.deepEqual(JSON.parse(await page.locator('#performance-advisory').textContent()),advisory);
   assert.deepEqual(JSON.parse(await page.locator('#season-priority-board').textContent()),board);
   assert.deepEqual(JSON.parse(await page.locator('#gm-priority-history').textContent()),provenance);
+  assert.deepEqual(JSON.parse(await page.locator('#gm-decision-audit').textContent()),audit);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
