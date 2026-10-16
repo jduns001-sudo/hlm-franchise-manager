@@ -15,6 +15,32 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-shot-danger').isDisabled(),false);
+  const storageBeforeDanger=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#preview-shot-danger').click();
+  const danger=JSON.parse(await page.locator('#shot-danger-results').textContent());
+  const dangerTiers=['low','medium','high'];
+  const dangerSum=(o,f)=>dangerTiers.reduce((n,t)=>n+o[t][f],0);
+  assert.equal(danger.periodSummaries.length,3);
+  for(const side of ['home','away']){
+    assert.equal(dangerSum(danger.teams[side],'shots'),danger[side+'Shots']);
+    assert.equal(dangerSum(danger.teams[side],'goals'),danger[side+'Score']);
+    assert(Math.abs(dangerSum(danger.teams[side],'expectedGoals')-danger[side+'ExpectedGoals'])<0.000005);
+    assert(danger.players.filter(p=>p.team===side).every(p=>dangerSum(p.tiers,'shots')===p.shots&&dangerSum(p.tiers,'goals')===p.goals));
+  }
+  assert.equal(danger.productionActivationEnabled,false);
+  assert.equal(danger.automaticallyApplied,false);
+  assert.equal(danger.requiresGMApproval,true);
+  await page.locator('#preview-shot-danger').click();
+  assert.deepEqual(JSON.parse(await page.locator('#shot-danger-results').textContent()),danger);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeDanger);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-shot-danger').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#shot-danger-results').textContent()).periodSummaries,danger.periodSummaries);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-shot-danger').click();
+  assert.deepEqual(JSON.parse(await page.locator('#shot-danger-results').textContent()),danger);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeDanger);
   assert.equal(await page.locator('#preview-player-xg').isDisabled(),false);
   const storageBeforeXG=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#preview-player-xg').click();
