@@ -31,6 +31,14 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert(savedStandings.every(team=>team.gp===2));
   assert.equal(JSON.parse(await page.locator('#season-history').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
+  const evidenceReviewSummaryReport=JSON.parse(await page.locator('#gm-evidence-review-summary').textContent());
+  assert.equal(evidenceReviewSummaryReport.advisoryOnly,true);
+  assert.equal(evidenceReviewSummaryReport.productionActivationEnabled,false);
+  assert.equal(evidenceReviewSummaryReport.automaticallyApplied,false);
+  assert.equal(evidenceReviewSummaryReport.requiresGMApproval,true);
+  assert.equal(evidenceReviewSummaryReport.pendingGMReviews,evidenceReviewSummaryReport.reviews.length);
+  assert.equal(evidenceReviewSummaryReport.incompleteReviewSteps,evidenceReviewSummaryReport.reviews.reduce((sum,x)=>sum+x.remainingSteps.length,0));
+  assert(evidenceReviewSummaryReport.reviews.every(x=>x.status==='PENDING_HUMAN_GM'&&!x.humanDecisionRecorded&&!x.automaticallyApplied));
   const evidenceReviewReadinessReport=JSON.parse(await page.locator('#gm-evidence-review-readiness').textContent());
   assert.equal(evidenceReviewReadinessReport.advisoryOnly,true);
   assert.equal(evidenceReviewReadinessReport.productionActivationEnabled,false);
@@ -165,6 +173,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-decision-explanations').textContent()),evidenceDecisionExplanationsReport);
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-decision-review').textContent()),evidenceDecisionReviewReport);
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-review-readiness').textContent()),evidenceReviewReadinessReport);
+  assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-review-summary').textContent()),evidenceReviewSummaryReport);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
