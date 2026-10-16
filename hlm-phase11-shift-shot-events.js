@@ -10,7 +10,9 @@ function simulateShiftShotEvents(lineup,{periodSeconds=1200,shiftSeconds=45,seed
   const shotCount=(seed+index)%3;
   for(let shot=0;shot<shotCount;shot++){
    const shooterId=shift.skaterIds[(seed+index+shot)%3];
-   const second=shift.startSecond+Math.min(shift.endSecond-shift.startSecond-1,Math.floor((shot+1)*(shift.endSecond-shift.startSecond)/(shotCount+1)));
+   const shiftDuration=shift.endSecond-shift.startSecond;
+   const second=shift.startSecond+Math.min(shiftDuration-1,Math.floor((shot+1)*shiftDuration/(shotCount+1)));
+   if(!shift.skaterIds.includes(shooterId))throw new Error('Shooter not on ice');
    events.push({type:'shot',second,shooterId,shiftIndex:index});
    shotsByPlayer[shooterId]++;
   }
