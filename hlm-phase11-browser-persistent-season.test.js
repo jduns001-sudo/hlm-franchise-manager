@@ -26,6 +26,19 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(initialShiftShotGameplayReport.requiresGMApproval,true);
   await page.locator('#preview-shot-events').click();
   assert.deepEqual(JSON.parse(await page.locator('#shot-event-results').textContent()),initialShiftShotGameplayReport);
+  // Mobile Chromium: deterministic alternate seeds, input isolation and read-only preview.
+  const mobileShotCheck=await page.evaluate(()=>{
+   const lineup=[{id:'F1',position:'C',ovr:90},{id:'F2',position:'LW',ovr:80},{id:'F3',position:'RW',ovr:80},{id:'D1',position:'D',ovr:80},{id:'D2',position:'D',ovr:80}];
+   const before=JSON.stringify(lineup),api=window.HLMPhase11ShiftShotEvents;
+   const first=api.simulateShiftShotEvents(lineup,{seed:12}),repeat=api.simulateShiftShotEvents(lineup,{seed:12});
+   const alternate=api.simulateShiftShotEvents(lineup,{seed:13});
+   return {deterministic:JSON.stringify(first)===JSON.stringify(repeat),unchanged:before===JSON.stringify(lineup),
+    different:JSON.stringify(first.events)!==JSON.stringify(alternate.events),safe:!first.productionActivationEnabled&&!first.automaticallyApplied&&first.requiresGMApproval,
+    valid:first.events.every(e=>e.second>=0&&e.second<1200&&lineup.some(p=>p.id===e.shooterId))};
+  });
+  assert(mobileShotCheck.deterministic&&mobileShotCheck.unchanged&&mobileShotCheck.safe&&mobileShotCheck.valid);
+  assert(mobileShotCheck.different);
+
   assert.equal(await page.locator('#preview-shifts').isDisabled(),false);
   await page.locator('#preview-shifts').click();
   const initialShiftRotationGameplayReport=JSON.parse(await page.locator('#shift-results').textContent());

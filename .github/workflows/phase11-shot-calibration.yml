@@ -1,0 +1,23 @@
+name: Phase 11 Shot Calibration
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-shot-calibration*'
+      - 'hlm-phase11-shift-shot-events*'
+      - 'hlm-phase11-browser-persistent-season.test.js'
+      - '.github/workflows/phase11-shot-calibration.yml'
+  workflow_dispatch:
+jobs:
+  calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-shot-calibration.test.js
+      - run: node hlm-phase11-shift-shot-events.test.js
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-browser-persistent-season.test.js
