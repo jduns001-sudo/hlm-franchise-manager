@@ -15,6 +15,35 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-performance-trend-history').isDisabled(),false);
+  const storageBeforeHistory=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('7');
+  await page.locator('#history-periods').fill('3');
+  await page.locator('#preview-performance-trend-history').click();
+  const historyReport=JSON.parse(await page.locator('#performance-trend-history-results').textContent());
+  assert.equal(historyReport.periodCount,3);assert.equal(historyReport.totalGames,21);
+  assert.equal(historyReport.snapshots.length,3);
+  assert.equal(historyReport.players.length,historyReport.snapshots[0].players.length);
+  for(const side of ['home','away']){
+    const members=historyReport.players.filter(p=>p.team===side),team=historyReport.teams[side];
+    assert.equal(members.reduce((n,p)=>n+p.totals.shots,0),team.totals.shots);
+    assert.equal(members.reduce((n,p)=>n+p.totals.goals,0),team.totals.goals);
+    assert(members.every(p=>p.descriptiveOnly&&p.notPredictive&&p.periods.length===3));
+  }
+  assert.equal(historyReport.productionActivationEnabled,false);
+  assert.equal(historyReport.automaticallyApplied,false);
+  assert.equal(historyReport.requiresGMApproval,true);
+  await page.locator('#preview-performance-trend-history').click();
+  assert.deepEqual(JSON.parse(await page.locator('#performance-trend-history-results').textContent()),historyReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeHistory);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-performance-trend-history').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#performance-trend-history-results').textContent()).teams,historyReport.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-performance-trend-history').click();
+  assert.deepEqual(JSON.parse(await page.locator('#performance-trend-history-results').textContent()),historyReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeHistory);
+  await page.locator('#consistency-games').fill('5');
   assert.equal(await page.locator('#preview-performance-dashboard').isDisabled(),false);
   const storageBeforeDashboard=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#consistency-games').fill('7');
