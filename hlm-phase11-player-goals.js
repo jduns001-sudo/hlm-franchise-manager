@@ -2,7 +2,6 @@
 /* Read-only deterministic player goal attribution from experimental goal timelines. */
 const {summarizeGoalTimeline}=require('./hlm-phase11-goal-timeline');
 function summarizePlayerGoals(homeLineup,awayLineup,options={}){
- const timeline=summarizeGoalTimeline(homeLineup,awayLineup,options);
  const rosterIds=side=>{
   if(!Array.isArray(side))throw new TypeError('Lineup must be an array');
   const ids=new Set();
@@ -15,6 +14,7 @@ function summarizePlayerGoals(homeLineup,awayLineup,options={}){
   return ids;
  };
  const homeIds=rosterIds(homeLineup),awayIds=rosterIds(awayLineup);
+ const timeline=summarizeGoalTimeline(homeLineup,awayLineup,options);
  const totals=new Map();
  const goals=timeline.timeline.map(event=>{
   const ids=event.scoringTeam==='home'?homeIds:awayIds;
