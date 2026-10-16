@@ -1,0 +1,33 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {summarizeGoaliePeriod}=require('./hlm-phase11-goalie-period-stats');
+const lineup=Array.from({length:10},(_,i)=>({id:'P'+i,position:i<6?'F':'D',ovr:80}));
+const before=JSON.stringify(lineup);
+const base=summarizeGoaliePeriod(lineup,{goalie:{id:'G',ovr:80},seed:11});
+assert.deepEqual(summarizeGoaliePeriod(lineup,{goalie:{id:'G',ovr:80},seed:11}),base);
+assert.equal(JSON.stringify(lineup),before);
+assert.equal(base.shotsAgainst,base.saves+base.goalsAgainst);
+assert.equal(base.shotsAgainst,base.shooters.reduce((sum,s)=>sum+s.shots,0));
+assert.equal(base.goalsAgainst,base.shooters.reduce((sum,s)=>sum+s.goals,0));
+assert.equal(base.saves,base.shooters.reduce((sum,s)=>sum+s.saves,0));
+assert.equal(base.savePercentage,base.shotsAgainst?Number((base.saves/base.shotsAgainst).toFixed(6)):null);
+assert(Math.abs(base.expectedGoalsAgainst-base.shooters.reduce((sum,s)=>sum+s.expectedGoals,0))<1e-4);
+assert(base.periodEvents.every(e=>e.second>=0&&e.second<1200&&e.goalProbability>=0.005&&e.goalProbability<=0.3));
+assert.equal(base.productionActivationEnabled,false);
+assert.equal(base.automaticallyApplied,false);
+assert.equal(base.requiresGMApproval,true);
+let strongGA=0,weakGA=0,strongXGA=0,weakXGA=0,total=0;
+for(let seed=0;seed<400;seed++){
+ const strong=summarizeGoaliePeriod(lineup,{goalie:{id:'G',ovr:115},seed});
+ const weak=summarizeGoaliePeriod(lineup,{goalie:{id:'G',ovr:45},seed});
+ assert.equal(strong.shotsAgainst,weak.shotsAgainst);
+ strongGA+=strong.goalsAgainst;weakGA+=weak.goalsAgainst;strongXGA+=strong.expectedGoalsAgainst;weakXGA+=weak.expectedGoalsAgainst;total+=strong.shotsAgainst;
+}
+assert(total>500);
+assert(strongXGA<weakXGA);
+assert(strongGA<weakGA);
+const short=summarizeGoaliePeriod(lineup,{periodSeconds:60,shiftSeconds:15,seed:3});
+assert(short.periodEvents.every(e=>e.second<60));
+if(short.shotsAgainst===0)assert.equal(short.savePercentage,null);
+assert.throws(()=>summarizeGoaliePeriod(lineup,{seed:-1}),TypeError);
+console.log('Mission 1127 per-period goalie statistical, conservation, reproducibility and isolation tests passed');
