@@ -15,6 +15,37 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-regression-trends').isDisabled(),false);
+  const storageBeforeRegression=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('7');
+  await page.locator('#preview-regression-trends').click();
+  const regression=JSON.parse(await page.locator('#regression-trends-results').textContent());
+  assert.equal(regression.games,7);
+  for(const side of ['home','away']){
+    const members=regression.players.filter(p=>p.team===side),team=regression.teams[side];
+    assert.equal(team.comparison.early.games,3);
+    assert.equal(team.comparison.late.games,4);
+    for(const part of ['early','late']){
+      const rows=members.map(p=>p.comparison[part]),summary=team.comparison[part];
+      assert.equal(rows.reduce((n,p)=>n+p.shots,0),summary.shots);
+      assert.equal(rows.reduce((n,p)=>n+p.goals,0),summary.goals);
+    }
+    assert(members.every(p=>p.comparison.descriptiveOnly));
+  }
+  assert.equal(regression.productionActivationEnabled,false);
+  assert.equal(regression.automaticallyApplied,false);
+  assert.equal(regression.requiresGMApproval,true);
+  await page.locator('#preview-regression-trends').click();
+  assert.deepEqual(JSON.parse(await page.locator('#regression-trends-results').textContent()),regression);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeRegression);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-regression-trends').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#regression-trends-results').textContent()).teams,regression.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-regression-trends').click();
+  assert.deepEqual(JSON.parse(await page.locator('#regression-trends-results').textContent()),regression);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeRegression);
+  await page.locator('#consistency-games').fill('5');
   assert.equal(await page.locator('#preview-rolling-streaks').isDisabled(),false);
   const storageBeforeRolling=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#consistency-games').fill('5');
