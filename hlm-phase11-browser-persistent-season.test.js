@@ -15,6 +15,34 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-performance-dashboard').isDisabled(),false);
+  const storageBeforeDashboard=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('7');
+  await page.locator('#preview-performance-dashboard').click();
+  const dashboardReport=JSON.parse(await page.locator('#performance-dashboard-results').textContent());
+  assert.equal(dashboardReport.games,7);
+  assert.equal(dashboardReport.comparisons.length,dashboardReport.players.length);
+  assert.deepEqual(dashboardReport.comparisons.map(p=>p.rank),Array.from({length:dashboardReport.players.length},(_,i)=>i+1));
+  for(const side of ['home','away']){
+    const members=dashboardReport.players.filter(p=>p.team===side),team=dashboardReport.teams[side];
+    assert.equal(members.reduce((n,p)=>n+p.dashboard.shots,0),team.dashboard.shots);
+    assert.equal(members.reduce((n,p)=>n+p.dashboard.goals,0),team.dashboard.goals);
+    assert(members.every(p=>p.dashboard.descriptiveOnly&&p.dashboard.notPredictive&&p.dashboard.notScoutingGrade));
+  }
+  assert.equal(dashboardReport.productionActivationEnabled,false);
+  assert.equal(dashboardReport.automaticallyApplied,false);
+  assert.equal(dashboardReport.requiresGMApproval,true);
+  await page.locator('#preview-performance-dashboard').click();
+  assert.deepEqual(JSON.parse(await page.locator('#performance-dashboard-results').textContent()),dashboardReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeDashboard);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-performance-dashboard').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#performance-dashboard-results').textContent()).teams,dashboardReport.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-performance-dashboard').click();
+  assert.deepEqual(JSON.parse(await page.locator('#performance-dashboard-results').textContent()),dashboardReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeDashboard);
+  await page.locator('#consistency-games').fill('5');
   assert.equal(await page.locator('#preview-reliability-profiles').isDisabled(),false);
   const storageBeforeReliability=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#consistency-games').fill('7');
