@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {buildGMEvidenceDecisionReview}=require('./hlm-phase11-gm-evidence-decision-review');
+const state={meta:{controlledTeamId:1,currentDate:'2026-10-15'},activity:{games:[]}};
+const snapshots=[{saveId:'one',state},{saveId:'two',state:JSON.parse(JSON.stringify(state))}];
+const before=JSON.stringify(snapshots),report=buildGMEvidenceDecisionReview(snapshots);
+assert(report.reviews.every(x=>x.status==='PENDING_HUMAN_GM'&&!x.humanDecisionRecorded&&x.requiresGMApproval&&!x.automaticallyApplied));
+assert(report.reviews.every(x=>x.checklist.length===3));
+assert.equal(report.productionActivationEnabled,false);
+assert.equal(report.automaticallyApplied,false);
+assert.equal(JSON.stringify(snapshots),before);
+assert.deepEqual(buildGMEvidenceDecisionReview(JSON.parse(before)),report);
+assert.throws(()=>buildGMEvidenceDecisionReview(null),TypeError);
+console.log('GM evidence decision review checklist and save isolation passed');
