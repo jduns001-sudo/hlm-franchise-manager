@@ -15,6 +15,37 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-rolling-streaks').isDisabled(),false);
+  const storageBeforeRolling=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('5');
+  await page.locator('#preview-rolling-streaks').click();
+  const rolling=JSON.parse(await page.locator('#rolling-streaks-results').textContent());
+  assert.equal(rolling.games,5);
+  for(const side of ['home','away']){
+    const members=rolling.players.filter(p=>p.team===side);
+    assert.equal(rolling.teams[side].rolling3.length,3);
+    assert.equal(rolling.teams[side].rolling5.length,1);
+    assert(members.every(p=>p.rolling3.length===3&&p.rolling5.length===1));
+    assert(members.every(p=>['hot','cold','neutral'].includes(p.streak.status)));
+    for(const window of [3,5])for(const w of rolling.teams[side]['rolling'+window]){
+      const rows=members.map(p=>p['rolling'+window].find(x=>x.endingGame===w.endingGame));
+      assert.equal(rows.reduce((n,p)=>n+p.shots,0),w.shots);
+      assert.equal(rows.reduce((n,p)=>n+p.goals,0),w.goals);
+    }
+  }
+  assert.equal(rolling.productionActivationEnabled,false);
+  assert.equal(rolling.automaticallyApplied,false);
+  assert.equal(rolling.requiresGMApproval,true);
+  await page.locator('#preview-rolling-streaks').click();
+  assert.deepEqual(JSON.parse(await page.locator('#rolling-streaks-results').textContent()),rolling);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeRolling);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-rolling-streaks').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#rolling-streaks-results').textContent()).teams,rolling.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-rolling-streaks').click();
+  assert.deepEqual(JSON.parse(await page.locator('#rolling-streaks-results').textContent()),rolling);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeRolling);
   assert.equal(await page.locator('#preview-multigame-consistency').isDisabled(),false);
   const storageBeforeConsistency=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#consistency-games').fill('3');
