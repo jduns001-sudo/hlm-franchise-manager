@@ -8,6 +8,7 @@ function allocateLineupIceTime(lineup,periodMinutes=20){
   return {id:player.id,weight:player.weight,index};
  });
  if(new Set(players.map(x=>x.id)).size!==players.length)throw new TypeError('Duplicate player id');
+ if(players.length<5)throw new TypeError('At least five skaters required');
  const total=players.reduce((sum,p)=>sum+p.weight,0);
  const totalSeconds=Math.round(periodMinutes*60*5);
  const allocation=players.map(p=>({...p,seconds:Math.floor(totalSeconds*p.weight/total)}));
