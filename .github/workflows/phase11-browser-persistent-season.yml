@@ -33,6 +33,9 @@ on:
       - 'hlm-phase11-gm-decision-readiness.js'
       - 'hlm-phase11-gm-decision-readiness.bundle.js'
       - 'hlm-phase11-gm-decision-readiness.test.js'
+      - 'hlm-phase11-gm-evidence-summary.js'
+      - 'hlm-phase11-gm-evidence-summary.bundle.js'
+      - 'hlm-phase11-gm-evidence-summary.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -44,6 +47,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental GM evidence summary and human approval regression
+        run: node hlm-phase11-gm-evidence-summary.test.js
       - name: Experimental GM decision evidence readiness and approval regression
         run: node hlm-phase11-gm-decision-readiness.test.js
       - name: Experimental GM decision audit and evidence regression
