@@ -27,6 +27,9 @@ on:
       - 'hlm-phase11-gm-priority-history.js'
       - 'hlm-phase11-gm-priority-history.bundle.js'
       - 'hlm-phase11-gm-priority-history.test.js'
+      - 'hlm-phase11-gm-decision-audit.js'
+      - 'hlm-phase11-gm-decision-audit.bundle.js'
+      - 'hlm-phase11-gm-decision-audit.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -38,6 +41,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental GM decision audit and evidence regression
+        run: node hlm-phase11-gm-decision-audit.test.js
       - name: Experimental GM priority history provenance and approval regression
         run: node hlm-phase11-gm-priority-history.test.js
       - name: Experimental season priority board GM authority regression
