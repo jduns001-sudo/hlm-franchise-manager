@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {buildGMEvidenceTrendAlerts}=require('./hlm-phase11-gm-evidence-trend-alerts');
+const state={meta:{controlledTeamId:1,currentDate:'2026-10-15'},activity:{games:[]}};
+const snapshots=[{saveId:'one',state},{saveId:'two',state:JSON.parse(JSON.stringify(state))}];
+const before=JSON.stringify(snapshots),report=buildGMEvidenceTrendAlerts(snapshots);
+assert.equal(report.coverageChangeSincePrevious,0);
+assert(report.alerts.every(a=>a.decision==='pending'));
+assert.equal(report.productionActivationEnabled,false);
+assert.equal(report.requiresGMApproval,true);
+assert.equal(report.automaticallyApplied,false);
+assert.equal(JSON.stringify(snapshots),before);
+assert.deepEqual(buildGMEvidenceTrendAlerts(JSON.parse(before)),report);
+assert.throws(()=>buildGMEvidenceTrendAlerts(null),TypeError);
+console.log('GM evidence trend alerts deterministic human approval and isolation passed');
