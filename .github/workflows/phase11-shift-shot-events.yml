@@ -18,6 +18,6 @@ jobs:
         with:
           node-version: '22'
       - run: node hlm-phase11-shift-shot-events.test.js
-      - run: npm ci
+      - run: npm install --no-save --no-package-lock playwright
       - run: npx playwright install --with-deps chromium
       - run: node hlm-phase11-browser-persistent-season.test.js
