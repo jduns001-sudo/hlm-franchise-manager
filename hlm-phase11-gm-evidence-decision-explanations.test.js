@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {explainGMEvidencePriorityDecisions}=require('./hlm-phase11-gm-evidence-decision-explanations');
+const state={meta:{controlledTeamId:1,currentDate:'2026-10-15'},activity:{games:[]}};
+const snapshots=[{saveId:'one',state},{saveId:'two',state:JSON.parse(JSON.stringify(state))}];
+const before=JSON.stringify(snapshots),report=explainGMEvidencePriorityDecisions(snapshots);
+assert(report.decisions.every(x=>x.status==='PENDING_HUMAN_GM'&&x.approvalRequiredBeforeAnyAction&&x.explanation.length>0));
+assert.equal(report.productionActivationEnabled,false);
+assert.equal(report.automaticallyApplied,false);
+assert.equal(JSON.stringify(snapshots),before);
+assert.deepEqual(explainGMEvidencePriorityDecisions(JSON.parse(before)),report);
+assert.throws(()=>explainGMEvidencePriorityDecisions(null),TypeError);
+console.log('GM evidence decision explanations and save isolation passed');
