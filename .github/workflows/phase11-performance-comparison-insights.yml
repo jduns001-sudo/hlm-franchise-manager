@@ -1,0 +1,24 @@
+name: Phase 11 Performance Comparison Insights
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-performance-comparison-insights*'
+      - 'hlm-phase11-performance-history-comparisons*'
+      - 'hlm-phase11-browser-season-workbench.html'
+      - 'hlm-phase11-browser-persistent-season.test.js'
+      - '.github/workflows/phase11-performance-comparison-insights.yml'
+  workflow_dispatch:
+jobs:
+  performance-comparison-insights:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-performance-comparison-insights.test.js
+      - run: node hlm-phase11-performance-history-comparisons.test.js
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-browser-persistent-season.test.js
