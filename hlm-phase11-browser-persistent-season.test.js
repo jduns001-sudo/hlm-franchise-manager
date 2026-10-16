@@ -15,6 +15,34 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-reliability-profiles').isDisabled(),false);
+  const storageBeforeReliability=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('7');
+  await page.locator('#preview-reliability-profiles').click();
+  const reliabilityReport=JSON.parse(await page.locator('#reliability-profiles-results').textContent());
+  assert.equal(reliabilityReport.games,7);
+  assert.equal(reliabilityReport.comparisons.length,reliabilityReport.players.length);
+  assert.deepEqual(reliabilityReport.comparisons.map(p=>p.rank),Array.from({length:reliabilityReport.players.length},(_,i)=>i+1));
+  for(const side of ['home','away']){
+    const members=reliabilityReport.players.filter(p=>p.team===side),team=reliabilityReport.teams[side];
+    assert.equal(members.reduce((n,p)=>n+p.reliabilityProfile.shots,0),team.reliabilityProfile.shots);
+    assert.equal(members.reduce((n,p)=>n+p.reliabilityProfile.goals,0),team.reliabilityProfile.goals);
+    assert(members.every(p=>p.reliabilityProfile.descriptiveOnly&&p.reliabilityProfile.notPredictive&&p.reliabilityProfile.notScoutingGrade));
+  }
+  assert.equal(reliabilityReport.productionActivationEnabled,false);
+  assert.equal(reliabilityReport.automaticallyApplied,false);
+  assert.equal(reliabilityReport.requiresGMApproval,true);
+  await page.locator('#preview-reliability-profiles').click();
+  assert.deepEqual(JSON.parse(await page.locator('#reliability-profiles-results').textContent()),reliabilityReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeReliability);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-reliability-profiles').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#reliability-profiles-results').textContent()).teams,reliabilityReport.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-reliability-profiles').click();
+  assert.deepEqual(JSON.parse(await page.locator('#reliability-profiles-results').textContent()),reliabilityReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeReliability);
+  await page.locator('#consistency-games').fill('5');
   assert.equal(await page.locator('#preview-consistency-rankings').isDisabled(),false);
   const storageBeforeRankings=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#consistency-games').fill('7');
