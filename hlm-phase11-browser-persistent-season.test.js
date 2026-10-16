@@ -15,6 +15,35 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-finishing-confidence').isDisabled(),false);
+  const storageBeforeConfidence=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('7');
+  await page.locator('#preview-finishing-confidence').click();
+  const confidenceReport=JSON.parse(await page.locator('#finishing-confidence-results').textContent());
+  assert.equal(confidenceReport.games,7);
+  for(const side of ['home','away']){
+    const members=confidenceReport.players.filter(p=>p.team===side),team=confidenceReport.teams[side];
+    for(const part of ['finishingConfidence','earlyConfidence','lateConfidence']){
+      const rows=members.map(p=>p[part]),summary=team[part];
+      assert.equal(rows.reduce((n,p)=>n+p.shots,0),summary.shots);
+      assert.equal(rows.reduce((n,p)=>n+p.goals,0),summary.goals);
+    }
+    assert(members.every(p=>p.finishingConfidence.descriptiveOnly&&p.finishingConfidence.notCalibratedProbability));
+  }
+  assert.equal(confidenceReport.productionActivationEnabled,false);
+  assert.equal(confidenceReport.automaticallyApplied,false);
+  assert.equal(confidenceReport.requiresGMApproval,true);
+  await page.locator('#preview-finishing-confidence').click();
+  assert.deepEqual(JSON.parse(await page.locator('#finishing-confidence-results').textContent()),confidenceReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeConfidence);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-finishing-confidence').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#finishing-confidence-results').textContent()).teams,confidenceReport.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-finishing-confidence').click();
+  assert.deepEqual(JSON.parse(await page.locator('#finishing-confidence-results').textContent()),confidenceReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeConfidence);
+  await page.locator('#consistency-games').fill('5');
   assert.equal(await page.locator('#preview-regression-trends').isDisabled(),false);
   const storageBeforeRegression=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#consistency-games').fill('7');
