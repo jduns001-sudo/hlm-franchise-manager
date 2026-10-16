@@ -15,6 +15,36 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
   assert.equal(await page.locator('#preview-shot-events').isDisabled(),false);
+  assert.equal(await page.locator('#preview-performance-comparison-insights').isDisabled(),false);
+  const storageBeforeComparisonInsights=await page.evaluate(()=>JSON.stringify({...localStorage}));
+  await page.locator('#consistency-games').fill('7');
+  await page.locator('#history-periods').fill('3');
+  await page.locator('#preview-performance-comparison-insights').click();
+  const comparisonInsightsReport=JSON.parse(await page.locator('#performance-comparison-insights-results').textContent());
+  assert.equal(comparisonInsightsReport.periodCount,3);assert.equal(comparisonInsightsReport.totalGames,21);
+  assert.equal(comparisonInsightsReport.playerPairInsights.length,comparisonInsightsReport.players.length*(comparisonInsightsReport.players.length-1)/2);
+  assert.equal(comparisonInsightsReport.evidenceCounts.comparable+comparisonInsightsReport.evidenceCounts.insufficient,comparisonInsightsReport.playerPairInsights.length);
+  assert(comparisonInsightsReport.playerPairInsights.every(p=>p.descriptiveOnly&&p.notPredictive&&p.notDecisionAdvice));
+  for(const side of ['home','away']){
+    const members=comparisonInsightsReport.players.filter(p=>p.team===side),team=comparisonInsightsReport.teams[side];
+    assert.equal(members.reduce((n,p)=>n+p.insight.shots,0),team.insight.shots);
+    assert.equal(members.reduce((n,p)=>n+p.insight.goals,0),team.insight.goals);
+  }
+  assert.equal(comparisonInsightsReport.teamPairInsight.shotsDifference,comparisonInsightsReport.teams.home.insight.shots-comparisonInsightsReport.teams.away.insight.shots);
+  assert.equal(comparisonInsightsReport.productionActivationEnabled,false);
+  assert.equal(comparisonInsightsReport.automaticallyApplied,false);
+  assert.equal(comparisonInsightsReport.requiresGMApproval,true);
+  await page.locator('#preview-performance-comparison-insights').click();
+  assert.deepEqual(JSON.parse(await page.locator('#performance-comparison-insights-results').textContent()),comparisonInsightsReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeComparisonInsights);
+  await page.locator('#seed').fill('12');
+  await page.locator('#preview-performance-comparison-insights').click();
+  assert.notDeepEqual(JSON.parse(await page.locator('#performance-comparison-insights-results').textContent()).teams,comparisonInsightsReport.teams);
+  await page.locator('#seed').fill('11');
+  await page.locator('#preview-performance-comparison-insights').click();
+  assert.deepEqual(JSON.parse(await page.locator('#performance-comparison-insights-results').textContent()),comparisonInsightsReport);
+  assert.equal(await page.evaluate(()=>JSON.stringify({...localStorage})),storageBeforeComparisonInsights);
+  await page.locator('#consistency-games').fill('5');
   assert.equal(await page.locator('#preview-performance-history-comparisons').isDisabled(),false);
   const storageBeforeComparisons=await page.evaluate(()=>JSON.stringify({...localStorage}));
   await page.locator('#consistency-games').fill('7');
