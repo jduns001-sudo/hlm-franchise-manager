@@ -31,6 +31,14 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert(savedStandings.every(team=>team.gp===2));
   assert.equal(JSON.parse(await page.locator('#season-history').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
+  const evidenceCoverageReport=JSON.parse(await page.locator('#gm-evidence-coverage').textContent());
+  assert.equal(evidenceCoverageReport.advisoryOnly,true);
+  assert.equal(evidenceCoverageReport.productionActivationEnabled,false);
+  assert.equal(evidenceCoverageReport.automaticallyApplied,false);
+  assert.equal(evidenceCoverageReport.requiresGMApproval,true);
+  assert.equal(evidenceCoverageReport.reviewReady+evidenceCoverageReport.awaitingEvidence,evidenceCoverageReport.totalRecommendations);
+  assert.equal(evidenceCoverageReport.pendingDecisions,evidenceCoverageReport.totalRecommendations);
+  assert(evidenceCoverageReport.coveragePercent>=0&&evidenceCoverageReport.coveragePercent<=100);
   const evidenceActionQueue=JSON.parse(await page.locator('#gm-evidence-action-queue').textContent());
   assert.equal(evidenceActionQueue.advisoryOnly,true);
   assert.equal(evidenceActionQueue.productionActivationEnabled,false);
@@ -100,6 +108,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.deepEqual(JSON.parse(await page.locator('#gm-decision-readiness').textContent()),evidenceReadiness);
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-summary').textContent()),evidenceSummary);
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-action-queue').textContent()),evidenceActionQueue);
+  assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-coverage').textContent()),evidenceCoverageReport);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
