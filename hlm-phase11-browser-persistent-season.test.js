@@ -31,6 +31,13 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert(savedStandings.every(team=>team.gp===2));
   assert.equal(JSON.parse(await page.locator('#season-history').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
+  const evidenceActionQueue=JSON.parse(await page.locator('#gm-evidence-action-queue').textContent());
+  assert.equal(evidenceActionQueue.advisoryOnly,true);
+  assert.equal(evidenceActionQueue.productionActivationEnabled,false);
+  assert.equal(evidenceActionQueue.automaticallyApplied,false);
+  assert.equal(evidenceActionQueue.reviewActions+evidenceActionQueue.evidenceActions,evidenceActionQueue.totalActions);
+  assert(evidenceActionQueue.queue.every(x=>x.decision==='pending'&&x.requiresGMApproval&&!x.automaticallyApplied));
+  assert(evidenceActionQueue.queue.every((x,i,a)=>i===0||a[i-1].nextAction==='GM_REVIEW'||x.nextAction==='GATHER_EVIDENCE'));
   const evidenceSummary=JSON.parse(await page.locator('#gm-evidence-summary').textContent());
   assert.equal(evidenceSummary.advisoryOnly,true);
   assert.equal(evidenceSummary.productionActivationEnabled,false);
@@ -92,6 +99,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.deepEqual(JSON.parse(await page.locator('#gm-decision-audit').textContent()),audit);
   assert.deepEqual(JSON.parse(await page.locator('#gm-decision-readiness').textContent()),evidenceReadiness);
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-summary').textContent()),evidenceSummary);
+  assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-action-queue').textContent()),evidenceActionQueue);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
