@@ -1,0 +1,24 @@
+name: Phase 11 Finishing Trends
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-finishing-trends*'
+      - 'hlm-phase11-shot-danger*'
+      - 'hlm-phase11-browser-season-workbench.html'
+      - 'hlm-phase11-browser-persistent-season.test.js'
+      - '.github/workflows/phase11-finishing-trends.yml'
+  workflow_dispatch:
+jobs:
+  finishing-trends:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-finishing-trends.test.js
+      - run: node hlm-phase11-shot-danger.test.js
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-browser-persistent-season.test.js
