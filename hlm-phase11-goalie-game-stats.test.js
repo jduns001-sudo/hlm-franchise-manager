@@ -1,0 +1,36 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {summarizeGoalieGame}=require('./hlm-phase11-goalie-game-stats');
+const lineup=Array.from({length:10},(_,i)=>({id:'P'+i,position:i<6?'F':'D',ovr:80}));
+const original=JSON.stringify(lineup);
+const report=summarizeGoalieGame(lineup,{goalie:{id:'G',ovr:80},seed:11});
+assert.deepEqual(summarizeGoalieGame(lineup,{goalie:{id:'G',ovr:80},seed:11}),report);
+assert.equal(JSON.stringify(lineup),original);
+assert.equal(report.periodReports.length,3);
+assert.deepEqual(report.periodReports.map(p=>p.seed),[11,12,13]);
+assert.equal(report.totals.shotsAgainst,report.periodReports.reduce((n,p)=>n+p.shotsAgainst,0));
+assert.equal(report.totals.saves,report.periodReports.reduce((n,p)=>n+p.saves,0));
+assert.equal(report.totals.goalsAgainst,report.periodReports.reduce((n,p)=>n+p.goalsAgainst,0));
+assert.equal(report.totals.shotsAgainst,report.totals.saves+report.totals.goalsAgainst);
+assert.equal(report.totals.shotsAgainst,report.shooters.reduce((n,s)=>n+s.shots,0));
+assert.equal(report.totals.savePercentage,report.totals.shotsAgainst?Number((report.totals.saves/report.totals.shotsAgainst).toFixed(6)):null);
+assert(Math.abs(report.totals.expectedGoalsAgainst-report.periodReports.reduce((n,p)=>n+p.expectedGoalsAgainst,0))<1e-4);
+assert(report.periodReports.every(p=>p.shotsAgainst===p.saves+p.goalsAgainst&&p.periodEvents.every(e=>e.second<p.periodSeconds)));
+assert.equal(report.productionActivationEnabled,false);
+assert.equal(report.automaticallyApplied,false);
+assert.equal(report.requiresGMApproval,true);
+let strongGoals=0,weakGoals=0,strongXga=0,weakXga=0;
+for(let seed=0;seed<250;seed++){
+ const strong=summarizeGoalieGame(lineup,{goalie:{id:'G',ovr:115},seed});
+ const weak=summarizeGoalieGame(lineup,{goalie:{id:'G',ovr:45},seed});
+ assert.equal(strong.totals.shotsAgainst,weak.totals.shotsAgainst);
+ strongGoals+=strong.totals.goalsAgainst;weakGoals+=weak.totals.goalsAgainst;
+ strongXga+=strong.totals.expectedGoalsAgainst;weakXga+=weak.totals.expectedGoalsAgainst;
+}
+assert(strongXga<weakXga);assert(strongGoals<weakGoals);
+assert.equal(summarizeGoalieGame(lineup,{periods:1,seed:11}).periodReports.length,1);
+assert.throws(()=>summarizeGoalieGame(lineup,{periods:0}),RangeError);
+assert.throws(()=>summarizeGoalieGame(lineup,{periods:11}),RangeError);
+assert.throws(()=>summarizeGoalieGame(lineup,{seed:-1}),TypeError);
+assert.throws(()=>summarizeGoalieGame(lineup,{seed:Number.MAX_SAFE_INTEGER,periods:3}),RangeError);
+console.log('Mission 1128 multi-period aggregation, conservation, seed, sensitivity and save isolation passed');
