@@ -57,6 +57,9 @@ on:
       - 'hlm-phase11-gm-evidence-decision-explanations.js'
       - 'hlm-phase11-gm-evidence-decision-explanations.bundle.js'
       - 'hlm-phase11-gm-evidence-decision-explanations.test.js'
+      - 'hlm-phase11-gm-evidence-decision-review.js'
+      - 'hlm-phase11-gm-evidence-decision-review.bundle.js'
+      - 'hlm-phase11-gm-evidence-decision-review.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -68,6 +71,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental GM evidence decision review and human approval regression
+        run: node hlm-phase11-gm-evidence-decision-review.test.js
       - name: Experimental GM evidence decision explanations and human approval regression
         run: node hlm-phase11-gm-evidence-decision-explanations.test.js
       - name: Experimental GM evidence priority decisions and human approval regression
