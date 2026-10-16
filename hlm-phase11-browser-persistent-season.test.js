@@ -14,6 +14,19 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   await page.locator('#file').setInputFiles({name:'franchise.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(legacy))});
   assert.equal(await page.locator('#save-isolated').isDisabled(),true);
   await page.locator('#enable').check();
+  assert.equal(await page.locator('#preview-shifts').isDisabled(),false);
+  await page.locator('#preview-shifts').click();
+  const initialShiftRotationGameplayReport=JSON.parse(await page.locator('#shift-results').textContent());
+  assert.equal(initialShiftRotationGameplayReport.periodSeconds,1200);
+  assert.equal(initialShiftRotationGameplayReport.shifts[0].startSecond,0);
+  assert.equal(initialShiftRotationGameplayReport.shifts.at(-1).endSecond,1200);
+  assert(initialShiftRotationGameplayReport.shifts.every(shift=>shift.skaterIds.length===5&&new Set(shift.skaterIds).size===5));
+  assert.equal(initialShiftRotationGameplayReport.playerIceTime.reduce((sum,p)=>sum+p.iceTimeSeconds,0),6000);
+  assert.equal(initialShiftRotationGameplayReport.productionActivationEnabled,false);
+  assert.equal(initialShiftRotationGameplayReport.automaticallyApplied,false);
+  assert.equal(initialShiftRotationGameplayReport.requiresGMApproval,true);
+  await page.locator('#preview-shifts').click();
+  assert.deepEqual(JSON.parse(await page.locator('#shift-results').textContent()),initialShiftRotationGameplayReport);
   assert.equal(await page.locator('#preview-ice-time').isDisabled(),false);
   await page.locator('#preview-ice-time').click();
   const initialIceTimeGameplayReport=JSON.parse(await page.locator('#ice-time-results').textContent());
@@ -176,6 +189,8 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.equal(multiday.advancedDays,1);
   assert.equal(multiday.days.length,1);
   await page.reload();
+  assert.equal(await page.locator('#preview-shifts').isDisabled(),true);
+  assert.match(await page.locator('#shift-results').textContent(),/No shift preview/);
   assert.equal(await page.locator('#preview-ice-time').isDisabled(),true);
   assert.match(await page.locator('#ice-time-results').textContent(),/No ice-time preview/);
   await page.locator('#reload-isolated').click();
