@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {buildShiftRotation}=require('./hlm-phase11-shift-rotation');
+const lineup=Array.from({length:10},(_,i)=>({id:'P'+i,position:i<6?'F':'D'}));
+const before=JSON.stringify(lineup),result=buildShiftRotation(lineup);
+assert.equal(result.shifts[0].startSecond,0);
+assert.equal(result.shifts.at(-1).endSecond,1200);
+assert(result.shifts.every(shift=>shift.skaterIds.length===5&&new Set(shift.skaterIds).size===5));
+assert.equal(result.playerIceTime.reduce((sum,p)=>sum+p.iceTimeSeconds,0),6000);
+assert.equal(result.productionActivationEnabled,false);
+assert.equal(result.automaticallyApplied,false);
+assert.equal(result.requiresGMApproval,true);
+assert.equal(JSON.stringify(lineup),before);
+assert.deepEqual(buildShiftRotation(JSON.parse(before)),result);
+assert.throws(()=>buildShiftRotation(lineup.slice(0,4)),TypeError);
+assert.throws(()=>buildShiftRotation([...lineup.slice(0,9),lineup[0]]),TypeError);
+assert.throws(()=>buildShiftRotation([{id:'G',position:'G'},...lineup.slice(0,5)]),TypeError);
+console.log('Deterministic shift rotation, five-skater ice time and no-mutation safeguards passed');
