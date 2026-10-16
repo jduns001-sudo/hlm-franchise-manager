@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {buildGMEvidenceTrend}=require('./hlm-phase11-gm-evidence-trend');
+const state={meta:{controlledTeamId:1,currentDate:'2026-10-15'},activity:{games:[]}};
+const savedSnapshots=[{saveId:'one',state},{saveId:'two',state:JSON.parse(JSON.stringify(state))}];
+const before=JSON.stringify(savedSnapshots),result=buildGMEvidenceTrend(savedSnapshots);
+assert.equal(result.snapshots.length,2);
+assert.equal(result.coverageChange,0);
+assert(result.snapshots.every(s=>s.coveragePercent>=0&&s.coveragePercent<=100));
+assert.equal(result.productionActivationEnabled,false);
+assert.equal(result.requiresGMApproval,true);
+assert.equal(result.automaticallyApplied,false);
+assert.equal(JSON.stringify(savedSnapshots),before);
+assert.deepEqual(buildGMEvidenceTrend(JSON.parse(before)),result);
+assert.throws(()=>buildGMEvidenceTrend(null),TypeError);
+console.log('GM evidence trend deterministic snapshot and production isolation regression passed');
