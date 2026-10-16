@@ -31,6 +31,13 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert(savedStandings.every(team=>team.gp===2));
   assert.equal(JSON.parse(await page.locator('#season-history').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
+  const evidenceReviewReadinessReport=JSON.parse(await page.locator('#gm-evidence-review-readiness').textContent());
+  assert.equal(evidenceReviewReadinessReport.advisoryOnly,true);
+  assert.equal(evidenceReviewReadinessReport.productionActivationEnabled,false);
+  assert.equal(evidenceReviewReadinessReport.automaticallyApplied,false);
+  assert.equal(evidenceReviewReadinessReport.requiresGMApproval,true);
+  assert.equal(evidenceReviewReadinessReport.pendingGMReviews,evidenceReviewReadinessReport.reviews.length);
+  assert(evidenceReviewReadinessReport.reviews.every(x=>x.status==='PENDING_HUMAN_GM'&&!x.humanDecisionRecorded&&!x.readyForAutomaticExecution&&x.reviewSteps.every(step=>!step.completed)));
   const evidenceDecisionReviewReport=JSON.parse(await page.locator('#gm-evidence-decision-review').textContent());
   assert.equal(evidenceDecisionReviewReport.advisoryOnly,true);
   assert.equal(evidenceDecisionReviewReport.productionActivationEnabled,false);
@@ -157,6 +164,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-priority-decisions').textContent()),evidencePriorityDecisionsReport);
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-decision-explanations').textContent()),evidenceDecisionExplanationsReport);
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-decision-review').textContent()),evidenceDecisionReviewReport);
+  assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-review-readiness').textContent()),evidenceReviewReadinessReport);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
