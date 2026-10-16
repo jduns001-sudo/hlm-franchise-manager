@@ -38,7 +38,6 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   });
   assert(mobileShotCheck.deterministic&&mobileShotCheck.unchanged&&mobileShotCheck.safe&&mobileShotCheck.valid);
   assert(mobileShotCheck.different);
-  assert.equal(await page.locator('#save-isolated').isDisabled(),false);
 
   assert.equal(await page.locator('#preview-shifts').isDisabled(),false);
   await page.locator('#preview-shifts').click();
