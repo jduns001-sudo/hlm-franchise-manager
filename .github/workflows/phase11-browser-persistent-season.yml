@@ -21,6 +21,9 @@ on:
       - 'hlm-phase11-performance-advisory.js'
       - 'hlm-phase11-performance-advisory.bundle.js'
       - 'hlm-phase11-performance-advisory.test.js'
+      - 'hlm-phase11-season-priority-board.js'
+      - 'hlm-phase11-season-priority-board.bundle.js'
+      - 'hlm-phase11-season-priority-board.test.js'
       - '.github/workflows/phase11-browser-persistent-season.yml'
   workflow_dispatch:
 jobs:
@@ -32,6 +35,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Experimental season priority board GM authority regression
+        run: node hlm-phase11-season-priority-board.test.js
       - name: Experimental performance advisory and human GM authority regression
         run: node hlm-phase11-performance-advisory.test.js
       - name: Experimental owner CPU season momentum and GM advisory regression
