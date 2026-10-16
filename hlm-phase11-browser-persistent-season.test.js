@@ -31,6 +31,12 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert(savedStandings.every(team=>team.gp===2));
   assert.equal(JSON.parse(await page.locator('#season-history').textContent()).length,2);
   assert.equal(JSON.parse(await page.locator('#gm-decisions').textContent())[0].requiresGMApproval,true);
+  const evidenceDecisionExplanationsReport=JSON.parse(await page.locator('#gm-evidence-decision-explanations').textContent());
+  assert.equal(evidenceDecisionExplanationsReport.advisoryOnly,true);
+  assert.equal(evidenceDecisionExplanationsReport.productionActivationEnabled,false);
+  assert.equal(evidenceDecisionExplanationsReport.automaticallyApplied,false);
+  assert.equal(evidenceDecisionExplanationsReport.requiresGMApproval,true);
+  assert(evidenceDecisionExplanationsReport.decisions.every(x=>x.status==='PENDING_HUMAN_GM'&&x.approvalRequiredBeforeAnyAction&&x.explanation.length>0));
   const evidencePriorityDecisionsReport=JSON.parse(await page.locator('#gm-evidence-priority-decisions').textContent());
   assert.equal(evidencePriorityDecisionsReport.advisoryOnly,true);
   assert.equal(evidencePriorityDecisionsReport.productionActivationEnabled,false);
@@ -143,6 +149,7 @@ const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-trend-alerts').textContent()),evidenceTrendAlertsReport);
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-trend-priorities').textContent()),evidenceTrendPrioritiesReport);
   assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-priority-decisions').textContent()),evidencePriorityDecisionsReport);
+  assert.deepEqual(JSON.parse(await page.locator('#gm-evidence-decision-explanations').textContent()),evidenceDecisionExplanationsReport);
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm-phase11-isolated-season-v1']);
   assert.equal(await page.evaluate(()=>indexedDB.databases().then(d=>d.length)),0);
   console.log('Phase 11 mobile browser isolated save, confirmed day advancement, reload and production isolation passed');
