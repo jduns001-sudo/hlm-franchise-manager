@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium}=require('playwright');
+const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[0].slice(1);if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':'text/html');res.end(b)})});
+(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch();
+try{const page=await browser.newPage({viewport:{width:390,height:844}});page.on('dialog',d=>d.accept());await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-gameplay-bridge.html');
+const source={teams:[{id:1,name:'GM'},{id:2,name:'CPU'}],players:[{id:10,teamId:1},{id:20,teamId:2}],contracts:[{id:31,playerId:10},{id:32,playerId:20}],games:[],gmSettings:{controlledTeamId:1},gameStateMeta:{saveId:'prod',currentDate:'2026-10-17'}},raw=JSON.stringify(source);
+await page.evaluate(s=>localStorage.setItem('hlm_tracker_v3',s),raw);
+await page.locator('#read-frontoffice').click();await page.locator('#optin').check();await page.locator('#stage-frontoffice').click();await page.locator('#schedule-preview').click();await page.locator('#schedule-apply').click();
+await page.locator('#season-validate').click();assert.match(await page.locator('#season-report').textContent(),/"balanced": true/);
+const isolatedBefore=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1207-isolated-gameplay-v1'));
+await page.locator('#season-simulate').click();assert.match(await page.locator('#season-report').textContent(),/"completedGames": 2/);
+assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_tracker_v3')),raw);
+assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1207-isolated-gameplay-v1')),isolatedBefore);
+console.log('Mission 1212 mobile Chromium season continuity and save isolation passed');
+}finally{await browser.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
