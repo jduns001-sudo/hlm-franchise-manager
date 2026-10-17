@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),{prepare,acknowledge}=require('./hlm-phase11-gm-source-review-notes'),{generateRoundRobinSchedule}=require('./hlm-phase10-season-schedule'),{createGameStateEnvelope}=require('./hlm-game-state'),{analyze}=require('./hlm-phase11-gm-review-workflow');
+const teams=Array.from({length:4},(_,i)=>({id:i+1,name:'Club '+i})),players=[{id:11,teamId:1,name:'A',position:'C',overall:81},{id:12,teamId:1,name:'B'},...teams.slice(1).map(t=>({id:100+t.id,teamId:t.id,name:'Other'}))],state=createGameStateEnvelope({meta:{saveId:'isolated-stage:test',controlledTeamId:1,currentDate:'2026-10-17'},teams,players,games:generateRoundRobinSchedule(teams,'2026-10-17',2),extensions:{staging:{source:'front-office',productionActivationAllowed:false}}}),before=JSON.stringify(state),queue=analyze(state,120,true),args=[queue,state,'lineup',[11,12],'lineup-eligibility','unknown-positions'];
+assert.throws(()=>prepare(...args,false),/approval/);const review=prepare(...args,true);
+assert.deepEqual(review.questions.map(x=>x.gateId),['unknown-positions','lineup-eligibility']);
+assert.equal(review.openCount,2);assert.equal(review.eligibility,'unknown');assert.equal(review.confidence,'not-established');assert.ok(review.questions.every(q=>q.verificationStatus==='unresolved'&&!q.reviewAcknowledged));
+assert.throws(()=>acknowledge(review,'unknown-positions','Read source',false),/approval/);
+assert.throws(()=>acknowledge(review,'invalid','Read source',true),/Unknown/);
+assert.throws(()=>acknowledge(review,'unknown-positions','x'.repeat(501),true),/500/);
+assert.throws(()=>acknowledge(review,'unknown-positions','bad\nline',true),/plain text/);
+const next=acknowledge(review,'unknown-positions','Check imported player position',true);
+assert.equal(next.questions[0].reviewAcknowledged,true);assert.equal(next.questions[0].reviewNote,'Check imported player position');assert.equal(next.questions[0].verificationStatus,'unresolved');assert.equal(next.questions[1].reviewAcknowledged,false);
+assert.equal(next.eligibility,'unknown');assert.equal(next.confidence,'not-established');assert.equal(next.persistencePerformed,false);assert.equal(review.questions[0].reviewAcknowledged,false);
+assert.deepEqual(next,acknowledge(review,'unknown-positions','Check imported player position',true));
+for(const key of ['productionActivationAllowed','persistencePerformed','automaticTransactionsAllowed','automaticRosterChangesAllowed'])assert.equal(next[key],false);
+assert.equal(next.finalDecisionMaker,'human-gm');assert.equal(JSON.stringify(state),before);
+console.log('Mission 1248 in-memory human review notes passed');
