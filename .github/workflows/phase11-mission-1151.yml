@@ -1,0 +1,30 @@
+name: Phase 11 Mission 1151 Confidence Comparisons
+on:
+  pull_request:
+    paths:
+      - 'hlm-player-performance-confidence-comparison*'
+      - '.github/workflows/phase11-mission-1151.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node hlm-player-performance-confidence-comparison.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install --no-save --package-lock=false playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-player-performance-confidence-comparison-mobile.test.js
