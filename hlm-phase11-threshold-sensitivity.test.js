@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {analyzeThresholdSensitivity}=require('./hlm-phase11-threshold-sensitivity');
+const home=[{shots:10,goals:2,expectedGoals:2},{shots:10,goals:2,expectedGoals:2},{shots:10,goals:4,expectedGoals:2},{shots:10,goals:4,expectedGoals:2}];
+const away=[{shots:10,goals:1,expectedGoals:2},{shots:10,goals:1,expectedGoals:2},{shots:10,goals:1,expectedGoals:2},{shots:10,goals:1,expectedGoals:2}];
+const result=analyzeThresholdSensitivity(home,away);
+assert.equal(result.sensitivity,'threshold-sensitive');
+assert.deepEqual(result.scenarios.map(x=>x.fullySupported),[true,true,false]);
+assert.equal(result.scenarios[0].observedDifferentialChange,.2);
+assert.equal(result.scenarios[2].observedDifferentialChange,null);
+assert.equal(result.productionActivationEnabled,false);assert.equal(result.automaticallyApplied,false);
+assert.equal(result.requiresGMApproval,true);assert.equal(Object.isFrozen(result.scenarios),true);
+assert.deepEqual(result,analyzeThresholdSensitivity(home,away));
+assert.equal(analyzeThresholdSensitivity(home,away,[5,10]).sensitivity,'supported-at-all-thresholds');
+assert.equal(analyzeThresholdSensitivity(home,away,[50,100]).sensitivity,'unsupported-at-all-thresholds');
+for(const thresholds of [[],[0],[2,2],[1.5],[-1],Array(13).fill(1)])assert.throws(()=>analyzeThresholdSensitivity(home,away,thresholds),RangeError);
+assert.throws(()=>analyzeThresholdSensitivity(null,away),TypeError);
+console.log('Threshold sensitivity deterministic regressions passed');
