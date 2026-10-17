@@ -1,0 +1,22 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {prepareGMReviewIntegrity}=require('./hlm-phase11-gm-review-presentation-integrity');
+const {assessGMReviewRiskBriefReadiness:assess}=require('./hlm-phase11-gm-review-risk-brief-readiness');
+(async()=>{const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const items=[{before:exportGMReviewEvidence(home,away,[5,10],[5]).text,after:exportGMReviewEvidence(home,away,[5,10,25],[10]).text}];
+const digest=prepareGMReviewIntegrity(items).sha256;const first=assess(items,digest,true,1000,[1100,1200],500);
+const ready=assess(items,digest,true,1000,[1100,1200],500,first.currentSha256);
+const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setContent('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><main></main></body></html>');
+ await page.locator('main').evaluate((el,value)=>{const p=document.createElement('p');p.textContent='GM review: '+value;el.appendChild(p)},ready.status);
+ assert.match(await page.locator('main').innerText(),/GM review: ready-for-human-review/);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ assert.equal(ready.gameplayActionAuthorized,false);
+ assert.deepEqual(errors,[]);
+ console.log('GM review risk brief readiness mobile Chromium passed');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
