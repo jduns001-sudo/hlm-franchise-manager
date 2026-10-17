@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Hockey Franchise Manager | Safe Gameplay Bridge</title>
+<style>body{font:16px system-ui,sans-serif;background:#0d1928;color:#eef5ff;max-width:740px;margin:0 auto;padding:16px}section{border:1px solid #42546b;border-radius:12px;padding:16px;margin:14px 0}button,input{font:inherit;min-height:44px}button{padding:10px;border-radius:8px}button:disabled{opacity:.5}pre{white-space:pre-wrap;overflow-wrap:anywhere}a{color:#9bd3ff}@media(max-width:500px){button{width:100%;margin:6px 0}}button:focus-visible,input:focus-visible{outline:3px solid #ffd66d}</style></head>
+<body><h1>Gameplay Bridge <small>(experimental)</small></h1><p><a href="./app.html">Back to Front Office</a></p><p>Production is read-only. Import an exported GameState JSON to inspect it; isolated simulation requires separate opt-in and explicit confirmation. No automatic GM decisions.</p>
+<section><h2>Franchise preview</h2><label>GameState JSON export <input id="file" type="file" accept=".json,application/json"></label><pre id="preview" aria-live="polite">Select a GameState export to preview.</pre></section>
+<section><h2>Isolated gameplay</h2><label><input id="optin" type="checkbox"> Enable isolated test mode (never production)</label><button id="save" disabled>Save imported copy in isolated storage</button><button id="advance" disabled>Advance one test day</button><button id="reload">Reload isolated copy</button><pre id="results" aria-live="polite">No simulated results.</pre></section><p id="status" role="status">Production activation is disabled.</p>
+<script src="./hlm-phase10-browser.bundle.js"></script><script src="./hlm-phase11-gameplay-bridge.js"></script>
+<script>
+(function(){
+'use strict';
+const el=id=>document.getElementById(id),engine=window.HLMPhase10,bridge=window.HLMGameplayBridge.createBridge(engine,window.localStorage);
+let candidate=null;
+function show(value){el('preview').textContent=JSON.stringify(value,null,2)}
+function controls(){el('save').disabled=!candidate||!el('optin').checked;el('advance').disabled=!el('optin').checked||!bridge.load()}
+function error(e){el('status').textContent='Refused: '+e.message}
+el('file').addEventListener('change',async e=>{candidate=null;try{const f=e.target.files[0];if(!f)throw Error('No file');if(f.size>5*1024*1024)throw Error('File too large');const state=JSON.parse(await f.text());show(bridge.summary(state));candidate=state;el('status').textContent='Read-only preview loaded; no save changed';}catch(err){error(err)}controls()});
+el('optin').addEventListener('change',controls);
+el('save').addEventListener('click',()=>{try{if(!el('optin').checked||!candidate)throw Error('Opt-in and imported state required');if(!confirm('Replace ONLY the isolated experimental copy? Production Front Office saves are not touched.'))return;show(bridge.importIsolated(candidate,true));el('status').textContent='Isolated copy saved';}catch(e){error(e)}controls()});
+el('advance').addEventListener('click',()=>{try{if(!el('optin').checked)throw Error('Opt-in required');if(!confirm('Advance ONE DAY in isolated test storage only?'))return;const state=bridge.load();const seed=Number(state.meta.currentDate.replaceAll('-',''));const result=bridge.advance(true,seed);el('results').textContent=JSON.stringify({fromDate:result.fromDate,toDate:result.toDate,games:result.results},null,2);show(result.summary);el('status').textContent='One isolated test day completed';}catch(e){error(e)}controls()});
+el('reload').addEventListener('click',()=>{try{const s=bridge.load();show(s?bridge.summary(s):{message:'No isolated copy saved'});el('status').textContent='Isolated copy reloaded';}catch(e){error(e)}controls()});
+controls();
+})();
+</script></body></html>
