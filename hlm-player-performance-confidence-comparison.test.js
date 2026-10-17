@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {selected,aggregate,comparison}=require('./hlm-player-performance-confidence-comparison');
+const g=(goals,assists)=>({shots:4,goals,assists});
+const a=[{season:2027,games:[g(1,0),g(0,1),g(0,0)]},{season:2028,games:[g(1,1),g(0,0),g(0,1)]},{season:2029,games:[g(0,0),g(1,0),g(0,0)]}];
+const before=JSON.stringify(a);
+assert.deepEqual(selected(a,[2029,2027]).map(x=>x.season),[2027,2029]);
+assert.deepEqual(selected(a,[]),[]);
+assert.equal(aggregate([]).sample,'limited');
+assert.equal(comparison(a,a,{years:[2027,2028]}).finishingDelta,0);
+assert.equal(comparison(a,a,{years:[2029]}).interpretation,'insufficient-sample');
+assert.deepEqual(comparison(a,a,{years:[2027,2028]}),comparison(a,a,{years:[2027,2028]}));
+assert.throws(()=>selected(a,['2028']),/invalid/);
+assert.equal(JSON.stringify(a),before);
+console.log('Mission 1151 deterministic confidence comparison passed');
