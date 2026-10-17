@@ -1,0 +1,10 @@
+/* Mission 1249: deterministic in-memory follow-up plan for unresolved GM source notes. */
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./hlm-phase11-gm-source-review-notes'):null);if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMGMSourceFollowup=api;})(typeof globalThis!=='undefined'?globalThis:this,function(dep){
+'use strict';
+function plan(review,approved){
+if(approved!==true)throw Error('Explicit human GM approval required');
+if(!review||review.kind!=='experimental-gm-source-review-notes'||!Array.isArray(review.questions)||!review.questions.length||review.finalDecisionMaker!=='human-gm')throw Error('Human source review unavailable');
+const questions=review.questions.map((q,i)=>{if(!q||typeof q.gateId!=='string'||q.verificationStatus!=='unresolved')throw Error('Unresolved source gate required');return {sequence:i+1,gateId:q.gateId,evidenceState:q.evidenceState,sourceScope:q.sourceScope,humanQuestion:q.humanQuestion,evidenceNeeded:q.evidenceNeeded,uncertainty:q.uncertainty,reviewAcknowledged:q.reviewAcknowledged===true,reviewNote:typeof q.reviewNote==='string'?q.reviewNote:'',nextStep:q.reviewAcknowledged?'Recheck the cited source manually; acknowledgement is not evidence':'Inspect the specified source evidence manually',verificationStatus:'unresolved',eligibility:'unknown',confidence:'not-established'}});
+return {kind:'experimental-gm-source-followup',questions,unresolvedCount:questions.length,acknowledgedCount:questions.filter(q=>q.reviewAcknowledged).length,eligibility:'unknown',confidence:'not-established',warning:'Source notes are not verified evidence; no question is resolved or eligible for automated action',productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,automaticRosterChangesAllowed:false,finalDecisionMaker:'human-gm'};
+}
+return {plan};});
