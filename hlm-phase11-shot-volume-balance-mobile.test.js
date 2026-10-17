@@ -1,0 +1,22 @@
+'use strict';
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const {chromium}=require('playwright');
+(async()=>{const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('file://'+path.resolve(__dirname,'hlm-phase11-shot-volume-balance-preview.html'));
+ assert.match(await page.locator('#result').innerText(),/Inactive by default/);
+ await page.locator('#preview').click();let x=JSON.parse(await page.locator('#result').innerText());
+ assert.equal(x.comparable,true);assert.equal(x.homeShotShare,.75);
+ assert.equal(x.volumeCaution,'unequal-shot-volume');assert.equal(x.normalizedGoals.homePerTenShots,2);
+ assert.equal(x.productionActivationEnabled,false);assert.equal(x.automaticallyApplied,false);assert.equal(x.requiresGMApproval,true);
+ await page.locator('#limited').click();x=JSON.parse(await page.locator('#result').innerText());
+ assert.equal(x.comparable,false);assert.equal(x.normalizedGoals,null);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.reload();assert.match(await page.locator('#result').innerText(),/Inactive by default/);
+ await page.locator('#preview').click();await page.locator('#clear').click();
+ assert.match(await page.locator('#result').innerText(),/Inactive by default/);
+ assert.deepEqual(errors,[]);
+ console.log('Mobile Chromium shot volume balance passed');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
