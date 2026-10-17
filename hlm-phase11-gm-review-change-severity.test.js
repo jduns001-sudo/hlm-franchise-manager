@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {classifyGMReviewChanges}=require('./hlm-phase11-gm-review-change-severity');
+const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const a=exportGMReviewEvidence(home,away,[5,10],[5]);
+const b=exportGMReviewEvidence(home,away,[5,10,25],[10]);
+const result=classifyGMReviewChanges(a.text,b.text);
+assert.equal(result.valid,true);
+assert.deepEqual(result.changes.map(x=>[x.threshold,x.category]),[[5,'review-reopened'],[10,'review-completed'],[25,'scope-change']]);
+assert.equal(result.gameplayActionAuthorized,false);
+assert.equal(result.saveWriteAllowed,false);
+assert.ok(result.changes.every(x=>x.actionAuthorized===false));
+assert.deepEqual(classifyGMReviewChanges(a.text,b.text),result);
+assert.equal(classifyGMReviewChanges('{',b.text).valid,false);
+console.log('GM review change classification deterministic tests passed');
