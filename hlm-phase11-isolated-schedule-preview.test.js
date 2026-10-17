@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {preview,applyIsolated}=require('./hlm-phase11-isolated-schedule-preview');
+const state=createGameStateEnvelope({meta:{saveId:'source',controlledTeamId:1,currentDate:'2026-10-17'},teams:[{id:1,name:'GM'},{id:2,name:'CPU'}],players:[{id:10,teamId:1},{id:20,teamId:2}],contracts:[{id:31,playerId:10},{id:32,playerId:20}]});
+const original=JSON.stringify(state),plan=preview(state,2);
+assert.equal(plan.games.length,2);assert.equal(plan.controlledTeamId,1);assert.equal(plan.persistencePerformed,false);assert.deepEqual(preview(state,2),plan);
+assert.throws(()=>applyIsolated(state,plan,false),/approval/);
+const next=applyIsolated(state,plan,true);assert.equal(next.activity.games.length,2);assert.equal(next.meta.controlledTeamId,1);assert.equal(JSON.stringify(state),original);
+assert.throws(()=>preview(next),/Existing schedule/);
+const forged=JSON.parse(JSON.stringify(plan));forged.games[0].homeTeamId=999;assert.throws(()=>applyIsolated(state,forged,true),/stale or modified/);
+const broken=JSON.parse(original);broken.universe.players[0].teamId=999;assert.throws(()=>preview(broken),/blockers/);
+const duplicate=JSON.parse(original);duplicate.universe.players.push({...duplicate.universe.players[0]});assert.throws(()=>preview(duplicate),/blockers/);
+console.log('Mission 1211 deterministic schedule preview and isolated approval tests passed');
