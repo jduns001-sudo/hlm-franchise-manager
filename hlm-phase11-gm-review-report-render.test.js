@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {renderGMReviewReport,escapeHTML}=require('./hlm-phase11-gm-review-report-render');
+const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const a=exportGMReviewEvidence(home,away,[5,10],[5]);
+const b=exportGMReviewEvidence(home,away,[5,10,25],[10]);
+const html=renderGMReviewReport([{before:a.text,after:b.text},{before:a.text,after:a.text}]);
+assert.match(html,/GM review batch: 2 comparisons/);
+assert.match(html,/3 total review-state changes/);
+assert.match(html,/Comparison 2: unchanged/);
+assert.match(html,/No gameplay action authorized/);
+assert.match(renderGMReviewReport([{before:'{',after:b.text}]),/invalid evidence or batch/);
+assert.equal(escapeHTML('<script>"&'), '&lt;script&gt;&quot;&amp;');
+assert.equal(renderGMReviewReport([{before:a.text,after:b.text},{before:a.text,after:a.text}]),html);
+console.log('Computed GM report render deterministic tests passed');
