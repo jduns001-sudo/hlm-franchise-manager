@@ -3,7 +3,7 @@
 'use strict';
 const KEY='hlm-phase11-m1207-isolated-gameplay-v1';
 function createBridge(engine,storage){
- if(!engine||!engine.createBrowserFranchiseSaveStore||!engine.simulateNextDay||!engine.calculateStandings)throw Error('Phase 10 simulation engine required');
+ if(!engine||!engine.createBrowserFranchiseSaveStore||!engine.calculateStandings)throw Error('Phase 10 simulation engine required');
  if(!storage||typeof storage.getItem!=='function'||typeof storage.setItem!=='function')throw Error('Storage adapter required');
  const store=engine.createBrowserFranchiseSaveStore(storage,KEY);
  function validate(state){
@@ -34,11 +34,10 @@ function createBridge(engine,storage){
   if(!Number.isSafeInteger(seed)||seed<0)throw Error('Invalid deterministic seed');
   const before=load();if(!before)throw Error('No isolated franchise loaded');
   if(!before.activity.games.some(g=>g.status==='scheduled'))throw Error('No scheduled games remain');
-  const result=engine.simulateNextDay(before,seed);
+  const result=store.advanceAndSave(seed);
   if(result.toDate===before.meta.currentDate)throw Error('Duplicate date advance refused');
   const now=storage.getItem(KEY);
   if(now!==JSON.stringify(before))throw Error('Isolated save changed in another tab; reload before advancing');
-  store.save(result.nextState);
   return {fromDate:result.fromDate,toDate:result.toDate,results:result.results,summary:summary(load())};
  }
  return {key:KEY,summary,load,importIsolated,advance};
