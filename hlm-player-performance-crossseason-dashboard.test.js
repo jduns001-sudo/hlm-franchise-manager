@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {summarize}=require('./hlm-player-performance-crossseason-dashboard');
+const g=(goals,assists)=>({shots:4,goals,assists});
+const a=[{season:2027,games:[g(1,0),g(0,1),g(0,0)]},{season:2028,games:[g(1,1),g(0,0),g(0,1)]},{season:2029,games:[g(0,0),g(1,0),g(0,0)]}];
+const original=JSON.stringify(a);
+assert.deepEqual(summarize(a,a,[2028,2027,2028]).years,[2027,2028]);
+assert.equal(summarize(a,a,[2027,2028]).finishingDelta,0);
+assert.equal(summarize(a,a,[2029]).interpretation,'insufficient-sample');
+assert.equal(summarize(a,a,[]).confidence,'limited');
+assert.deepEqual(summarize(a,a,[2027,2028]),summarize(a,a,[2028,2027]));
+assert.throws(()=>summarize(a,a,['2027']),/invalid/);
+assert.equal(JSON.stringify(a),original);
+console.log('Mission 1152 cross-season deterministic summaries passed');
