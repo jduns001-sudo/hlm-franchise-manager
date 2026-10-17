@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {trend,compare}=require('./hlm-player-performance-trend-visuals');
+const game=(goals,assists)=>({shots:4,goals,assists});
+const seasons=[{season:2028,games:[game(1,0),game(0,1),game(0,0),game(1,1),game(0,0)]},{season:2027,games:[game(0,0),game(0,1)]},{season:2029,games:[game(1,1),game(1,0),game(0,0),game(0,1),game(1,0)]}];
+const before=JSON.stringify(seasons);
+const a=trend(seasons,{years:[2029,2027,2028]});
+assert.deepEqual(a.rows.map(r=>r.season),[2027,2028,2029]);
+assert.equal(a.changes[0].interpretation,'insufficient-sample');
+assert.equal(a.changes[1].interpretation,'directional-only');
+assert.equal(trend(seasons,{years:[2027],metric:'finishing'}).rows[0].value,0);
+assert.equal(trend(seasons,{years:[]}).rows.length,0);
+assert.deepEqual(a,trend(seasons,{years:[2028,2029,2027]}));
+assert.deepEqual(compare(seasons,seasons,{years:[2027]}).player,compare(seasons,seasons,{years:[2027]}).team);
+assert.throws(()=>trend(seasons,{years:['2027']}),/invalid/);
+assert.throws(()=>trend([{season:2027,games:[game(5,0)]}],{years:[2027]}),/invalid game stats/);
+assert.equal(JSON.stringify(seasons),before);
+console.log('Mission 1153 deterministic trend analytics passed');
