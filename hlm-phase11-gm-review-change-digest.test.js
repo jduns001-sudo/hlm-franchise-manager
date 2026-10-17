@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {buildGMReviewChangeDigest}=require('./hlm-phase11-gm-review-change-digest');
+const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const a=exportGMReviewEvidence(home,away,[5,10],[5]);
+const b=exportGMReviewEvidence(home,away,[5,10,25],[10]);
+const digest=buildGMReviewChangeDigest(a.text,b.text);
+assert.equal(digest.valid,true);
+assert.equal(digest.totalChanges,3);
+assert.deepEqual(digest.counts,{'review-completed':1,'review-reopened':1,'scope-change':1});
+assert.equal(digest.saveWriteAllowed,false);
+assert.equal(digest.gameplayActionAuthorized,false);
+assert.deepEqual(buildGMReviewChangeDigest(a.text,b.text),digest);
+assert.equal(buildGMReviewChangeDigest('{',b.text).valid,false);
+assert.ok(Object.isFrozen(digest.counts));
+console.log('GM review change digest deterministic tests passed');
