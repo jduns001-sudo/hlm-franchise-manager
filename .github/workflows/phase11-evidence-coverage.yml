@@ -1,0 +1,35 @@
+name: Phase 11 Evidence Coverage
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-evidence-coverage*'
+      - '.github/workflows/phase11-evidence-coverage.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-sample-quality-audit.test.js
+      - run: node hlm-phase11-comparable-sample-insights.test.js
+      - run: node hlm-phase11-window-stability-insights.test.js
+      - run: node hlm-phase11-shot-volume-balance.test.js
+      - run: node hlm-phase11-evidence-synthesis.test.js
+      - run: node hlm-phase11-threshold-sensitivity.test.js
+      - run: node hlm-phase11-trend-agreement.test.js
+      - run: node hlm-phase11-evidence-coverage.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-evidence-coverage-mobile.test.js
