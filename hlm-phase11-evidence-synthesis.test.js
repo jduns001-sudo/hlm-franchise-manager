@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {synthesizeEvidence}=require('./hlm-phase11-evidence-synthesis');
+const h=[{shots:15,goals:3,expectedGoals:2},{shots:15,goals:3,expectedGoals:2},{shots:15,goals:6,expectedGoals:2},{shots:15,goals:6,expectedGoals:2}];
+const a=[{shots:5,goals:1,expectedGoals:1},{shots:5,goals:1,expectedGoals:1},{shots:5,goals:1,expectedGoals:1},{shots:5,goals:1,expectedGoals:1}];
+const r=synthesizeEvidence(h,a);
+assert.equal(r.fullySupported,true);assert.equal(r.stability,'increased');
+assert.equal(r.overall.homeShotShare,.75);assert.deepEqual(r.cautions,['unequal-shot-volume']);
+assert.equal(r.productionActivationEnabled,false);assert.equal(r.automaticallyApplied,false);
+assert.equal(r.requiresGMApproval,true);assert.equal(Object.isFrozen(r),true);
+assert.deepEqual(r,synthesizeEvidence(h,a));
+const limited=synthesizeEvidence(h,a.slice(0,2));
+assert.equal(limited.fullySupported,false);assert.equal(limited.stability,'insufficient-evidence');
+assert.deepEqual(limited.cautions,['window-sample-insufficient','unequal-shot-volume']);
+const invalid=synthesizeEvidence([...h,{shots:1,goals:2,expectedGoals:0}],a);
+assert.equal(invalid.fullySupported,false);assert.ok(invalid.cautions.includes('overall-sample-insufficient'));
+assert.throws(()=>synthesizeEvidence(null,a),TypeError);
+console.log('Evidence synthesis deterministic regressions passed');
