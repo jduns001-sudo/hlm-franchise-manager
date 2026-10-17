@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium}=require('playwright');
+const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[0].slice(1);if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':'text/html');res.end(b)})});
+(async()=>{await new Promise(r=>server.listen(0,'127.0.0.1',r));const browser=await chromium.launch();
+try{const page=await browser.newPage({viewport:{width:390,height:844}});page.on('dialog',d=>d.accept());
+await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-gameplay-bridge.html');
+const source={teams:[{id:1,name:'GM'},{id:2,name:'CPU'}],players:[{id:10,teamId:1},{id:20,teamId:2}],contracts:[{id:31,playerId:10},{id:32,playerId:20}],games:[{id:'G1',date:'2026-10-18',status:'scheduled',homeTeamId:1,awayTeamId:2}],gmSettings:{controlledTeamId:1},gameStateMeta:{saveId:'prod',currentDate:'2026-10-17'}};
+const raw=JSON.stringify(source);await page.evaluate(s=>localStorage.setItem('hlm_tracker_v3',s),raw);
+assert.equal(await page.locator('#readiness').isDisabled(),true);
+await page.locator('#read-frontoffice').click();await page.locator('#optin').check();await page.locator('#stage-frontoffice').click();await page.locator('#readiness').click();
+assert.match(await page.locator('#readiness-report').textContent(),/"ready": true/);
+assert.equal(await page.evaluate(()=>localStorage.length),1);
+assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_tracker_v3')),raw);
+console.log('Mission 1210 mobile Chromium read-only readiness and production isolation passed');
+}finally{await browser.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
