@@ -1,0 +1,18 @@
+name: Phase 11 Mission 1147 Performance Insights
+on:
+  pull_request:
+    paths:
+      - 'hlm-player-performance-comparison-insights*'
+      - '.github/workflows/phase11-mission-1147.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  deterministic-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node hlm-player-performance-comparison-insights.test.js

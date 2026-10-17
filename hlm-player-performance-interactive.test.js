@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {filteredHistory,profile,compareProfiles}=require('./hlm-player-performance-interactive');
+const g=(goals,assists)=>({shots:4,goals,assists});
+const a=[{season:2027,games:[g(1,0),g(0,1),g(0,0)]},{season:2028,games:[g(1,1),g(0,0),g(0,1)]},{season:2029,games:[g(0,0),g(1,0),g(0,0)]}];
+const before=JSON.stringify(a);
+assert.deepEqual(filteredHistory(a,{from:2028,to:2029}).seasons.map(x=>x.season),[2028,2029]);
+assert.equal(profile(a,{from:2028,to:2029}).rows.length,2);
+assert.equal(profile(a).sample,'developing');
+assert.deepEqual(profile(a),profile(a));
+assert.equal(JSON.stringify(a),before);
+assert.equal(compareProfiles(a,a).latestPointsDelta,0);
+assert.equal(compareProfiles([],a).comparison,'insufficient-sample');
+assert.throws(()=>filteredHistory(a,{from:2030,to:2027}),/season range/);
+assert.throws(()=>profile([{season:2027,games:[{shots:1,goals:2,assists:0}]}]),/invalid/);
+console.log('Mission 1149 deterministic interactive analytics passed');
