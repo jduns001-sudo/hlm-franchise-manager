@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {prepareGMReviewIntegrity}=require('./hlm-phase11-gm-review-presentation-integrity');
+const {summarizeGMReviewChange}=require('./hlm-phase11-gm-review-change-summary');
+(async()=>{const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const items=[{before:exportGMReviewEvidence(home,away,[5,10],[5]).text,after:exportGMReviewEvidence(home,away,[5,10,25],[10]).text}];
+const report=prepareGMReviewIntegrity(items);
+const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setContent(report.html);
+ assert.match(await page.locator('main').innerText(),/human GM approval required/i);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ assert.equal(summarizeGMReviewChange(items,report.sha256).status,'unchanged');
+ assert.equal(summarizeGMReviewChange(items,'0'.repeat(64)).requiresFreshGMReview,true);
+ assert.deepEqual(errors,[]);
+ console.log('GM review change summary mobile Chromium passed');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
