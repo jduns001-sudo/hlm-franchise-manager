@@ -1,0 +1,20 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {validateAndRenderGMReview}=require('./hlm-phase11-gm-review-report-invalid-evidence');
+(async()=>{const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const a=exportGMReviewEvidence(home,away,[5,10],[5]);
+const b=exportGMReviewEvidence(home,away,[5,10,25],[10]);
+const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const good=validateAndRenderGMReview([{before:a.text,after:b.text}]);assert.equal(good.accepted,true);
+ await page.setContent(good.page.html);assert.match(await page.locator('main').innerText(),/human GM approval required/i);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ const invalid=validateAndRenderGMReview([{before:'{',after:b.text}]);
+ assert.equal(invalid.page,null);assert.equal(invalid.accepted,false);
+ assert.deepEqual(errors,[]);
+ console.log('GM review invalid evidence mobile Chromium passed');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
