@@ -1,0 +1,22 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {renderGMReviewReport}=require('./hlm-phase11-gm-review-report-render');
+(async()=>{const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const a=exportGMReviewEvidence(home,away,[5,10],[5]);
+const b=exportGMReviewEvidence(home,away,[5,10,25],[10]);
+const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.setContent(renderGMReviewReport([{before:a.text,after:b.text},{before:a.text,after:a.text}]));
+ assert.match(await page.locator('main').innerText(),/3 total review-state changes/);
+ assert.match(await page.locator('main').innerText(),/Comparison 2: unchanged/);
+ assert.match(await page.locator('main').innerText(),/No save writes/);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ await page.setContent(renderGMReviewReport([{before:'{',after:b.text}]));
+ assert.match(await page.locator('main').innerText(),/invalid evidence or batch/);
+ assert.deepEqual(errors,[]);
+ console.log('Computed GM report mobile Chromium passed');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
