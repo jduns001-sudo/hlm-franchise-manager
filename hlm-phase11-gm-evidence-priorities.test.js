@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {prioritizeGMEvidence}=require('./hlm-phase11-gm-evidence-priorities');
+const home=Array.from({length:4},(_,i)=>({shots:10,goals:i+1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const input=JSON.stringify([home,away]);
+const r=prioritizeGMEvidence(home,away,[5,10,25]);
+assert.equal(r.productionActivationEnabled,false);
+assert.equal(r.requiresGMApproval,true);
+assert.equal(r.automaticallyApplied,false);
+assert.equal(r.priorities.length,3);
+assert.equal(r.priorities[0].minimumShots,25);
+assert.equal(r.priorities[0].reviewPriority,'evidence-gap');
+assert.equal(r.priorities[0].direction,null);
+assert.ok(Object.isFrozen(r.priorities));
+assert.deepEqual(prioritizeGMEvidence(home,away,[5,10,25]),r);
+assert.equal(JSON.stringify([home,away]),input);
+console.log('GM evidence priority tests passed');
