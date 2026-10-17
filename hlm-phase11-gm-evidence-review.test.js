@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {buildEvidenceReview}=require('./hlm-phase11-gm-evidence-review');
+const a=Array.from({length:4},(_,i)=>({shots:10,goals:i+1,expectedGoals:2}));
+const b=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const original=JSON.stringify([a,b]);
+const r=buildEvidenceReview(a,b,[5,10,25],[5]);
+assert.equal(r.productionActivationEnabled,false);
+assert.equal(r.automaticallyApplied,false);
+assert.equal(r.requiresGMApproval,true);
+assert.equal(r.pendingReviews,2);
+assert.equal(r.entries.find(e=>e.minimumShots===5).reviewedByGM,true);
+assert.equal(r.entries.find(e=>e.minimumShots===25).direction,null);
+assert.ok(Object.isFrozen(r.entries));
+assert.deepEqual(buildEvidenceReview(a,b,[5,10,25],[5]),r);
+assert.equal(JSON.stringify([a,b]),original);
+console.log('GM evidence review deterministic tests passed');
