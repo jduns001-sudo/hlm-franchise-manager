@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {auditPeriods}=require('./hlm-phase11-sample-quality-audit');
+const good=[{shots:8,goals:2,expectedGoals:1.5},{shots:6,goals:1,expectedGoals:1}];
+const a=auditPeriods(good);
+assert.equal(a.evidence,'sample-supported');assert.equal(a.shots,14);assert.equal(a.goals,3);
+assert.equal(a.observedFinishingRate,Number((3/14).toFixed(6)));
+assert.equal(a.productionActivationEnabled,false);assert.equal(a.requiresGMApproval,true);
+assert.deepEqual(a,auditPeriods(good));assert.equal(Object.isFrozen(a),true);
+assert.equal(auditPeriods([]).evidence,'caution');
+assert.equal(auditPeriods([{shots:0,goals:0,expectedGoals:0}]).warnings.includes('zero-shot-periods'),true);
+const invalid=auditPeriods([...good,{shots:1,goals:2,expectedGoals:0}]);
+assert.equal(invalid.invalidPeriods,1);assert.equal(invalid.evidence,'caution');assert.equal(invalid.shots,14);
+assert.throws(()=>auditPeriods(null),TypeError);
+assert.throws(()=>auditPeriods(good,0),RangeError);
+console.log('Sample quality audit deterministic regressions passed');
