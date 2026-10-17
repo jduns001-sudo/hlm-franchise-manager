@@ -1,0 +1,20 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {prepareGMReviewIntegrity}=require('./hlm-phase11-gm-review-presentation-integrity');
+const {acknowledgeGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-acknowledgement');
+const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const a=exportGMReviewEvidence(home,away,[5,10],[5]);
+const b=exportGMReviewEvidence(home,away,[5,10,25],[10]);
+const items=[{before:a.text,after:b.text}];const digest=prepareGMReviewIntegrity(items).sha256;
+const waiting=acknowledgeGMReviewEvidence(items,digest,false);
+assert.equal(waiting.status,'awaiting-human-acknowledgement');assert.equal(waiting.acknowledged,false);
+const accepted=acknowledgeGMReviewEvidence(items,digest,true);
+assert.equal(accepted.status,'acknowledged');assert.equal(accepted.acknowledged,true);
+assert.equal(accepted.requiresGMApproval,true);
+for(const ack of [false,true,'true',1,null]){const result=acknowledgeGMReviewEvidence(items,'0'.repeat(64),ack);assert.equal(result.status,'blocked');assert.equal(result.acknowledged,false);}
+assert.equal(acknowledgeGMReviewEvidence([{before:'{',after:b.text}],digest,true).status,'blocked');
+for(const key of ['productionActivationEnabled','gameplayActionAuthorized','saveWriteAllowed'])assert.equal(accepted[key],false);
+assert.ok(Object.isFrozen(accepted));assert.deepEqual(acknowledgeGMReviewEvidence(items,digest,true),accepted);
+console.log('GM review evidence acknowledgement deterministic tests passed');
