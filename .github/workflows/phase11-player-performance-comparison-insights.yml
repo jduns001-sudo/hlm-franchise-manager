@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'hlm-phase11-player-performance-comparison-insights*'
+      - 'hlm-phase11-browser-season-workbench.html'
+      - 'hlm-phase11-browser-persistent-season.test.js'
       - '.github/workflows/phase11-player-performance-comparison-insights.yml'
   workflow_dispatch:
 jobs:
@@ -16,3 +18,6 @@ jobs:
       - run: node hlm-phase11-player-performance-comparison-insights.test.js
       - run: node hlm-phase11-performance-history-comparisons.test.js
       - run: node hlm-phase11-performance-history-insights.test.js
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-browser-persistent-season.test.js
