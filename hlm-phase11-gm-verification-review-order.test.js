@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict'),{prioritize}=require('./hlm-phase11-gm-verification-review-order'),{generateRoundRobinSchedule}=require('./hlm-phase10-season-schedule'),{createGameStateEnvelope}=require('./hlm-game-state'),{analyze}=require('./hlm-phase11-gm-review-workflow');
+const teams=Array.from({length:4},(_,i)=>({id:i+1,name:'Club '+i})),players=[{id:11,teamId:1,name:'A',position:'C',overall:81},{id:12,teamId:1,name:'B'},...teams.slice(1).map(t=>({id:100+t.id,teamId:t.id,name:'Other'}))],state=createGameStateEnvelope({meta:{saveId:'isolated-stage:test',controlledTeamId:1,currentDate:'2026-10-17'},teams,players,games:generateRoundRobinSchedule(teams,'2026-10-17',2),extensions:{staging:{source:'front-office',productionActivationAllowed:false}}}),before=JSON.stringify(state),queue=analyze(state,120,true),args=[queue,state,'lineup',[11,12],'lineup-eligibility','unknown-positions'];
+assert.throws(()=>prioritize(...args,false),/approval/);const r=prioritize(...args,true);
+assert.deepEqual(r.items.map(x=>x.gateId),['unknown-positions','lineup-eligibility']);
+assert.deepEqual(r.items.map(x=>x.priority),['verify-selected-source-first','independent-assessment-needed']);
+assert.match(r.items[1].uncertainty,/unknown/);
+assert.ok(r.items.every(x=>x.status==='unresolved'&&!x.canMarkResolved&&!x.executionAllowed));
+assert.equal(r.lineupEligibility,'unknown');assert.equal(r.evidenceReadiness,'not-established');
+for(const key of ['productionActivationAllowed','persistencePerformed','automaticTransactionsAllowed','automaticRosterChangesAllowed'])assert.equal(r[key],false);
+assert.equal(r.finalDecisionMaker,'human-gm');assert.deepEqual(r,prioritize(...args,true));
+assert.throws(()=>prioritize(queue,state,'lineup',[11,12],'unknown-positions','unknown-positions',true),/distinct/);
+assert.throws(()=>prioritize(queue,state,'lineup',[11,999],'unknown-positions','lineup-eligibility',true),/controlled-team/);
+assert.equal(JSON.stringify(state),before);console.log('Mission 1246 deterministic human verification review order passed');

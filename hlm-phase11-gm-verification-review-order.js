@@ -1,0 +1,10 @@
+/* Mission 1246: source-grounded human-only review ordering. */
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./hlm-phase11-gm-lineup-gate-verification-handoff'):null);if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMGMVerificationReviewOrder=api;})(typeof globalThis!=='undefined'?globalThis:this,function(dep){
+'use strict';function prioritize(queue,state,focus,ids,left,right,approved){
+if(approved!==true)throw Error('Explicit human GM approval required');
+const source=dep||(typeof globalThis!=='undefined'&&globalThis.HLMGMLineupGateVerificationHandoff);
+if(!source||typeof source.prepare!=='function')throw Error('Handoff unavailable');
+const handoff=source.prepare(queue,state,focus,ids,left,right,true);
+const items=handoff.tasks.map(t=>({...t,priority:t.evidenceState==='missing-in-selected-source'?'verify-selected-source-first':'independent-assessment-needed',uncertainty:t.affectedSelectedPlayers===null?'affected count unknown':'selected-source count only, not eligibility',status:'unresolved',canMarkResolved:false,executionAllowed:false})).sort((a,b)=>Number(a.evidenceState!=='missing-in-selected-source')-Number(b.evidenceState!=='missing-in-selected-source')||a.sequence-b.sequence);
+return {kind:'experimental-gm-verification-review-order',items,unresolvedCount:items.length,selectedPlayerCount:handoff.selectedPlayerCount,sourceCountScope:handoff.sourceCountScope,lineupEligibility:'unknown',evidenceReadiness:'not-established',warning:'Ordering is for human source verification only, not player ranking or eligibility',productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,automaticRosterChangesAllowed:false,finalDecisionMaker:'human-gm'};
+}return {prioritize};});
