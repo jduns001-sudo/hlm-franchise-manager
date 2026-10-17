@@ -9,6 +9,6 @@ const raw=JSON.stringify(state);assert.equal(validate(state).balanced,true);
 assert.throws(()=>simulatePreview(state,7,false),/approval/);
 const result=simulatePreview(state,7,true);assert.equal(result.days,7);assert.equal(result.controlledTeamId,1);assert.equal(result.completedGames,2);assert.equal(result.standings.reduce((n,t)=>n+t.gp,0),4);assert.equal(result.productionActivationAllowed,false);assert.equal(result.persistencePerformed,false);
 assert.deepEqual(simulatePreview(state,7,true),result);assert.equal(JSON.stringify(state),raw);
-const changes=[[s=>s.activity.games[1].homeTeamId=1,'mapping'],[s=>s.activity.games.reverse(),'chronology'],[s=>s.activity.games[1].homeTeamId=2,'home/away'],[s=>s.meta.controlledTeamId=99,'Controlled team']];
+const changes=[[s=>s.activity.games[1].homeTeamId=1,'mapping'],[s=>s.activity.games.reverse(),'chronology'],[s=>{s.activity.games[1].homeTeamId=1;s.activity.games[1].awayTeamId=2;},'home/away'],[s=>s.meta.controlledTeamId=99,'Controlled team']];
 for(const [change,message] of changes){const copy=JSON.parse(raw);change(copy);assert.throws(()=>validate(copy),undefined,message);}
 console.log('Mission 1212 season validation, standings and multiday continuity passed');
