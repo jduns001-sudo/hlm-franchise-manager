@@ -3,7 +3,7 @@
 function trend(seasons,{years=[],metric='pointsPerGame'}={}){
  if(!Array.isArray(seasons)||!Array.isArray(years)||years.some(y=>!Number.isSafeInteger(y))||!['pointsPerGame','finishing'].includes(metric))throw new TypeError('invalid trend options');
  const allowed=new Set(years),rows=seasons.filter(s=>allowed.has(s.season)).slice().sort((a,b)=>a.season-b.season).map(s=>{
-  if(!Array.isArray(s.games)||s.games.some(g=>![g.goals,g.assists,g.shots].every(v=>Number.isSafeInteger(v)&&v>=0)||s.games.some(g=>g.goals>g.shots))throw new RangeError('invalid game stats');
+  if(!Array.isArray(s.games)||s.games.some(g=>![g.goals,g.assists,g.shots].every(v=>Number.isSafeInteger(v)&&v>=0)||g.goals>g.shots)throw new RangeError('invalid game stats');
   const games=s.games.length,shots=s.games.reduce((n,g)=>n+g.shots,0),goals=s.games.reduce((n,g)=>n+g.goals,0),points=s.games.reduce((n,g)=>n+g.goals+g.assists,0);
   return Object.freeze({season:s.season,games,shots,value:metric==='finishing'?(shots?goals/shots:null):(games?points/games:null),sample:games>=20?'established':games>=5?'developing':'limited'});
  });
