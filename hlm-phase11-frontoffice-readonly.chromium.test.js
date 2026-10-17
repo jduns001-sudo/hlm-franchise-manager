@@ -11,7 +11,7 @@ assert.match(await page.locator('#frontoffice-preview').textContent(),/Owner/, '
 assert.match(await page.locator('#frontoffice-preview').textContent(),/G1/);
 assert.equal(await page.locator('#optin').isChecked(),false);
 assert.equal(await page.locator('#save').isDisabled(),true);
-assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_tracker_v3')).includes('"saveId":"live"'),true);
+assert.equal((await page.evaluate(()=>localStorage.getItem('hlm_tracker_v3'))).includes('"saveId":"live"'),true);
 assert.equal(await page.evaluate(()=>localStorage.length),1);
 console.log('Mission 1208 mobile Chromium Front Office read-only projection and save isolation passed');
 }finally{await browser.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
