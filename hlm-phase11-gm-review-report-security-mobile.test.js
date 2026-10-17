@@ -1,0 +1,24 @@
+'use strict';
+const assert=require('node:assert/strict');
+const http=require('node:http');
+const {chromium}=require('playwright');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {buildSecureGMReviewPage}=require('./hlm-phase11-gm-review-report-security');
+(async()=>{const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const a=exportGMReviewEvidence(home,away,[5,10],[5]);
+const b=exportGMReviewEvidence(home,away,[5,10,25],[10]);
+const report=buildSecureGMReviewPage([{before:a.text,after:b.text}]);
+const server=http.createServer((req,res)=>{res.writeHead(200,report.headers);res.end(report.html)});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const response=await page.goto('http://127.0.0.1:'+server.address().port);
+ assert.match(response.headers()['content-security-policy'],/default-src 'none'/);
+ assert.match(await page.locator('main').innerText(),/human GM approval required/i);
+ assert.match(await page.locator('main').innerText(),/No save writes/);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ assert.deepEqual(errors,[]);
+ console.log('Secure GM report mobile Chromium passed');
+}finally{await browser.close();await new Promise(resolve=>server.close(resolve))}})().catch(e=>{console.error(e);process.exitCode=1});
