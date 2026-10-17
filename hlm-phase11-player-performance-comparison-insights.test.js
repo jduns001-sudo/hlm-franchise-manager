@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {interpret}=require('./hlm-phase11-player-performance-comparison-insights');
+const mk=(shots,goals,periods=[],eligible=true)=>({team:'home',playerId:'p1',insight:{shots,goals,expectedGoals:2,sampleEligible:eligible,periods,latestSignal:'flat'}});
+assert.deepEqual(interpret(mk(3,1)).finishingConfidence,null);
+assert.equal(interpret(mk(20,4)).finishingConfidence.observedRate,.2);
+assert.equal(interpret(mk(20,4,[{shots:2},{shots:6}])).rollingDirection,'up');
+assert.equal(interpret(mk(20,4,[{shots:6},{shots:2}])).rollingDirection,'down');
+assert.deepEqual(interpret(mk(20,4)),interpret(mk(20,4)));
+assert.equal(interpret(mk(20,4)).consistencyRank,null);
+assert.equal(interpret(mk(20,4)).notDecisionAdvice,true);
+console.log('Player Performance Comparison Insights deterministic regressions passed');
