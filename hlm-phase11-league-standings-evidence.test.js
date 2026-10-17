@@ -1,0 +1,8 @@
+'use strict';
+const assert=require('node:assert/strict'),{createGameStateEnvelope}=require('./hlm-game-state'),{generateRoundRobinSchedule}=require('./hlm-phase10-season-schedule'),{analyze}=require('./hlm-phase11-league-standings-evidence');
+function fixture(n){const teams=Array.from({length:n},(_,i)=>({id:i+1,name:'Club '+(i+1)})),players=teams.map(t=>({id:t.id+1000,teamId:t.id}));return createGameStateEnvelope({meta:{saveId:'isolated-league-evidence',controlledTeamId:1,currentDate:'2026-10-17'},teams,players,games:generateRoundRobinSchedule(teams,'2026-10-17',2)})}
+for(const n of [4,8,16,30]){const s=fixture(n),before=JSON.stringify(s);assert.throws(()=>analyze(s,120,false),/GM approval/);const r=analyze(s,120,true);assert.equal(r.teamCount,n);assert.equal(r.leagueStandingsSnapshots.length,120);assert.equal(r.opponentEncounters.length,2*(n-1));assert.equal(r.evidenceQuality.preGameOnly,true);assert.equal(r.productionActivationAllowed,false);assert.equal(r.persistencePerformed,false);assert.equal(JSON.stringify(s),before);assert.deepEqual(analyze(s,120,true),r);
+for(const day of r.leagueStandingsSnapshots){assert.equal(day.league.length,n);assert.equal(day.league.reduce((a,t)=>a+t.gp,0),day.completedGames*2);assert.equal(day.league.reduce((a,t)=>a+t.gf,0),day.league.reduce((a,t)=>a+t.ga,0))}
+for(const encounter of r.opponentEncounters){assert.equal(encounter.usesFutureResults,false);assert.ok(['moderate','limited','insufficient'].includes(encounter.confidence));if(encounter.confidence==='insufficient')assert.equal(encounter.relativeStrength,'unclassified');assert.ok(encounter.opponentPreGame.gamesPlayed>=0)}
+}
+console.log('Mission 1217 deterministic pre-game league-wide evidence, 4/8/16/30 teams and save isolation passed');
