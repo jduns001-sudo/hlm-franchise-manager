@@ -7,7 +7,7 @@ try{const context=await browser.newContext({viewport:{width:390,height:844}});co
 await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-gameplay-bridge.html');
 await page.evaluate(()=>localStorage.setItem('hlm_tracker_v3',JSON.stringify({teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],players:[{id:11,teamId:1}],games:[{id:'G1',date:'2026-10-18',status:'scheduled',homeTeamId:1,awayTeamId:2}],gmSettings:{controlledTeamId:1},gameStateMeta:{saveId:'live',currentDate:'2026-10-17'}})));
 await page.locator('#read-frontoffice').click();
-assert.match(await page.locator('#frontoffice-preview').textContent(),/Owner/);
+await page.waitForFunction(()=>document.getElementById('frontoffice-preview').textContent.includes('Owner'));
 assert.match(await page.locator('#frontoffice-preview').textContent(),/G1/);
 assert.equal(await page.locator('#optin').isChecked(),false);
 assert.equal(await page.locator('#save').isDisabled(),true);
