@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {compareWindows}=require('./hlm-phase11-window-stability-insights');
+const h=[{shots:10,goals:2,expectedGoals:2},{shots:10,goals:2,expectedGoals:2},{shots:10,goals:4,expectedGoals:2},{shots:10,goals:4,expectedGoals:2}];
+const a=[{shots:10,goals:1,expectedGoals:2},{shots:10,goals:1,expectedGoals:2},{shots:10,goals:1,expectedGoals:2},{shots:10,goals:1,expectedGoals:2}];
+const result=compareWindows(h,a);
+assert.equal(result.comparable,true);assert.equal(result.observedDifferentialChange,.2);
+assert.equal(result.direction,'increased');assert.deepEqual(result,compareWindows(h,a));
+assert.equal(result.productionActivationEnabled,false);assert.equal(result.automaticallyApplied,false);
+assert.equal(result.requiresGMApproval,true);assert.equal(Object.isFrozen(result),true);
+const limited=compareWindows(h,a.slice(0,2));assert.equal(limited.comparable,false);
+assert.equal(limited.observedDifferentialChange,null);assert.equal(limited.direction,'insufficient-evidence');
+assert.equal(compareWindows([],[]).comparable,false);
+assert.throws(()=>compareWindows(null,a),TypeError);
+console.log('Window stability insights deterministic regressions passed');
