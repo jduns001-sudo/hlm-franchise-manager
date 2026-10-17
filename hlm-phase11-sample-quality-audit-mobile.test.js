@@ -1,0 +1,20 @@
+'use strict';
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const {chromium}=require('playwright');
+(async()=>{const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('file://'+path.resolve(__dirname,'hlm-phase11-sample-quality-audit-preview.html'));
+ assert.match(await page.locator('#result').innerText(),/Inactive by default/);
+ await page.locator('#preview').click();
+ const output=JSON.parse(await page.locator('#result').innerText());
+ assert.equal(output.evidence,'sample-supported');assert.equal(output.productionActivationEnabled,false);
+ assert.equal(output.automaticallyApplied,false);assert.equal(output.requiresGMApproval,true);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.reload();assert.match(await page.locator('#result').innerText(),/Inactive by default/);
+ await page.locator('#preview').click();await page.locator('#clear').click();
+ assert.match(await page.locator('#result').innerText(),/Inactive by default/);
+ assert.deepEqual(errors,[]);
+ console.log('Mobile Chromium sample audit passed');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
