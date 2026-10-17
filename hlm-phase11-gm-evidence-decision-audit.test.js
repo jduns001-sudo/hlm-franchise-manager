@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {buildGMEvidenceDecisionAudit}=require('./hlm-phase11-gm-evidence-decision-audit');
+const home=Array.from({length:4},(_,i)=>({shots:10,goals:i+1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const original=JSON.stringify([home,away]);
+const a=buildGMEvidenceDecisionAudit(home,away,[5,10,25],[5]);
+assert.equal(a.productionActivationEnabled,false);
+assert.equal(a.persistent,false);
+assert.equal(a.gameplayActionAuthorized,false);
+assert.equal(a.records.length,3);
+assert.deepEqual(a.records.map(x=>x.reviewedByGM),[true,false,false]);
+assert.ok(a.records.every(x=>x.actionAuthorized===false));
+assert.ok(Object.isFrozen(a.records));
+assert.deepEqual(buildGMEvidenceDecisionAudit(home,away,[5,10,25],[5]),a);
+assert.equal(JSON.stringify([home,away]),original);
+console.log('GM evidence decision audit deterministic tests passed');
