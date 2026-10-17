@@ -1,0 +1,14 @@
+/* Mission 1232: non-executing human GM decision preparation from isolated review evidence. */
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./hlm-phase11-gm-review-workflow'):null);if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMGMDecisionPreparation=api;})(typeof globalThis!=='undefined'?globalThis:this,function(reviews){
+'use strict';
+const allowed=['roster','lineup','scouting'];
+function prepare(queue,focus,approved){
+ if(approved!==true)throw Error('Explicit human GM approval required');
+ if(!queue||queue.kind!=='experimental-gm-review-workflow'||queue.productionActivationAllowed!==false||queue.persistencePerformed!==false||queue.finalDecisionMaker!=='human-gm')throw Error('Validated isolated GM review queue required');
+ if(!allowed.includes(focus))throw Error('Unsupported decision preparation focus');
+ const items=queue.items.map(item=>{if(item.actionType!=='review-only'||item.requiresGMDecision!==true)throw Error('Review-only evidence required');return {sourceReviewId:item.id,windowId:item.windowId,sourceGameId:item.gameId,focus,evidenceStatus:item.status==='reviewed-by-human'?'reviewed-not-resolved':'unresolved',confidence:item.confidence,question:focus==='scouting'?'Does the GM want scouts to gather more evidence before evaluating this opponent?':focus==='lineup'?'Does the GM want to inspect lineup needs independently of this incomplete opponent evidence?':'Does the GM want to review roster needs independently of this incomplete opponent evidence?',context:item.action,decisionReadiness:'insufficient-evidence-for-action',requiresGMDecision:true,actionType:'consider-only',executionAllowed:false};});
+ return {kind:'experimental-gm-decision-preparation',controlledTeamId:queue.controlledTeamId,focus,sourceGameCount:queue.sourceGameCount,considerations:items,summary:{total:items.length,unresolved:items.filter(x=>x.evidenceStatus==='unresolved').length,reviewedNotResolved:items.filter(x=>x.evidenceStatus==='reviewed-not-resolved').length,decisionReadiness:'review-only'},limitations:['Preview-only evidence cannot establish real roster, lineup or scouting needs','Human review acknowledgement does not repair missing pre-game evidence','No player selection, scouting assignment, transaction, lineup change or persistence occurs'],productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,automaticRosterChangesAllowed:false,gmApprovalStillRequired:true,finalDecisionMaker:'human-gm'};
+}
+function analyze(state,days,focus,approved,adapter){if(approved!==true)throw Error('Explicit human GM approval required');const api=reviews||(typeof globalThis!=='undefined'&&globalThis.HLMGMReviewWorkflow);return prepare(api.analyze(state,days,true,adapter),focus,true)}
+return {prepare,analyze};
+});
