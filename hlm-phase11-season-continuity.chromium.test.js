@@ -9,7 +9,7 @@ await page.evaluate(s=>localStorage.setItem('hlm_tracker_v3',s),raw);
 await page.locator('#read-frontoffice').click();await page.locator('#optin').check();await page.locator('#stage-frontoffice').click();await page.locator('#schedule-preview').click();await page.locator('#schedule-apply').click();
 await page.locator('#season-validate').click();assert.match(await page.locator('#season-report').textContent(),/"balanced": true/);
 const isolatedBefore=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1207-isolated-gameplay-v1'));
-await page.locator('#season-simulate').click();assert.match(await page.locator('#season-report').textContent(),/"completedGames": 2/);
+await page.locator('#season-simulate').click();assert.match(await page.locator('#status').textContent(),/Seven-day isolated preview completed/);assert.match(await page.locator('#season-report').textContent(),/"completedGames": 2/);
 assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_tracker_v3')),raw);
 assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1207-isolated-gameplay-v1')),isolatedBefore);
 console.log('Mission 1212 mobile Chromium season continuity and save isolation passed');
