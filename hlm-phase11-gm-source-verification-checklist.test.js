@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict'),{prepare}=require('./hlm-phase11-gm-source-verification-checklist'),{generateRoundRobinSchedule}=require('./hlm-phase10-season-schedule'),{createGameStateEnvelope}=require('./hlm-game-state'),{analyze}=require('./hlm-phase11-gm-review-workflow');
+const teams=Array.from({length:4},(_,i)=>({id:i+1,name:'Club '+i})),players=[{id:11,teamId:1,name:'A',position:'C',overall:81},{id:12,teamId:1,name:'B'},...teams.slice(1).map(t=>({id:100+t.id,teamId:t.id,name:'Other'}))],state=createGameStateEnvelope({meta:{saveId:'isolated-stage:test',controlledTeamId:1,currentDate:'2026-10-17'},teams,players,games:generateRoundRobinSchedule(teams,'2026-10-17',2),extensions:{staging:{source:'front-office',productionActivationAllowed:false}}}),before=JSON.stringify(state),queue=analyze(state,120,true),args=[queue,state,'lineup',[11,12],'lineup-eligibility','unknown-positions'];
+assert.throws(()=>prepare(...args,false),/approval/);const r=prepare(...args,true);
+assert.deepEqual(r.questions.map(x=>x.gateId),['unknown-positions','lineup-eligibility']);
+assert.deepEqual(r.questions.map(x=>x.priority),['verify-selected-source-first','independent-assessment-needed']);
+assert.equal(r.openCount,2);assert.equal(r.eligibility,'unknown');assert.equal(r.confidence,'not-established');
+assert.ok(r.questions.every(x=>x.verificationStatus==='unresolved'&&!x.canConfirmEligibility&&!x.canResolveAutomatically&&x.humanQuestion&&x.evidenceNeeded&&x.uncertainty));
+assert.equal(r.questions[0].sourceScope,r.sourceCountScope);
+for(const key of ['productionActivationAllowed','persistencePerformed','automaticTransactionsAllowed','automaticRosterChangesAllowed'])assert.equal(r[key],false);
+assert.equal(r.finalDecisionMaker,'human-gm');assert.deepEqual(r,prepare(...args,true));assert.throws(()=>prepare(queue,state,'lineup',[11,12],'unknown-positions','unknown-positions',true),/distinct/);assert.throws(()=>prepare(queue,state,'lineup',[11,999],'unknown-positions','lineup-eligibility',true),/controlled-team/);
+assert.equal(JSON.stringify(state),before);console.log('Mission 1247 source verification checklist deterministic regressions passed');
