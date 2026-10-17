@@ -1,0 +1,29 @@
+name: Phase 11 GM Review Digest Accessibility
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-gm-review-digest-accessibility*'
+      - '.github/workflows/phase11-gm-review-digest-accessibility.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-gm-review-digest-narrative.test.js
+      - run: node hlm-phase11-gm-review-digest-accessibility.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-gm-review-digest-accessibility-mobile.test.js
