@@ -14,7 +14,7 @@ function summarize(l,p){
   const g=byId.get(String(e.gameId));if(!g||e.date!==g.date||String(e.opponentTeamId)!==String(g.opponentTeamId))throw Error('Encounter game mismatch');
   matched.add(String(e.gameId));
   const op=e.opponentPreGame,own=e.ownerPreGame;
-  for(const r of [op,own])if(!Number.isSafeInteger(r.gamesPlayed)||r.gamesPlayed<0||!Number.isSafeInteger(r.points)||r.points<0||r.pointsPerGame!==(r.gamesPlayed?r.points/r.gamesPlayed:null))throw Error('Invalid pre-game points evidence');
+  for(const r of [op,own])if(!Number.isSafeInteger(r.gamesPlayed)||r.gamesPlayed<0||!Number.isSafeInteger(r.points)||r.points<0||r.points>2*r.gamesPlayed||r.pointsPerGame!==(r.gamesPlayed?r.points/r.gamesPlayed:null))throw Error('Invalid pre-game points evidence');
   const sufficient=op.gamesPlayed>=5&&own.gamesPlayed>=5;
   const classification=!sufficient?'unclassified':op.pointsPerGame>own.pointsPerGame?'higher-pre-game-ppg':op.pointsPerGame<own.pointsPerGame?'lower-pre-game-ppg':'equal-pre-game-ppg';
   if(e.relativeStrength!==classification||(!sufficient&&e.confidence!=='insufficient')||(sufficient&&e.confidence==='insufficient'))throw Error('Unsupported opponent strength classification');
