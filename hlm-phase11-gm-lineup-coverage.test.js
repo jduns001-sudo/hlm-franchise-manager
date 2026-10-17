@@ -1,8 +1,8 @@
 'use strict';
-const assert=require('node:assert/strict'),{summarize}=require('./hlm-phase11-gm-lineup-coverage'),{createGameStateEnvelope}=require('./hlm-game-state'),workflow=require('./hlm-phase11-gm-review-workflow');
+const assert=require('node:assert/strict'),{generateRoundRobinSchedule}=require('./hlm-phase10-season-schedule'),{summarize}=require('./hlm-phase11-gm-lineup-coverage'),{createGameStateEnvelope}=require('./hlm-game-state'),workflow=require('./hlm-phase11-gm-review-workflow');
 const teams=Array.from({length:4},(_,i)=>({id:i+1,name:'Club '+i}));
 const players=[{id:11,teamId:1,name:'A',position:'C',overall:81},{id:12,teamId:1,name:'B'},{id:13,teamId:1,name:'C',position:'C',overall:74},...teams.slice(1).map(t=>({id:t.id+100,teamId:t.id,name:'Other'}))];
-const state=createGameStateEnvelope({meta:{saveId:'isolated-stage:coverage',controlledTeamId:1,currentDate:'2026-10-17'},teams,players,games:[],extensions:{staging:{source:'front-office',productionActivationAllowed:false}}}),before=JSON.stringify(state),queue=workflow.analyze(state,120,true);
+const state=createGameStateEnvelope({meta:{saveId:'isolated-stage:coverage',controlledTeamId:1,currentDate:'2026-10-17'},teams,players,games:generateRoundRobinSchedule(teams,'2026-10-17',2),extensions:{staging:{source:'front-office',productionActivationAllowed:false}}}),before=JSON.stringify(state),queue=workflow.analyze(state,120,true);
 assert.throws(()=>summarize(queue,state,'lineup',[11,12],false),/approval/);
 const r=summarize(queue,state,'lineup',[11,12,13],true);
 assert.equal(r.selectedPlayerCount,3);assert.equal(r.coverage.find(x=>x.position==='C').selectedCount,2);
