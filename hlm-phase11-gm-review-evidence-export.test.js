@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const home=Array.from({length:4},(_,i)=>({shots:10,goals:i+1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const snapshot=JSON.stringify([home,away]);
+const result=exportGMReviewEvidence(home,away,[5,10,25],[5]);
+assert.equal(result.payload.kind,'experimental-gm-review-evidence');
+assert.equal(result.payload.productionActivationEnabled,false);
+assert.equal(result.payload.persistent,false);
+assert.equal(result.payload.gameplayActionAuthorized,false);
+assert.deepEqual(result.payload.rows.map(r=>r.reviewed),[true,false,false]);
+assert.ok(result.payload.rows.every(r=>r.actionAuthorized===false));
+assert.deepEqual(JSON.parse(result.text),result.payload);
+assert.deepEqual(exportGMReviewEvidence(home,away,[5,10,25],[5]),result);
+assert.ok(Object.isFrozen(result.payload.rows));
+assert.equal(JSON.stringify([home,away]),snapshot);
+console.log('GM review evidence export deterministic tests passed');
