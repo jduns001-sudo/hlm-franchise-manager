@@ -9,7 +9,7 @@ assert.equal(await page.locator('#advance').isDisabled(),true);
 await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION'));
 const state={schemaVersion:1,meta:{saveId:'m1207',controlledTeamId:1,currentDate:'2026-10-12'},universe:{teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],players:[],leagues:[],prospects:[],staff:[]},assets:{contracts:[],draftPicks:[]},activity:{games:[{id:'G1',date:'2026-10-13',status:'scheduled',homeTeamId:1,awayTeamId:2}],transactions:[],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{},extensions:{}};
 await page.locator('#file').setInputFiles({name:'test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
-assert.match(await page.locator('#preview').textContent(),/Owner/);
+await page.waitForFunction(()=>document.getElementById('preview').textContent.includes('Owner'));
 assert.equal(await page.locator('#save').isDisabled(),true);
 await page.locator('#optin').check();await page.locator('#save').click();await page.locator('#advance').click();
 assert.match(await page.locator('#results').textContent(),/G1/);
