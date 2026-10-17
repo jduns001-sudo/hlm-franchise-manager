@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {buildGMEvidenceBrief}=require('./hlm-phase11-gm-evidence-brief');
+const a=[{shots:10,goals:2,expectedGoals:2},{shots:10,goals:3,expectedGoals:2},{shots:10,goals:4,expectedGoals:2},{shots:10,goals:4,expectedGoals:2}];
+const b=[{shots:10,goals:1,expectedGoals:2},{shots:10,goals:1,expectedGoals:2},{shots:10,goals:1,expectedGoals:2},{shots:10,goals:1,expectedGoals:2}];
+const brief=buildGMEvidenceBrief(a,b,[5,10,25]);
+assert.equal(brief.experimental,true);
+assert.equal(brief.productionActivationEnabled,false);
+assert.equal(brief.automaticallyApplied,false);
+assert.equal(brief.requiresGMApproval,true);
+assert.equal(brief.entries.length,3);
+assert.equal(brief.entries.filter(x=>x.evidenceStatus==='withheld').length,1);
+assert.equal(brief.entries.find(x=>x.threshold===25).direction,null);
+assert.ok(Object.isFrozen(brief));
+assert.ok(Object.isFrozen(brief.entries));
+assert.deepEqual(buildGMEvidenceBrief(a,b,[5,10,25]),brief);
+console.log('GM evidence briefing deterministic tests passed');

@@ -1,0 +1,29 @@
+name: Phase 11 GM Evidence Brief
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-gm-evidence-brief*'
+      - '.github/workflows/phase11-gm-evidence-brief.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-evidence-coverage.test.js
+      - run: node hlm-phase11-gm-evidence-brief.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-gm-evidence-brief-mobile.test.js
