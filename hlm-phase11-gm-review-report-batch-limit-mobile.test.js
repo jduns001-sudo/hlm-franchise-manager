@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+const {exportGMReviewEvidence}=require('./hlm-phase11-gm-review-evidence-export');
+const {renderBoundedGMReview,MAX_EVIDENCE_CHARS}=require('./hlm-phase11-gm-review-report-batch-limit');
+(async()=>{const home=Array.from({length:4},()=>({shots:10,goals:1,expectedGoals:2}));
+const away=Array.from({length:4},()=>({shots:8,goals:0,expectedGoals:1}));
+const a=exportGMReviewEvidence(home,away,[5,10],[5]);
+const b=exportGMReviewEvidence(home,away,[5,10,25],[10]);
+const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const valid=renderBoundedGMReview([{before:a.text,after:b.text}]);assert.equal(valid.accepted,true);
+ await page.setContent(valid.page.html);
+ assert.match(await page.locator('main').innerText(),/human GM approval required/i);
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+ const tooLarge=renderBoundedGMReview([{before:'x'.repeat(MAX_EVIDENCE_CHARS),after:'x'}]);
+ assert.equal(tooLarge.accepted,false);assert.equal(tooLarge.page,null);
+ assert.deepEqual(errors,[]);
+ console.log('Bounded GM review mobile Chromium passed');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
