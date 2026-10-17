@@ -4,8 +4,8 @@ const {summarizePerformanceHistoryComparisons}=require('./hlm-phase11-performanc
 const round=n=>Number(n.toFixed(6));
 function interpret(record){
  const x=record.insight;
- const games=Number(x.games||0),shots=Number(x.shots||0),goals=Number(x.goals||0),expectedGoals=Number(x.expectedGoals||0);
- const periods=Array.isArray(x.periods)?x.periods:[];
+ const shots=Number(x.shots||0),goals=Number(x.goals||0),expectedGoals=Number(x.expectedGoals||0);
+ const periods=Array.isArray(record.periods)?record.periods:[];
  const rates=periods.map(p=>Number(p.shots||0)).filter(Number.isFinite);
  const mean=rates.length?rates.reduce((a,b)=>a+b,0)/rates.length:0;
  const volatility=rates.length?Math.sqrt(rates.reduce((a,b)=>a+(b-mean)**2,0)/rates.length):null;
