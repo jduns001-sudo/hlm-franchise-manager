@@ -93,7 +93,18 @@ function createBridge(engine,storage){
   if(review.nextOpponent)tasks.push(Object.freeze({priority:'context-only',category:'upcoming-opponent',question:'What independently checked lineup context matters before facing the next opponent?',reason:'An upcoming opponent is scheduled in the isolated universe; matchup readiness is not established',evidenceStatus:'unverified'}));
   return Object.freeze({kind:'isolated-human-gm-evidence-action-queue',team:audit.team,asOfDate:audit.asOfDate,completedGames:audit.completedGames,scheduledGames:audit.scheduledGames,readiness:audit.readiness,sourceQualityIssues:audit.dataQualityIssues,questions:Object.freeze(tasks),sourceLimits:audit.requiresIndependentVerification,independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
  }
- return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence,reviewControlledTeamDecisions,auditControlledTeamEvidence,prepareControlledTeamEvidenceActions};
+ function prepareControlledTeamReviewBrief(adapter){
+  const queue=prepareControlledTeamEvidenceActions(adapter);
+  const review=reviewControlledTeamDecisions(adapter);
+  const sections=Object.freeze([
+   Object.freeze({label:'Isolated game evidence',status:'score-only',detail:review.completedGames+' controlled-team completed games; '+review.wins+' wins and '+review.losses+' losses; '+review.goalsFor+' goals for and '+review.goalsAgainst+' against',source:'isolated final game scores'}),
+   Object.freeze({label:'Schedule context',status:'context-only',detail:review.nextOpponent?'Next scheduled opponent exists in isolated schedule':'No controlled-team scheduled opponent established',source:'isolated schedule only'}),
+   Object.freeze({label:'Roster and lineup',status:'requires-independent-verification',detail:'Roster membership, player positions, lineup availability and eligibility are not established by game scores',source:'missing verified roster evidence'}),
+   Object.freeze({label:'Players, injuries and staff',status:'requires-independent-verification',detail:'Player-level performance, injuries, medical status, staff evaluations and morale are not established',source:'missing verified player and staff evidence'})
+  ]);
+  return Object.freeze({kind:'isolated-controlled-team-human-gm-review-brief',team:queue.team,asOfDate:queue.asOfDate,readiness:queue.readiness,sections,sourceQualityIssues:queue.sourceQualityIssues,reviewQuestions:queue.questions,sourceLimits:queue.sourceLimits,humanNextStep:'Review unresolved source evidence before any roster, lineup or personnel decision',independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
+ }
+ return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence,reviewControlledTeamDecisions,auditControlledTeamEvidence,prepareControlledTeamEvidenceActions,prepareControlledTeamReviewBrief};
 }
 return {createBridge,KEY};
 });
