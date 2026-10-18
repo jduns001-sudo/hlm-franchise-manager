@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const parse=require('./hlm-phase11-readonly-schedule').parse;
+const game={id:'g1',date:'2026-10-19',homeTeamId:1,awayTeamId:2,status:'scheduled'};
+const source={universe:{teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}]},activity:{games:[game,{...game,id:'g2',date:'2026-10-20',homeTeamId:2,awayTeamId:1}]}};
+const before=JSON.stringify(source),result=parse(source,1);
+assert.equal(result.teamGames.length,2);assert.equal(result.generatedGames,false);assert.equal(result.productionWrites,false);assert.equal(JSON.stringify(source),before);
+assert.throws(()=>parse(source,null),/controlled team/);
+assert.throws(()=>parse({universe:source.universe,activity:{}},1),/no activity.games/);
+assert.throws(()=>parse({...source,activity:{games:[game,game]}},1),/duplicate/);
+assert.throws(()=>parse({...source,activity:{games:[{...game,date:'invalid'}]}},1),/date/);
+assert.throws(()=>parse(source,3),/absent/);
+const app=fs.readFileSync('app.html','utf8');
+const inline=app.match(new RegExp('<script>([\\s\\S]*?)</script>'));assert.ok(inline,'main application inline script exists');assert.doesNotThrow(()=>new Function(inline[1]),'real Front Office inline JavaScript must parse');
+assert.match(app,/id="hlm-schedule-file"/);assert.match(app,/HLMReadOnlySchedule.parse/);assert.match(app,/No games are generated, simulated, activated or saved/);
+console.log('Mission 1338 schedule provenance, validation and no-write contract passed');
