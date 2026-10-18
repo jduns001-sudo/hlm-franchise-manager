@@ -11,6 +11,6 @@ assert.throws(()=>parse({...source,activity:{games:[game,game]}},1),/duplicate/)
 assert.throws(()=>parse({...source,activity:{games:[{...game,date:'invalid'}]}},1),/date/);
 assert.throws(()=>parse(source,3),/absent/);
 const app=fs.readFileSync('app.html','utf8');
-const inline=app.match(/<script>([\\s\\S]*?)<\\/script>/);assert.ok(inline,'main application inline script exists');assert.doesNotThrow(()=>new Function(inline[1]),'real Front Office inline JavaScript must parse');
+const inline=app.match(new RegExp('<script>([\\s\\S]*?)</script>'));assert.ok(inline,'main application inline script exists');assert.doesNotThrow(()=>new Function(inline[1]),'real Front Office inline JavaScript must parse');
 assert.match(app,/id="hlm-schedule-file"/);assert.match(app,/HLMReadOnlySchedule.parse/);assert.match(app,/No games are generated, simulated, activated or saved/);
 console.log('Mission 1338 schedule provenance, validation and no-write contract passed');
