@@ -29,7 +29,7 @@ test('malformed and incompatible imports reject without replacing an isolated sy
   expect(response?.status()).toBe(200);
   await expect(page.locator('#nav button').first()).toBeVisible({timeout:30000});
   expect(await page.evaluate(()=>window.HLM_PHASE11_SAVE_GUARD_OPT_IN===true)).toBe(false);
-  expect(await page.evaluate(()=>typeof window.HLMPhase11AtomicCutover)).toBe('undefined');
+  expect(await page.evaluate(()=>typeof window.HLMPhase11AtomicCutover)).toBe('object');
   const synthetic=await page.evaluate(()=>{
    const st=compactState();
    return {...st,settings:{...st.settings,franchiseName:'Synthetic Import Safety 1035'},customPlayers:[...st.customPlayers,{id:9901035,name:'Synthetic Safety Prospect',age:19,teamId:db.teams[0].id,position:'C',positions:['C'],ovr:81,potential:90,potentialMin:85,potentialMax:95,type:'Playmaker',retired:false}]};
