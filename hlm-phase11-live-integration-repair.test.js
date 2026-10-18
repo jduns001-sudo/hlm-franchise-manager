@@ -1,1 +1,15 @@
-'use strict';const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');test('real app scripts are separated by actual newlines, not literal escapes',()=>{const app=fs.readFileSync('app.html','utf8');assert.doesNotMatch(app,/<\\/script>\\\\n<script>/);assert.doesNotMatch(app,/<\\/script>\\n<script>/);assert.match(app,/<script src="\.\/hlm-phase11-frontoffice-roster-preview-ui\.js"><\\/script>\n<script>/);assert.match(app,/HLMFrontOfficeRosterPreviewUI\.mount\(\(\)=>db\)/);});test('production app preserves guarded save and explicit human approval',()=>{const app=fs.readFileSync('app.html','utf8'),ui=fs.readFileSync('hlm-phase11-frontoffice-roster-preview-ui.js','utf8');assert.match(app,/HLM_PHASE11_SAVE_GUARD_OPT_IN!==true/);assert.match(ui,/approve\.addEventListener\('click'/);assert.match(ui,/humanApproved:true/);assert.doesNotMatch(ui,/localStorage|indexedDB|\.save\(/);});
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
+test('real app script boundary is valid HTML',()=>{
+ const app=fs.readFileSync('app.html','utf8');
+ assert.equal(app.includes('</script>'+String.fromCharCode(92)+'n<script>'),false,'literal backslash n must never appear between scripts');
+ assert.ok(app.includes('hlm-phase11-frontoffice-roster-preview-ui.js"></script>\n<script>'));
+ assert.ok(app.includes('HLMFrontOfficeRosterPreviewUI.mount(()=>db)'));
+});
+test('save guard and human consent remain intact',()=>{
+ const app=fs.readFileSync('app.html','utf8'),ui=fs.readFileSync('hlm-phase11-frontoffice-roster-preview-ui.js','utf8');
+ assert.ok(app.includes('HLM_PHASE11_SAVE_GUARD_OPT_IN!==true'));
+ assert.ok(ui.includes("approve.addEventListener('click'"));
+ assert.ok(ui.includes('humanApproved:true'));
+ assert.doesNotMatch(ui,/localStorage|indexedDB|\.save\(/);
+});
