@@ -5,6 +5,7 @@ on:
       - 'hlm-phase11-isolated-recovery*'
       - 'hlm-phase11-recovery-season-review*'
       - 'hlm-phase11-isolated-season-advance*'
+      - 'hlm-phase11-isolated-day-stage*'
       - '.github/workflows/phase11-isolated-recovery.yml'
   workflow_dispatch:
 jobs:
