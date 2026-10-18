@@ -1,0 +1,28 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium}=require('playwright');
+const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.url||'/').split('?')[0].slice(1));if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.json')?'application/json':'text/html');res.end(b)})});
+(async()=>{await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ await page.goto('http://127.0.0.1:'+server.address().port+'/app.html',{waitUntil:'domcontentloaded'});
+ await page.locator('#hlm-gm-season-entry').waitFor({timeout:90000});
+ await page.evaluate(()=>{localStorage.setItem('hlm_front_office_v8','GM_APPROVAL_SENTINEL');db.settings.controlledTeamId=db.teams[0].id;go('schedule')});
+ const team=await page.evaluate(()=>({a:db.teams[0].id,b:db.teams[1].id}));
+ const state={universe:{teams:[{id:team.a},{id:team.b}]},activity:{games:[{id:'g1',date:'2026-10-19',homeTeamId:team.a,awayTeamId:team.b,status:'scheduled'},{id:'g2',date:'2026-10-20',homeTeamId:team.a,awayTeamId:team.b,status:'final'}]}};
+ await page.locator('#hlm-schedule-file').setInputFiles({name:'export.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
+ await page.waitForFunction(()=>document.querySelector('#hlm-schedule-import-report')?.textContent.includes('2 controlled-team games'));
+ assert.equal(await page.locator('#hlm-approve-game-preview').count(),0);
+ assert.equal(await page.getByRole('button',{name:'Select game'}).count(),1);
+ await page.getByRole('button',{name:'Select game'}).click();
+ const approval=page.locator('#hlm-approve-game-preview');await approval.waitFor();
+ page.once('dialog',d=>d.dismiss());await approval.click();
+ assert.doesNotMatch(await page.locator('#hlm-isolated-game-preview').innerText(),/Isolated prototype result:/);
+ page.once('dialog',d=>d.accept());await approval.click();
+ const output=await page.locator('#hlm-isolated-game-preview').innerText();
+ assert.match(output,/Isolated prototype result:/);assert.match(output,/not saved/);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'GM_APPROVAL_SENTINEL');
+ await page.reload();await page.locator('#hlm-gm-season-entry').waitFor({timeout:90000});await page.evaluate(()=>go('schedule'));
+ assert.match(await page.locator('#hlm-schedule-import-report').innerText(),/No imported schedule in this session/);
+ assert.equal(await page.locator('#hlm-approve-game-preview').count(),0);
+ console.log('Real-app mobile GM decline/approve, isolated score, no-write and reload reset passed');
+}finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
