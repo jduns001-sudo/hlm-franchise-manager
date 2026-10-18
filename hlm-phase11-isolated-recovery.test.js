@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict');
 const {exportCheckpoint,previewRestore,restoreApproved,restoreWithRevision,reviewLineup}=require('./hlm-phase11-isolated-recovery');
 const state={meta:{controlledTeamId:1,currentDate:'2026-10-18'},universe:{teams:[{id:1,name:'Portland'},{id:2,name:'Seattle'}],players:[{id:10,teamId:1,name:'Test'}]},activity:{games:[{id:'g1',homeTeamId:1,awayTeamId:2,status:'final',homeGoals:3,awayGoals:2}]},privateNotes:'SECRET'};
-const payload=exportCheckpoint(state);assert(!payload.includes('SECRET'));const preview=previewRestore(payload);
+const payload=exportCheckpoint(state);assert(!payload.includes('SECRET'));const nested=JSON.parse(JSON.stringify(state));nested.universe.teams[0].privateNotes='TEAM_SECRET';nested.universe.players[0].medicalNote='PLAYER_SECRET';nested.activity.games[0].privateNotes='GAME_SECRET';const filtered=exportCheckpoint(nested);for(const secret of ['TEAM_SECRET','PLAYER_SECRET','GAME_SECRET'])assert(!filtered.includes(secret));const preview=previewRestore(payload);
 const tampered=JSON.parse(payload);tampered.state.activity.games[0].homeGoals=99;assert.throws(()=>previewRestore(JSON.stringify(tampered)),/integrity mismatch/);
 assert.equal(preview.gameCount,1);assert.equal(preview.playerCount,1);
 let writes=0;const isolatedStore={isolated:true,save(s){writes++;assert.equal(s.activity.games[0].homeGoals,3)}};
