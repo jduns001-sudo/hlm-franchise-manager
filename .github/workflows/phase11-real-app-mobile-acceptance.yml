@@ -1,0 +1,27 @@
+name: Phase 11 Real App Mobile Acceptance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-real-app-mobile-acceptance*'
+      - '.github/workflows/phase11-real-app-mobile-acceptance.yml'
+  workflow_dispatch:
+jobs:
+  node-universe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-real-app-mobile-acceptance.test.js
+  real-app-mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-real-app-mobile-acceptance.chromium.test.js
