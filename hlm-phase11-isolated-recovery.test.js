@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict');
-const {exportCheckpoint,previewRestore,restoreApproved,restoreWithRevision}=require('./hlm-phase11-isolated-recovery');
+const {exportCheckpoint,previewRestore,restoreApproved,restoreWithRevision,reviewLineup}=require('./hlm-phase11-isolated-recovery');
 const state={meta:{controlledTeamId:1,currentDate:'2026-10-18'},universe:{teams:[{id:1,name:'Portland'},{id:2,name:'Seattle'}],players:[{id:10,teamId:1,name:'Test'}]},activity:{games:[{id:'g1',homeTeamId:1,awayTeamId:2,status:'final',homeGoals:3,awayGoals:2}]},privateNotes:'SECRET'};
 const payload=exportCheckpoint(state);assert(!payload.includes('SECRET'));const preview=previewRestore(payload);
 const tampered=JSON.parse(payload);tampered.state.activity.games[0].homeGoals=99;assert.throws(()=>previewRestore(JSON.stringify(tampered)),/integrity mismatch/);
@@ -17,4 +17,5 @@ assert.throws(()=>restoreWithRevision(preview,true,guarded,2),/Stale/);
 assert.equal(restoreWithRevision(preview,true,guarded,3).revision,4);
 assert.throws(()=>restoreWithRevision(preview,true,guarded,3),/Stale/);
 assert.throws(()=>restoreWithRevision(preview,true,{...guarded,saveIfRevision:()=>false},4),/Concurrent/);
+assert.equal(reviewLineup(state,[10]).selected.length,1);assert.equal(reviewLineup(state,[10]).automaticAssignment,false);assert.throws(()=>reviewLineup(state,[10,10]),/Duplicate/);assert.throws(()=>reviewLineup(state,[11]),/non-roster/);
 console.log('Isolated checkpoint recovery safety regression passed');
