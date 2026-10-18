@@ -13,13 +13,20 @@ const original = JSON.stringify(state);
 const good = auditGameplayReadiness(state);
 assert.equal(good.ready,true);
 assert.equal(good.snapshot.scheduledGames,1);
+assert.equal(good.snapshot.finalGames,0);
+const completed=JSON.parse(original);
+completed.activity.games[0].status='final';
+const finishedAudit=auditGameplayReadiness(completed);
+assert.equal(finishedAudit.ready,true);
+assert.equal(finishedAudit.snapshot.scheduledGames,0);
+assert.equal(finishedAudit.snapshot.finalGames,1);
 assert.equal(good.snapshot.controlledTeamName,'Home');
 assert.equal(JSON.stringify(state),original);
 for(const [mutate,code] of [
   [s=>{s.meta.controlledTeamId=9},'CONTROLLED_TEAM_NOT_FOUND'],
   [s=>{s.meta.currentDate='2026-02-30'},'INVALID_CURRENT_DATE'],
   [s=>{s.meta.saveId=null},'MISSING_SAVE_ID'],
-  [s=>{s.activity.games=[]},'NO_SCHEDULED_GAMES']
+  [s=>{s.activity.games=[]},'NO_SEASON_GAMES']
 ]){
   const invalid=JSON.parse(original);mutate(invalid);
   const audit=auditGameplayReadiness(invalid);
