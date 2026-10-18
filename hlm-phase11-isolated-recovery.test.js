@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {exportCheckpoint,previewRestore,restoreApproved}=require('./hlm-phase11-isolated-recovery');
+const state={meta:{controlledTeamId:1,currentDate:'2026-10-18'},universe:{teams:[{id:1,name:'Portland'},{id:2,name:'Seattle'}],players:[{id:10,teamId:1,name:'Test'}]},activity:{games:[{id:'g1',homeTeamId:1,awayTeamId:2,status:'final',homeGoals:3,awayGoals:2}]},privateNotes:'SECRET'};
+const payload=exportCheckpoint(state);assert(!payload.includes('SECRET'));const preview=previewRestore(payload);
+assert.equal(preview.gameCount,1);assert.equal(preview.playerCount,1);
+let writes=0;const isolatedStore={isolated:true,save(s){writes++;assert.equal(s.activity.games[0].homeGoals,3)}};
+assert.throws(()=>restoreApproved(preview,false,isolatedStore),/approval/);assert.equal(writes,0);
+assert.throws(()=>restoreApproved(preview,true,{save(){writes++}}),/isolated store/);assert.equal(writes,0);
+assert.deepEqual(restoreApproved(preview,true,isolatedStore),{restored:true,productionWrite:false,finalDecisionMaker:'human-gm'});assert.equal(writes,1);
+assert.throws(()=>previewRestore(JSON.stringify({...JSON.parse(payload),activation:true})),/safe isolated/);
+assert.throws(()=>exportCheckpoint({...state,activity:{games:[{...state.activity.games[0],homeGoals:-1}]}}),/final score/);
+assert.throws(()=>exportCheckpoint({...state,universe:{...state.universe,players:[{id:10,teamId:99}]}}),/player team/);
+console.log('Isolated checkpoint recovery safety regression passed');
