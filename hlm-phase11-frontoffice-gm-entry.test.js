@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const app=fs.readFileSync(path.join(__dirname,'app.html'),'utf8');
+const bridge=fs.readFileSync(path.join(__dirname,'hlm-phase11-gameplay-bridge.html'),'utf8');
+assert.match(app,/id="hlm-gm-season-entry"/);
+assert.match(app,/id="hlm-gm-gameplay-preview"/);
+assert.match(app,/href="\.\/hlm-phase11-gameplay-bridge\.html"/);
+assert.match(app,/Not available in current HLM export/);
+assert.match(app,/Season simulation remains experimental and separate from your live franchise/);
+assert.match(app,/onclick="go\('roster'\)"/);
+assert.match(app,/onclick="go\('schedule'\)"/);
+assert.match(bridge,/Production is read-only/);
+console.log('Front Office GM gameplay entry and production-safe navigation contract passed');
