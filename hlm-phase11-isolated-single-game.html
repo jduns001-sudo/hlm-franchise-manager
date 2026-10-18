@@ -17,7 +17,7 @@ function refresh(){
  const gmFinals=(state?.activity?.games||[]).filter(g=>g.status==='final'&&(String(g.homeTeamId)===String(gmId)||String(g.awayTeamId)===String(gmId))).sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.id).localeCompare(String(a.id))).slice(0,5);
  const gmForm=gmFinals.map(g=>{const home=String(g.homeTeamId)===String(gmId),own=Number(home?g.homeGoals:g.awayGoals),opp=Number(home?g.awayGoals:g.homeGoals);return !Number.isFinite(own)||!Number.isFinite(opp)?'?':own>opp?'W':own<opp?'L':'T'}).join(' ');
  const gmUpcoming=games.filter(g=>String(g.homeTeamId)===String(gmId)||String(g.awayTeamId)===String(gmId)).sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id))).slice(0,3);
- const gmUpcomingText=gmUpcoming.map(g=>g.date+' | '+teamName(g.homeTeamId)+' vs '+teamName(g.awayTeamId)).join('\\n')||'None';
+ const gmUpcomingText=gmUpcoming.map(g=>g.date+' | '+teamName(g.homeTeamId)+' vs '+teamName(g.awayTeamId)).join('\n')||'None';
  const gmLastText=gmLast?gmLast.date+' | '+teamName(gmLast.homeTeamId)+' '+gmLast.homeGoals+' : '+gmLast.awayGoals+' '+teamName(gmLast.awayTeamId):'None';
  const gmNextText=gmNext?gmNext.date+' | '+teamName(gmNext.homeTeamId)+' vs '+teamName(gmNext.awayTeamId):'None';
  const summary=window.HLMIsolatedSeasonDashboard.overview(state,engine);
