@@ -1,0 +1,27 @@
+name: Phase 11 Live Integration Repair
+on:
+  pull_request:
+    paths:
+      - 'app.html'
+      - 'hlm-phase11-live-integration-repair*'
+      - '.github/workflows/phase11-live-integration-repair.yml'
+  workflow_dispatch:
+jobs:
+  node-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-live-integration-repair.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-live-integration-repair.chromium.test.js
