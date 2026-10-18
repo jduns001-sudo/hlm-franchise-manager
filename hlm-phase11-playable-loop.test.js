@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createBridge,KEY}=require('./hlm-phase11-gameplay-bridge');
+const {simulateGameScore}=require('./hlm-phase10-game-simulator');
+const teams=[{id:1,name:'Portland'},{id:2,name:'Seattle'},{id:3,name:'Victoria'}];
+const game={id:'g1',homeTeamId:1,awayTeamId:2,status:'scheduled',date:'2026-10-18'};
+const state={meta:{controlledTeamId:1,currentDate:'2026-10-17'},universe:{teams},activity:{games:[game]},privateNotes:'do not expose private notes'};
+let writes=0;
+const storage={getItem:k=>k===KEY?JSON.stringify(state):null,setItem(){writes++;}};
+const engine={createBrowserFranchiseSaveStore:()=>({load:()=>state,advanceAndSave(seed){const g=simulateGameScore({gameId:'g1',homeTeamId:1,awayTeamId:2,seed});state.activity.games[0]={...g,id:'g1',date:'2026-10-18'};state.meta.currentDate='2026-10-18';writes++;return {fromDate:'2026-10-17',toDate:'2026-10-18',results:[g]}}}),calculateStandings:(teams,games)=>teams.map(t=>({teamId:t.id,played:games.filter(g=>g.status==='final'&&(g.homeTeamId===t.id||g.awayTeamId===t.id)).length}))};
+const bridge=createBridge(engine,storage),snapshot=bridge.playableFranchiseSnapshot();
+assert.equal(snapshot.team,'Portland');assert.equal(snapshot.rosterAvailability,'missing');assert.equal(snapshot.scheduledGames,1);assert.equal(snapshot.nextGame.opponent,'Seattle');assert.equal(snapshot.simulationAvailable,true);assert.equal(snapshot.advanceRequiresHumanApproval,true);assert.equal(snapshot.independentVerification,'pending');assert.equal(snapshot.productionActivationAllowed,false);assert.equal(snapshot.automaticTransactionsAllowed,false);assert.equal(snapshot.finalDecisionMaker,'human-gm');
+assert.equal(JSON.stringify(snapshot).includes('do not expose private notes'),false);
+assert.throws(()=>bridge.advancePlayableFranchiseDay(false,42),/Explicit GM confirmation/);assert.equal(writes,0);
+const result=bridge.advancePlayableFranchiseDay(true,42);
+assert.equal(result.simulatedGames,1);assert.equal(result.after.completedControlledGames,1);assert.equal(result.after.scheduledGames,0);assert.equal(result.after.standings[0].played,1);assert.equal(result.after.simulationAvailable,false);assert.equal(writes,1);
+assert.equal(JSON.stringify(result).includes('do not expose private notes'),false);assert.equal(result.finalDecisionMaker,'human-gm');
+console.log('Mission 1310 GM-approved isolated franchise gameplay loop passed');
