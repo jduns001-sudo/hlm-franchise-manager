@@ -13,11 +13,14 @@ function refresh(){
  const gmId=state?.meta?.controlledTeamId;
  const gmNext=games.filter(g=>String(g.homeTeamId)===String(gmId)||String(g.awayTeamId)===String(gmId)).sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id)))[0];
  if(gmNext)$('game').value=String(gmNext.id);
+ const gmLast=(state?.activity?.games||[]).filter(g=>g.status==='final'&&(String(g.homeTeamId)===String(gmId)||String(g.awayTeamId)===String(gmId))).sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.id).localeCompare(String(a.id)))[0];
+ const gmLastText=gmLast?gmLast.date+' | '+teamName(gmLast.homeTeamId)+' '+gmLast.homeGoals+' : '+gmLast.awayGoals+' '+teamName(gmLast.awayTeamId):'None';
+ const gmNextText=gmNext?gmNext.date+' | '+teamName(gmNext.homeTeamId)+' vs '+teamName(gmNext.awayTeamId):'None';
  const summary=window.HLMIsolatedSeasonDashboard.overview(state,engine);
  const nextDay=games.map(g=>String(g.date)).sort()[0];
  const dayGames=games.filter(g=>String(g.date)===nextDay);
  const gmDayGames=dayGames.filter(g=>String(g.homeTeamId)===String(gmId)||String(g.awayTeamId)===String(gmId));
- $('gm-daily-brief').textContent=summary?'Current date: '+summary.date+'\nNext scheduled day: '+(nextDay||'None')+'\nLeague games next day: '+dayGames.length+'\nYour games next day: '+gmDayGames.length+'\nYour next opponent: '+(gmNext?(String(gmNext.homeTeamId)===String(gmId)?teamName(gmNext.awayTeamId):teamName(gmNext.homeTeamId)):'None')+'\nReview next day, then explicitly approve to simulate and persist.':'No isolated season loaded.';
+ $('gm-daily-brief').textContent=summary?'Current date: '+summary.date+'\nNext scheduled day: '+(nextDay||'None')+'\nLeague games next day: '+dayGames.length+'\nYour games next day: '+gmDayGames.length+'\nYour latest result: '+gmLastText+'\nYour next matchup: '+gmNextText+'\nYour next opponent: '+(gmNext?(String(gmNext.homeTeamId)===String(gmId)?teamName(gmNext.awayTeamId):teamName(gmNext.homeTeamId)):'None')+'\nReview next day, then explicitly approve to simulate and persist.':'No isolated season loaded.';
  $('season-dashboard').textContent=summary?'Date: '+summary.date+'\nCompleted games: '+summary.completedCount+' | Upcoming games: '+summary.scheduledCount+'\nNext GM game: '+(gmNext?gmNext.date+' | '+teamName(gmNext.homeTeamId)+' vs '+teamName(gmNext.awayTeamId):'None')+'\nRecent results:\n'+(summary.latestResults.map(g=>g.date+' | '+teamName(g.homeTeamId)+' '+g.homeGoals+' : '+g.awayGoals+' '+teamName(g.awayTeamId)).join('\n')||'None')+'\nNext scheduled:\n'+(summary.upcoming.map(g=>g.date+' | '+teamName(g.homeTeamId)+' vs '+teamName(g.awayTeamId)).join('\n')||'None')+'\nStandings:\n'+JSON.stringify(summary.standings,null,2):'No isolated season loaded.';
  $('approve').disabled=!games.length;
  $('day-review').disabled=!games.length;$('day-approve').disabled=true;$('day-report').textContent='No day reviewed.';
