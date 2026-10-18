@@ -1,0 +1,27 @@
+name: Phase 11 Live Roster Preview
+on:
+  pull_request:
+    paths:
+      - 'app.html'
+      - 'hlm-phase11-frontoffice-roster-preview-ui*'
+      - '.github/workflows/phase11-live-roster-preview.yml'
+  workflow_dispatch:
+jobs:
+  node-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-frontoffice-roster-preview-ui.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-frontoffice-roster-preview-ui.chromium.test.js
