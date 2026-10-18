@@ -4,6 +4,7 @@ on:
     paths:
       - 'hlm-phase11-isolated-recovery*'
       - 'hlm-phase11-recovery-season-review*'
+      - 'hlm-phase11-isolated-season-advance*'
       - '.github/workflows/phase11-isolated-recovery.yml'
   workflow_dispatch:
 jobs:
@@ -16,6 +17,7 @@ jobs:
           node-version: '22'
       - run: node hlm-phase11-isolated-recovery.test.js
       - run: node hlm-phase11-recovery-season-review.test.js
+      - run: node hlm-phase11-isolated-season-advance.test.js
 
   mobile-chromium:
     runs-on: ubuntu-latest
