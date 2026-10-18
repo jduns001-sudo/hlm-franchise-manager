@@ -3,7 +3,7 @@
 'use strict';
 const KEY='hlm-phase11-m1340-isolated-single-game-v1';
 function create(engine,storage){
- if(!engine||typeof engine.applyScheduledGame!=='function'||typeof engine.createBrowserFranchiseSaveStore!=='function'||typeof engine.calculateStandings!=='function'||typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 game, standings and save engine required');
+ if(!engine||typeof engine.applyScheduledGame!=='function'||typeof engine.createBrowserFranchiseSaveStore!=='function'||typeof engine.calculateStandings!=='function')throw Error('Existing Phase 10 game, standings and save engine required');
  const store=engine.createBrowserFranchiseSaveStore(storage,KEY);
  let baseline=storage.getItem(KEY);
  function load(){const state=store.load();baseline=storage.getItem(KEY);return state}
@@ -34,11 +34,13 @@ function create(engine,storage){
   return {result:result.result,standings,state:result.nextState};
  }
  function reviewNextDay(){
+  if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
   const state=store.load();if(!state)throw Error('No isolated save');
   const preview=engine.simulateNextDay(state,1341);
   return Object.freeze({fromDate:preview.fromDate,toDate:preview.toDate,scheduledGameIds:Object.freeze(preview.results.map(g=>g.gameId)),games:preview.results.length});
  }
  function advanceNextDay(seed,approved){
+  if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
   if(approved!==true)throw Error('Human GM day approval required');
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
   const before=store.load();if(!before)throw Error('No isolated save');
