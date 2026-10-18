@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('hlm-phase11-isolated-single-game.html','utf8');
+assert.match(html,/const teamNames=new Map/);
+assert.match(html,/const teamName=id=>/);
+assert.ok(html.indexOf('const teamName=id=>')<html.indexOf('for(const g of games)'), 'team lookup must initialize before rendering games');
+assert.match(html,/Next GM game:/);
+assert.match(html,/teamName\(g\.homeTeamId\)/);
+assert.match(html,/teamName\(g\.awayTeamId\)/);
+assert.match(html,/manager\.reviewNextDay/);
+assert.match(html,/manager\.advanceNextDay/);
+assert.match(html,/navigator\.locks\.request/);
+assert.match(html,/confirm\('Human GM/);
+assert.match(html,/HLMIsolatedSeasonDashboard\.overview/);
+const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+assert.equal(scripts.length,1);
+assert.doesNotThrow(()=>new Function(scripts[0][1]));
+console.log('Mission 1344 readable schedule and human GM safety contract passed');

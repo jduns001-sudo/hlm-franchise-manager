@@ -6,10 +6,14 @@ let candidate=null;
 async function locked(fn){if(!navigator.locks||typeof navigator.locks.request!=='function')throw Error('Safe cross-tab locking unavailable; save blocked');return navigator.locks.request('hlm-phase11-m1340-isolated-single-game-lock',{mode:'exclusive'},fn)}
 function refresh(){
  const state=manager.load(),games=state?.activity?.games?.filter(g=>g.status==='scheduled')||[];
+ const teamNames=new Map((state?.universe?.teams||[]).map(t=>[String(t.id),String(t.name||t.id)]));
+ const teamName=id=>teamNames.get(String(id))||String(id);
  $('game').replaceChildren();
- for(const g of games){const o=document.createElement('option');o.value=String(g.id);o.textContent=g.date+' | '+g.homeTeamId+' vs '+g.awayTeamId;$('game').append(o)}
+ for(const g of games){const o=document.createElement('option');o.value=String(g.id);o.textContent=g.date+' | '+teamName(g.homeTeamId)+' vs '+teamName(g.awayTeamId);$('game').append(o)}
+ const gmId=state?.meta?.controlledTeamId;
+ const gmNext=games.find(g=>String(g.homeTeamId)===String(gmId)||String(g.awayTeamId)===String(gmId));
  const summary=window.HLMIsolatedSeasonDashboard.overview(state,engine);
- $('season-dashboard').textContent=summary?'Date: '+summary.date+'\nCompleted games: '+summary.completedCount+' | Upcoming games: '+summary.scheduledCount+'\nRecent results:\n'+(summary.latestResults.map(g=>g.date+' | '+g.homeTeamId+' '+g.homeGoals+' : '+g.awayGoals+' '+g.awayTeamId).join('\n')||'None')+'\nNext scheduled:\n'+(summary.upcoming.map(g=>g.date+' | '+g.homeTeamId+' vs '+g.awayTeamId).join('\n')||'None')+'\nStandings:\n'+JSON.stringify(summary.standings,null,2):'No isolated season loaded.';
+ $('season-dashboard').textContent=summary?'Date: '+summary.date+'\nCompleted games: '+summary.completedCount+' | Upcoming games: '+summary.scheduledCount+'\nNext GM game: '+(gmNext?gmNext.date+' | '+teamName(gmNext.homeTeamId)+' vs '+teamName(gmNext.awayTeamId):'None')+'\nRecent results:\n'+(summary.latestResults.map(g=>g.date+' | '+teamName(g.homeTeamId)+' '+g.homeGoals+' : '+g.awayGoals+' '+teamName(g.awayTeamId)).join('\n')||'None')+'\nNext scheduled:\n'+(summary.upcoming.map(g=>g.date+' | '+teamName(g.homeTeamId)+' vs '+teamName(g.awayTeamId)).join('\n')||'None')+'\nStandings:\n'+JSON.stringify(summary.standings,null,2):'No isolated season loaded.';
  $('approve').disabled=!games.length;
  $('day-review').disabled=!games.length;$('day-approve').disabled=true;$('day-report').textContent='No day reviewed.';
  $('output').textContent=state?'Isolated franchise: '+(state.meta.controlledTeamId??'unknown')+'\nScheduled games remaining: '+games.length+'\nCompleted: '+state.activity.games.filter(g=>g.status==='final').length+'\nStandings: '+JSON.stringify(engine.calculateStandings(state.universe.teams,state.activity.games),null,2):'No isolated save loaded.';
