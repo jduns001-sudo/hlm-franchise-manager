@@ -1,0 +1,29 @@
+name: Phase 11 Imported Team Classification
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-imported-team-classification*'
+      - 'hlm-phase11-frontoffice-roster-bridge.js'
+      - 'hlm-phase11-frontoffice-roster-preview-ui.js'
+      - 'app.html'
+      - '.github/workflows/phase11-imported-team-classification.yml'
+  workflow_dispatch:
+jobs:
+  node-classification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-imported-team-classification.test.js hlm-phase11-frontoffice-roster-bridge.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-imported-team-classification.chromium.test.js
