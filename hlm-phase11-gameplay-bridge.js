@@ -70,7 +70,7 @@ function createBridge(engine,storage){
   const owner=validate(state),ownerId=String(owner.id);
   const review=reviewControlledTeamDecisions(adapter);
   const sourceGames=state.activity.games.filter(g=>g.status==='final'&&(String(g.homeTeamId)===ownerId||String(g.awayTeamId)===ownerId));
-  const datePattern=/^\\d{4}-\\d{2}-\\d{2}$/;
+  const datePattern=/^\d{4}-\d{2}-\d{2}$/;
   const issues=[];
   for(const game of sourceGames){
    if(typeof game.date!=='string'||!datePattern.test(game.date)||Number.isNaN(Date.parse(game.date+'T00:00:00Z')))issues.push('Completed game has missing or invalid date');
