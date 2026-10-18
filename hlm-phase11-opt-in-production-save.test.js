@@ -18,4 +18,7 @@ test('no automatic guard activation in production HTML',()=>{
  assert.match(app,/authorization!=='I ENABLE GUARDED SAVES'/);
  assert.match(app,/authorization!=='I DISABLE GUARDED SAVES'/);
  assert.match(app,/phase11GuardBlocked=true/);
+ assert.match(app,/async enable\(authorization\)/);
+ assert.match(app,/async disable\(authorization\)/);
+ assert.match(app,/async cancel|cancel\(\)/);
 });
