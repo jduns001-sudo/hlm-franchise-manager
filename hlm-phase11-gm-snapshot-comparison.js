@@ -1,0 +1,8 @@
+/* Mission 1289. Ephemeral aggregate-only comparisons; never an approval engine. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMGMSnapshotComparison=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){'use strict';
+const metrics=['critical','high','medium','low','totalUnresolved','missingEvidenceItems'];
+function normalize(value){if(!value||typeof value!=='object')throw Error('Aggregate snapshot required');const counts=value.priorityCounts;if(!counts||typeof counts!=='object')throw Error('Priority counts required');const result={};for(const key of metrics){const n=key==='totalUnresolved'||key==='missingEvidenceItems'?value[key]:counts[key];if(!Number.isSafeInteger(n)||n<0)throw Error('Invalid aggregate metric: '+key);result[key]=n}return Object.freeze(result)}
+function compare(baseline,current){const a=normalize(baseline),b=normalize(current),changes=metrics.map(key=>Object.freeze({metric:key,before:a[key],after:b[key],delta:b[key]-a[key],explanation:key+' '+(b[key]===a[key]?'unchanged':b[key]>a[key]?'increased by '+(b[key]-a[key]):'decreased by '+(a[key]-b[key]))}));return Object.freeze({kind:'experimental-gm-aggregate-snapshot-comparison',changes:Object.freeze(changes),verified:0,approved:0,independentVerification:'pending',productionActivationAllowed:false,containsNoteContents:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'})}
+function handoff(a,b){return JSON.stringify(compare(a,b))}
+return Object.freeze({compare,handoff,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
+});
