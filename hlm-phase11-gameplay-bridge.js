@@ -40,7 +40,17 @@ function createBridge(engine,storage){
   if(result.toDate===before.meta.currentDate)throw Error('Duplicate date advance refused');
   return {fromDate:result.fromDate,toDate:result.toDate,results:result.results,summary:summary(load())};
  }
- return {key:KEY,summary,load,importIsolated,advance};
+ function reviewSimulationEvidence(adapter){
+  if(!adapter||typeof adapter.adapt!=='function')throw Error('Read-only evidence adapter required');
+  const state=load();if(!state)throw Error('No isolated franchise loaded');
+  validate(state);
+  const finals=state.activity.games.filter(g=>g.status==='final');
+  if(!finals.length)throw Error('No completed isolated games available');
+  const results=finals.map(g=>({gameId:g.id,homeTeamId:g.homeTeamId,awayTeamId:g.awayTeamId,homeGoals:g.homeGoals,awayGoals:g.awayGoals,winnerTeamId:g.winnerTeamId,status:g.status}));
+  const evidence=adapter.adapt(results);
+  return Object.freeze({kind:'isolated-gameplay-human-gm-evidence',controlledTeamId:state.meta.controlledTeamId,asOfDate:state.meta.currentDate,evidence,independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
+ }
+ return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence};
 }
 return {createBridge,KEY};
 });
