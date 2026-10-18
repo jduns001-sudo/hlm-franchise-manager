@@ -1,5 +1,5 @@
 'use strict';
-const {test,expect}=require('@playwright/test'),fs=require('node:fs');
+const {test,expect}=require('@playwright/test'),fs=require('node:fs'),path=require('node:path');
 const html=fs.readFileSync('app.html','utf8');
 const universe=JSON.parse(fs.readFileSync('hlm-universe.json','utf8'));
 const origin='https://phase11-runtime-roster.invalid/';
@@ -7,7 +7,7 @@ const imported={id:987654321,name:'Phase Eleven Mobile Import',teamId:universe.t
 const state={schema:7,settings:{controlledTeamId:universe.teams[0].id,franchiseName:'Safety Test',season:2026,capLimit:88500000},customPlayers:[imported],playerOverrides:{},draftPickOverrides:{},extraDraftPicks:[],decisions:[],transactions:[],lines:{},depth:{},contracts:[],prospects:[],draftBoard:[],history:[],waivers:[],notes:[]};
 test.use({browserName:'chromium',viewport:{width:390,height:844}});
 test('mobile browser loads actual app.html and renders saved imported player without cutover',async({page})=>{
- await page.route(origin+'**',route=>{const url=route.request().url();if(url.endsWith('/app.html'))return route.fulfill({status:200,contentType:'text/html',body:html});if(url.endsWith('/hlm-universe.json'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(universe)});return route.fulfill({status:404,body:'Not found'})});
+ await page.route(origin+'**',route=>{const url=route.request().url();if(url.endsWith('/app.html'))return route.fulfill({status:200,contentType:'text/html',body:html});if(url.endsWith('/hlm-universe.json'))return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(universe)});const name=decodeURIComponent(new URL(url).pathname.slice(1));if(name.includes('..'))return route.abort();const file=path.join(process.cwd(),name);if(fs.existsSync(file)&&fs.statSync(file).isFile())return route.fulfill({status:200,contentType:name.endsWith('.js')?'application/javascript':name.endsWith('.json')?'application/json':'text/plain',body:fs.readFileSync(file)});return route.fulfill({status:404,body:'Not found'})});
  await page.goto(origin+'app.html');
  await page.evaluate(v=>new Promise((resolve,reject)=>{const req=indexedDB.open('hlm_front_office_v8',1);req.onupgradeneeded=()=>req.result.createObjectStore('state');req.onsuccess=()=>{const db=req.result,tx=db.transaction('state','readwrite');tx.objectStore('state').put(v,'db');tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>reject(tx.error)};req.onerror=()=>reject(req.error)}),state);
  await page.reload();
