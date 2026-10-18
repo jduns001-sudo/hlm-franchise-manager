@@ -1,0 +1,28 @@
+name: Phase 11 Opt-In Production Save
+on:
+  pull_request:
+    paths:
+      - 'app.html'
+      - 'hlm-phase11-opt-in-production-save*'
+      - '.github/workflows/phase11-opt-in-production-save.yml'
+  workflow_dispatch:
+jobs:
+  production-save-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-opt-in-production-save.test.js
+  real-app-mobile-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-ordinary-save-concurrency.chromium.test.js
