@@ -1,0 +1,28 @@
+name: Phase 11 Front Office Isolation
+on:
+  pull_request:
+    paths:
+      - 'app.html'
+      - 'hlm-phase11-*'
+      - '.github/workflows/phase11-frontoffice-isolation.yml'
+  workflow_dispatch:
+jobs:
+  isolation-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-frontoffice-isolation.test.js
+  isolated-mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-season-ledger.chromium.test.js
+      - run: node hlm-phase11-isolated-tab-guard.chromium.test.js
