@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const index=fs.readFileSync(require('node:path').join(__dirname,'index.html'),'utf8');
+const bridge=fs.readFileSync(require('node:path').join(__dirname,'hlm-phase11-gameplay-bridge.html'),'utf8');
+assert.match(index,/<a href="\.\/hlm-phase11-gameplay-bridge\.html">/);
+assert.match(index,/Experimental Gameplay Bridge/);
+assert.match(index,/Production saves remain untouched/);
+assert.match(index,/if\(!tools\)location\.replace\('\.\/app\.html'\)/);
+assert.match(bridge,/Production is read-only/);
+assert.match(bridge,/id="read-frontoffice"/);
+assert.match(bridge,/id="readiness"/);
+console.log('Experimental gameplay bridge tools navigation contract passed');
