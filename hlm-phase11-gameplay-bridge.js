@@ -99,7 +99,25 @@ function createBridge(engine,storage){
   const recent=review.recent.map(g=>Object.freeze({venue:g.venue,result:g.result,goalsFor:g.goalsFor,goalsAgainst:g.goalsAgainst}));
   return Object.freeze({kind:'isolated-controlled-team-human-review-packet',team:review.team,asOfDate:review.asOfDate,gameEvidence:Object.freeze({completedGames:review.completedGames,wins:review.wins,losses:review.losses,goalsFor:review.goalsFor,goalsAgainst:review.goalsAgainst,recent:Object.freeze(recent),nextOpponentScheduled:review.nextOpponent!==null}),sourceQualityIssues:audit.dataQualityIssues,readiness:audit.readiness,unverifiedEvidence:audit.requiresIndependentVerification,verificationChecklist:Object.freeze(checks),handoffNote:'Game scores are isolated simulation evidence, not verified roster, player or staff facts. Review sources before any human GM decision.',independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
  }
- return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence,reviewControlledTeamDecisions,auditControlledTeamEvidence,prepareControlledTeamEvidenceActions,prepareControlledTeamHumanReviewPacket};
+ function playableFranchiseSnapshot(){
+  const state=load();if(!state)throw Error('No isolated franchise loaded');
+  const owner=validate(state),ownerId=String(owner.id),games=state.activity.games;
+  const owned=games.filter(g=>String(g.homeTeamId)===ownerId||String(g.awayTeamId)===ownerId);
+  const finals=owned.filter(g=>g.status==='final'),scheduled=owned.filter(g=>g.status==='scheduled').sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const roster=state.universe.players;
+  const rosterAvailability=Array.isArray(roster)?'present-unverified':'missing';
+  const scheduledGame=scheduled[0]||null;
+  const opponent=scheduledGame?state.universe.teams.find(t=>String(t.id)===String(String(scheduledGame.homeTeamId)===ownerId?scheduledGame.awayTeamId:scheduledGame.homeTeamId)):null;
+  const standings=engine.calculateStandings(state.universe.teams,games);
+  return Object.freeze({kind:'isolated-playable-franchise-snapshot',team:owner.name,asOfDate:state.meta.currentDate,rosterAvailability,rosterVerification:'pending',scheduledGames:scheduled.length,completedControlledGames:finals.length,nextGame:scheduledGame?Object.freeze({date:scheduledGame.date,venue:String(scheduledGame.homeTeamId)===ownerId?'home':'away',opponent:opponent?opponent.name:'unknown'}):null,standings,simulationAvailable:games.some(g=>g.status==='scheduled'),advanceRequiresHumanApproval:true,independentVerification:'pending',productionActivationAllowed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
+ }
+ function advancePlayableFranchiseDay(approved,seed){
+  if(approved!==true)throw Error('Explicit GM confirmation required');
+  const before=playableFranchiseSnapshot();
+  const result=advance(true,seed);
+  return Object.freeze({kind:'isolated-playable-franchise-day-result',fromDate:result.fromDate,toDate:result.toDate,simulatedGames:result.results.length,before,after:playableFranchiseSnapshot(),productionActivationAllowed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
+ }
+ return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence,reviewControlledTeamDecisions,auditControlledTeamEvidence,prepareControlledTeamEvidenceActions,prepareControlledTeamHumanReviewPacket,playableFranchiseSnapshot,advancePlayableFranchiseDay};
 }
 return {createBridge,KEY};
 });
