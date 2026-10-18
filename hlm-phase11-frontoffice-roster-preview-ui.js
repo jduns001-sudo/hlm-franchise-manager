@@ -10,7 +10,7 @@ const approve=root.document.createElement('button');approve.type='button';approv
 const close=root.document.createElement('button');close.type='button';close.textContent='Close';close.style.minHeight='44px';panel.appendChild(close);
 launcher.addEventListener('click',()=>{panel.hidden=false;message.textContent='Not activated. Your saves are unchanged.'});
 close.addEventListener('click',()=>{panel.hidden=true});
-approve.addEventListener('click',()=>{try{const p=root.HLMFrontOfficeRosterBridge.preview(getDb(),{humanApproved:true});message.textContent=p.universe.teams.length+' teams, '+p.universe.players.length+' assigned active players. '+p.excludedUnknownTeamCount+' imported players excluded for unknown team IDs. Controlled team '+p.meta.controlledTeamId+'. Preview only. No save changes.'}catch(e){message.textContent='Preview unavailable: '+String(e.message).slice(0,160)}});
+approve.addEventListener('click',()=>{try{const p=root.HLMFrontOfficeRosterBridge.preview(getDb(),{humanApproved:true});message.textContent=p.universe.teams.length+' teams, '+p.universe.players.length+' assigned active players. '+p.excludedUnknownTeamCount+' imported players excluded for unknown team IDs ('+(p.importedTeamClassification?p.importedTeamClassification.retiredUnknownTeam+' retired, '+p.importedTeamClassification.activeUnknownTeam+' unresolved active':'classification unavailable')+'). Controlled team '+p.meta.controlledTeamId+'. Preview only. No save changes.'}catch(e){message.textContent='Preview unavailable: '+String(e.message).slice(0,160)}});
 root.document.body.appendChild(panel);root.document.body.appendChild(launcher);}
 root.HLMFrontOfficeRosterPreviewUI=Object.freeze({mount});
 })(typeof globalThis!=='undefined'?globalThis:this);
