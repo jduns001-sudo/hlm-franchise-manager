@@ -1,0 +1,3 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
+test('production app keeps experimental atomic guard disabled and uses real imported universe',()=>{const s=fs.readFileSync('app.html','utf8'),u=JSON.parse(fs.readFileSync('hlm-universe.json','utf8'));assert.match(s,/HLM_PHASE11_SAVE_GUARD_OPT_IN!==true/);assert.match(s,/phase11ExpectedState=old\?JSON\.parse/);assert.match(s,/HLMPhase11AtomicCutover\.guardedSave\(indexedDB,phase11ExpectedState,next\)/);assert.doesNotMatch(s,/<script[^>]*src="[^"]*hlm-phase11-atomic-cutover\.js"/);assert.ok(u.players.length>11000);assert.ok(u.teams.length>250);});
