@@ -14,6 +14,6 @@ assert.match(await page.locator('#hlm-preview-status').innerText(),/2 teams, 2 a
 assert.equal((await page.locator('#hlm-preview-panel').innerText()).includes('secret'),false);
 assert.equal(await page.evaluate(()=>JSON.stringify(window.__testDb||{})), '{}');
 assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-assert.ok(app.includes('hlm-phase11-frontoffice-roster-preview-ui.js"></script>\n<script>'));
+assert.ok(app.includes('hlm-phase11-frontoffice-roster-preview-ui.js"></script>\n<script src="./hlm-phase11-atomic-cutover.js"></script>\n<script>'));
 console.log('Realistic mobile roster preview and repaired script boundary passed');
 }finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});
