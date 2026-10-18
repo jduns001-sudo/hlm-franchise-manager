@@ -50,7 +50,22 @@ function createBridge(engine,storage){
   const evidence=adapter.adapt(results);
   return Object.freeze({kind:'isolated-gameplay-human-gm-evidence',controlledTeamId:state.meta.controlledTeamId,asOfDate:state.meta.currentDate,evidence,independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
  }
- return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence};
+ function reviewControlledTeamDecisions(adapter){
+  const state=load();if(!state)throw Error('No isolated franchise loaded');
+  const owner=validate(state),ownerId=String(owner.id);
+  const evidence=reviewSimulationEvidence(adapter);
+  const teamNames=new Map(state.universe.teams.map(t=>[String(t.id),String(t.name)]));
+  const games=state.activity.games.filter(g=>g.status==='final'&&(String(g.homeTeamId)===ownerId||String(g.awayTeamId)===ownerId));
+  const byId=new Map(games.map(g=>[String(g.id),g]));
+  const relevant=evidence.evidence.results.filter(g=>byId.has(g.gameId));
+  const wins=relevant.filter(g=>{const source=byId.get(g.gameId);return g.homeWon=== (String(source.homeTeamId)===ownerId)}).length;
+  const goalsFor=relevant.reduce((sum,g)=>{const source=byId.get(g.gameId);return sum+(String(source.homeTeamId)===ownerId?g.homeGoals:g.awayGoals)},0);
+  const goalsAgainst=relevant.reduce((sum,g)=>{const source=byId.get(g.gameId);return sum+(String(source.homeTeamId)===ownerId?g.awayGoals:g.homeGoals)},0);
+  const next=state.activity.games.filter(g=>g.status==='scheduled'&&(String(g.homeTeamId)===ownerId||String(g.awayTeamId)===ownerId)).sort((a,b)=>String(a.date).localeCompare(String(b.date)))[0]||null;
+  const recent=relevant.slice(-5).map(g=>{const source=byId.get(g.gameId),home=String(source.homeTeamId)===ownerId;return Object.freeze({opponent:teamNames.get(String(home?source.awayTeamId:source.homeTeamId)),venue:home?'home':'away',result:g.homeWon===home?'win':'loss',goalsFor:home?g.homeGoals:g.awayGoals,goalsAgainst:home?g.awayGoals:g.homeGoals})});
+  return Object.freeze({kind:'experimental-controlled-team-decision-review',team:owner.name,asOfDate:state.meta.currentDate,completedGames:relevant.length,wins,losses:relevant.length-wins,goalsFor,goalsAgainst,recent:Object.freeze(recent),nextOpponent:next?teamNames.get(String(String(next.homeTeamId)===ownerId?next.awayTeamId:next.homeTeamId)):null,reviewQuestions:Object.freeze(['Review recent results and opponent context before making lineup decisions','Verify current roster, injuries and staff information independently before any action']),limitations:'Completed isolated game scores only; no verified roster, player performance, staff morale, injuries or independent evidence',independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
+ }
+ return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence,reviewControlledTeamDecisions};
 }
 return {createBridge,KEY};
 });
