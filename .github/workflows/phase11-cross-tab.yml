@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'hlm-phase11-isolated-tab-guard*'
+      - 'hlm-phase11-season-ledger.html'
       - '.github/workflows/phase11-cross-tab.yml'
   workflow_dispatch:
 jobs:
