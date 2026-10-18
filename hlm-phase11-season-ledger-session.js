@@ -1,0 +1,9 @@
+/* Experimental isolated multi-day controller. All writes use caller's isolated revision store. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMSeasonLedgerSession=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+function createSession(store,stagerFactory,simulate,ledger){if(!store||store.isolated!==true||typeof store.load!=='function'||typeof store.loadRevision!=='function'||typeof store.saveIfRevision!=='function'||typeof stagerFactory!=='function'||typeof simulate!=='function'||!ledger||typeof ledger.standings!=='function'||typeof ledger.continuity!=='function')throw Error('Isolated session dependencies required');
+function preview(){const state=store.load();if(!state)throw Error('No isolated season');return Object.freeze({revision:store.loadRevision(),pending:state.activity.games.filter(g=>g.status==='scheduled').length,standings:ledger.standings(state),requiresHumanApproval:true,productionWrite:false})}
+function advance(approved,seed,expectedRevision){if(approved!==true)throw Error('Human GM approval required');if(!Number.isSafeInteger(expectedRevision)||expectedRevision<0||store.loadRevision()!==expectedRevision)throw Error('Stale isolated revision');const before=store.load();if(!before)throw Error('No isolated season');const stager=stagerFactory(()=>store.load(),simulate);const staged=stager.prepareIsolatedAdvance(seed);ledger.continuity(before,staged.nextState);const table=ledger.standings(staged.nextState);if(store.saveIfRevision(staged.nextState,expectedRevision)!==true)throw Error('Concurrent isolated revision');return Object.freeze({revision:expectedRevision+1,date:staged.toDate,simulatedGames:staged.simulatedGames,standings:table,productionWrite:false,finalDecisionMaker:'human-gm'})}
+return Object.freeze({preview,advance});}
+return Object.freeze({createSession});
+});
