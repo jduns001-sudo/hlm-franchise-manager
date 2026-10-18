@@ -22,7 +22,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Your next opponent: CPU/);
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Your latest result: None/);
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Recent form \(newest first\): None/);
- assert.match(await page.locator('#gm-daily-brief').innerText(),/Next 3 GM games:[\\s\\S]*2026-10-19[\\s\\S]*2026-10-20/);
+ assert.match(await page.locator('#gm-daily-brief').innerText(),/Next 3 GM games:[\s\S]*2026-10-19[\s\S]*2026-10-20/);
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Your next matchup: 2026-10-19 \\| Owner vs CPU/);
  await page.locator('#day-review').click();
  assert.match(await page.locator('#day-report').innerText(),/2026-10-19/);
@@ -40,7 +40,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(await page.locator('#game').inputValue(),'g2');
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Your latest result: 2026-10-19 \\| Owner [0-9]+ : [0-9]+ CPU/);
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Recent form \(newest first\): [WLT]/);
- assert.match(await page.locator('#gm-daily-brief').innerText(),/Next 3 GM games:[\\s\\S]*2026-10-20/);
+ assert.match(await page.locator('#gm-daily-brief').innerText(),/Next 3 GM games:[\s\S]*2026-10-20/);
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Your next matchup: 2026-10-20 \\| CPU vs Owner/);
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Next scheduled day: 2026-10-20/);
  assert.match(await page.locator('#season-dashboard').innerText(),/Upcoming games: 1/);
@@ -56,7 +56,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Your latest result: 2026-10-20 \\| CPU [0-9]+ : [0-9]+ Owner/);
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Your next matchup: None/);
  assert.match(await page.locator('#gm-daily-brief').innerText(),/Recent form \(newest first\): [WLT] [WLT]/);
- assert.match(await page.locator('#gm-daily-brief').innerText(),/Next 3 GM games:[\\s\\S]*None/);
+ assert.match(await page.locator('#gm-daily-brief').innerText(),/Next 3 GM games:[\s\S]*None/);
  assert.match(await page.locator('#season-dashboard').innerText(),/Standings:/);
  assert.equal(await page.locator('#day-review').isDisabled(),true);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
