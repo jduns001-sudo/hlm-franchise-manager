@@ -1,0 +1,32 @@
+name: Phase 11 Full Season Acceptance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-full-season-acceptance*'
+      - 'hlm-phase11-isolated-single-game*'
+      - 'hlm-phase10-*'
+      - '.github/workflows/phase11-full-season-acceptance.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-season:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-full-season-acceptance.test.js
+  mobile-season:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-full-season-acceptance.chromium.test.js
