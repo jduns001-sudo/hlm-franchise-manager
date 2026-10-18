@@ -65,7 +65,25 @@ function createBridge(engine,storage){
   const recent=relevant.slice(-5).map(g=>{const source=byId.get(g.gameId),home=String(source.homeTeamId)===ownerId;return Object.freeze({opponent:teamNames.get(String(home?source.awayTeamId:source.homeTeamId)),venue:home?'home':'away',result:g.homeWon===home?'win':'loss',goalsFor:home?g.homeGoals:g.awayGoals,goalsAgainst:home?g.awayGoals:g.homeGoals})});
   return Object.freeze({kind:'experimental-controlled-team-decision-review',team:owner.name,asOfDate:state.meta.currentDate,completedGames:relevant.length,wins,losses:relevant.length-wins,goalsFor,goalsAgainst,recent:Object.freeze(recent),nextOpponent:next?teamNames.get(String(String(next.homeTeamId)===ownerId?next.awayTeamId:next.homeTeamId)):null,reviewQuestions:Object.freeze(['Review recent results and opponent context before making lineup decisions','Verify current roster, injuries and staff information independently before any action']),limitations:'Completed isolated game scores only; no verified roster, player performance, staff morale, injuries or independent evidence',independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
  }
- return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence,reviewControlledTeamDecisions};
+ function auditControlledTeamEvidence(adapter){
+  const state=load();if(!state)throw Error('No isolated franchise loaded');
+  const owner=validate(state),ownerId=String(owner.id);
+  const review=reviewControlledTeamDecisions(adapter);
+  const sourceGames=state.activity.games.filter(g=>g.status==='final'&&(String(g.homeTeamId)===ownerId||String(g.awayTeamId)===ownerId));
+  const datePattern=/^\\d{4}-\\d{2}-\\d{2}$/;
+  const issues=[];
+  for(const game of sourceGames){
+   if(typeof game.date!=='string'||!datePattern.test(game.date)||Number.isNaN(Date.parse(game.date+'T00:00:00Z')))issues.push('Completed game has missing or invalid date');
+   else if(game.date>state.meta.currentDate)issues.push('Completed game dated after franchise review date');
+  }
+  const scheduled=state.activity.games.filter(g=>g.status==='scheduled'&&(String(g.homeTeamId)===ownerId||String(g.awayTeamId)===ownerId));
+  for(const game of scheduled){if(typeof game.date!=='string'||!datePattern.test(game.date)||Number.isNaN(Date.parse(game.date+'T00:00:00Z')))issues.push('Scheduled game has missing or invalid date')}
+  const known=Object.freeze(['completed-game scores','controlled-team wins and losses','goals for and against','opponent identity and venue','next scheduled opponent when present']);
+  const unknown=Object.freeze(['player-level contributions','current roster and line combinations','injuries and medical status','staff assessments and morale','independent source verification']);
+  const uniqueIssues=Object.freeze([...new Set(issues)]);
+  return Object.freeze({kind:'isolated-human-gm-evidence-acceptance',team:review.team,asOfDate:review.asOfDate,completedGames:review.completedGames,scheduledGames:scheduled.length,sourceCoverage:Object.freeze({completedGames:review.completedGames,datedCompletedGames:sourceGames.filter(g=>typeof g.date==='string'&&datePattern.test(g.date)&&!Number.isNaN(Date.parse(g.date+'T00:00:00Z'))).length,unverifiedFields:unknown.length}),supportedByIsolatedGameResults:known,requiresIndependentVerification:unknown,dataQualityIssues:uniqueIssues,readiness:uniqueIssues.length?'review-source-dates':'limited-score-evidence-only',humanReviewPrompt:'Confirm source dates, roster, player and staff evidence before making any decision',independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
+ }
+ return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence,reviewControlledTeamDecisions,auditControlledTeamEvidence};
 }
 return {createBridge,KEY};
 });
