@@ -1,0 +1,26 @@
+name: Phase 11 Season Checkpoint
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-season-checkpoint*'
+      - '.github/workflows/phase11-season-checkpoint.yml'
+  workflow_dispatch:
+jobs:
+  node-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-season-checkpoint.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-season-checkpoint.chromium.test.js
