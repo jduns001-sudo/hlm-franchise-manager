@@ -22,5 +22,5 @@ assert.equal(second.productionActivationAllowed,false);assert.equal(second.final
 assert.equal(JSON.stringify(second).includes('PRIVATE'),false);assert.equal(writes,0);
 assert.deepEqual(second,checkpoint(bridge));
 state.activity.games[0].homeGoals=-1;assert.throws(()=>checkpoint(bridge),/Invalid final score/);
-state.activity.games[0].homeGoals=1;state.activity.games.push({...game,status:'scheduled'});assert.throws(()=>checkpoint(bridge),/duplicate game ID/);
+state.activity.games[0].homeGoals=1;state.activity.games.push({...game,status:'scheduled'});assert.throws(()=>checkpoint(bridge),/duplicate.*game ID/i);
 console.log('Mission 1312 deterministic isolated season checkpoint regression passed');
