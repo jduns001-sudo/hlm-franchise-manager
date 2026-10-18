@@ -30,4 +30,5 @@ function simulateGameScore(input) {
     status: 'final'
   });
 }
-module.exports = {simulateGameScore};
+if (typeof module === 'object' && module.exports) module.exports = {simulateGameScore};
+if (typeof window !== 'undefined') window.HLMPhase10GameSimulator = Object.freeze({simulateGameScore});
