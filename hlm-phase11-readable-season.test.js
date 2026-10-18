@@ -3,6 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const html=fs.readFileSync('hlm-phase11-isolated-single-game.html','utf8');
 assert.match(html,/const teamNames=new Map/);
 assert.match(html,/const teamName=id=>/);
+assert.ok(html.indexOf('const teamName=id=>')<html.indexOf('for(const g of games)'), 'team lookup must initialize before rendering games');
 assert.match(html,/Next GM game:/);
 assert.match(html,/teamName\(g\.homeTeamId\)/);
 assert.match(html,/teamName\(g\.awayTeamId\)/);
