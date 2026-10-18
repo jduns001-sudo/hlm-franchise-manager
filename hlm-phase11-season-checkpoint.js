@@ -11,7 +11,7 @@ function checkpoint(bridge){
   if(!game||game.id==null||seen.has(String(game.id)))throw Error('Missing or duplicate game ID');
   seen.add(String(game.id));
   if(!ids.has(String(game.homeTeamId))||!ids.has(String(game.awayTeamId))||String(game.homeTeamId)===String(game.awayTeamId))throw Error('Invalid scheduled matchup');
-  if(typeof game.date!=='string'||!/^(\\d{4})-(\\d{2})-(\\d{2})$/.test(game.date)||Number.isNaN(Date.parse(game.date+'T00:00:00Z')))throw Error('Invalid game date');
+  if(typeof game.date!=='string'||!/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.test(game.date)||Number.isNaN(Date.parse(game.date+'T00:00:00Z')))throw Error('Invalid game date');
   if(game.status==='final'){
    if(!Number.isSafeInteger(game.homeGoals)||game.homeGoals<0||!Number.isSafeInteger(game.awayGoals)||game.awayGoals<0)throw Error('Invalid final score');
    finals.push(game);
