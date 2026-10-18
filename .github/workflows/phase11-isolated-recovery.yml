@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'hlm-phase11-isolated-recovery*'
+      - 'hlm-phase11-recovery-season-review*'
       - '.github/workflows/phase11-isolated-recovery.yml'
   workflow_dispatch:
 jobs:
@@ -14,6 +15,7 @@ jobs:
         with:
           node-version: '22'
       - run: node hlm-phase11-isolated-recovery.test.js
+      - run: node hlm-phase11-recovery-season-review.test.js
 
   mobile-chromium:
     runs-on: ubuntu-latest
