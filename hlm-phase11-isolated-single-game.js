@@ -33,7 +33,25 @@ function create(engine,storage){
   baseline=storage.getItem(KEY);
   return {result:result.result,standings,state:result.nextState};
  }
- return {key:KEY,load,stage,review,advance};
+ function reviewNextDay(){
+  if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
+  const state=store.load();if(!state)throw Error('No isolated save');
+  const preview=engine.simulateNextDay(state,1341);
+  return Object.freeze({fromDate:preview.fromDate,toDate:preview.toDate,scheduledGameIds:Object.freeze(preview.results.map(g=>g.gameId)),games:preview.results.length});
+ }
+ function advanceNextDay(seed,approved){
+  if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
+  if(approved!==true)throw Error('Human GM day approval required');
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  if(!before.activity.games.some(g=>g.status==='scheduled'))throw Error('No scheduled games remain');
+  const result=engine.simulateNextDay(before,seed);
+  if(result.toDate===before.meta.currentDate)throw Error('Duplicate day advance refused');
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(result.nextState);baseline=storage.getItem(KEY);
+  return {fromDate:result.fromDate,toDate:result.toDate,results:result.results,standings:result.standings,state:result.nextState};
+ }
+ return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay};
 }
 return {KEY,create};
 });
