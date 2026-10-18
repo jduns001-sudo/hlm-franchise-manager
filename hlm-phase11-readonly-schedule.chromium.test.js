@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium}=require('playwright');
+const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.url||'/').split('?')[0].slice(1));if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.json')?'application/json':'text/html');res.end(b)})});
+(async()=>{await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ await page.goto('http://127.0.0.1:'+server.address().port+'/app.html',{waitUntil:'domcontentloaded'});
+ await page.locator('#hlm-gm-season-entry').waitFor({timeout:90000});
+ await page.evaluate(()=>{localStorage.setItem('hlm_front_office_v8','SCHEDULE_SENTINEL');db.settings.controlledTeamId=db.teams[0].id;go('schedule')});
+ await page.locator('#hlm-schedule-file').waitFor();
+ const team=await page.evaluate(()=>({a:db.teams[0].id,b:db.teams[1].id}));
+ const state={universe:{teams:[{id:team.a},{id:team.b}]},activity:{games:[{id:'g1',date:'2026-10-19',homeTeamId:team.a,awayTeamId:team.b,status:'scheduled'}]}};
+ await page.locator('#hlm-schedule-file').setInputFiles({name:'export.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
+ await page.waitForFunction(()=>document.querySelector('#hlm-schedule-import-report')?.textContent.includes('1 controlled-team games'));
+ assert.match(await page.locator('#hlm-schedule-session').innerText(),/2026-10-19/);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'SCHEDULE_SENTINEL');
+ await page.reload();await page.locator('#hlm-gm-season-entry').waitFor({timeout:90000});
+ await page.evaluate(()=>go('schedule'));
+ assert.match(await page.locator('#hlm-schedule-import-report').innerText(),/No imported schedule in this session/);
+ console.log('Mission 1338 real-app mobile imported schedule, isolation and reload reset passed');
+}finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
