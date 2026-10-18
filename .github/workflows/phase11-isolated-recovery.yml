@@ -1,0 +1,40 @@
+name: Phase 11 Isolated Checkpoint Recovery
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-recovery*'
+      - 'hlm-phase11-recovery-season-review*'
+      - 'hlm-phase11-isolated-season-advance*'
+      - 'hlm-phase11-isolated-day-stage*'
+      - 'hlm-phase11-isolated-season-integration*'
+      - 'hlm-phase11-isolated-recovery-store*'
+      - 'hlm-phase10-game-simulator-browser.js'
+      - 'hlm-phase11-browser-simulator-parity.test.js'
+      - 'docs/phase11-isolated-recovery-safety.md'
+      - '.github/workflows/phase11-isolated-recovery.yml'
+  workflow_dispatch:
+jobs:
+  node-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-isolated-recovery.test.js
+      - run: node hlm-phase11-recovery-season-review.test.js
+      - run: node hlm-phase11-isolated-season-advance.test.js
+      - run: node hlm-phase11-isolated-season-integration.test.js
+      - run: node hlm-phase11-isolated-recovery-store.test.js
+      - run: node hlm-phase11-browser-simulator-parity.test.js
+
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-isolated-recovery.chromium.test.js
