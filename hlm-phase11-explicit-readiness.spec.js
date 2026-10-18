@@ -10,8 +10,7 @@ test('isolated mobile Front Office: explicit opt-in, real save path CAS and inte
   await route(a);await route(b);
   await a.goto(origin+'app.html',{waitUntil:'load'});await b.goto(origin+'app.html',{waitUntil:'load'});
   expect(await a.evaluate(()=>window.HLM_PHASE11_SAVE_GUARD_OPT_IN===true)).toBe(false);
-  expect(await a.evaluate(()=>typeof window.HLMPhase11AtomicCutover)).toBe('undefined');
-  await a.addScriptTag({content:fs.readFileSync('hlm-phase11-atomic-cutover.js','utf8')});
+  expect(await a.evaluate(()=>typeof window.HLMPhase11AtomicCutover)).toBe('object');
   const original=await state(a,'read','db');
   expect(original).toBeTruthy();
   // Explicitly pin the real application's snapshot, only inside this isolated test context.
