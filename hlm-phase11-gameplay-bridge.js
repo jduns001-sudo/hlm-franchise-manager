@@ -83,7 +83,17 @@ function createBridge(engine,storage){
   const uniqueIssues=Object.freeze([...new Set(issues)]);
   return Object.freeze({kind:'isolated-human-gm-evidence-acceptance',team:review.team,asOfDate:review.asOfDate,completedGames:review.completedGames,scheduledGames:scheduled.length,sourceCoverage:Object.freeze({completedGames:review.completedGames,datedCompletedGames:sourceGames.filter(g=>typeof g.date==='string'&&datePattern.test(g.date)&&!Number.isNaN(Date.parse(g.date+'T00:00:00Z'))).length,unverifiedFields:unknown.length}),supportedByIsolatedGameResults:known,requiresIndependentVerification:unknown,dataQualityIssues:uniqueIssues,readiness:uniqueIssues.length?'review-source-dates':'limited-score-evidence-only',humanReviewPrompt:'Confirm source dates, roster, player and staff evidence before making any decision',independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
  }
- return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence,reviewControlledTeamDecisions,auditControlledTeamEvidence};
+ function prepareControlledTeamEvidenceActions(adapter){
+  const audit=auditControlledTeamEvidence(adapter);
+  const review=reviewControlledTeamDecisions(adapter);
+  const tasks=[];
+  if(audit.dataQualityIssues.length)tasks.push(Object.freeze({priority:'first',category:'source-date-quality',question:'Which isolated game dates require human correction or source checking?',reason:audit.dataQualityIssues.join('; '),evidenceStatus:'unverified'}));
+  tasks.push(Object.freeze({priority:audit.dataQualityIssues.length?'after-date-review':'first',category:'roster-and-eligibility',question:'Does the current controlled-team roster and lineup match independently checked records?',reason:'Isolated game scores do not establish roster membership, positions or eligibility',evidenceStatus:'unverified'}));
+  tasks.push(Object.freeze({priority:'before-any-decision',category:'player-and-staff',question:'What verified player, injury and staff information is available for a human GM review?',reason:'No verified player-level performance, injury or staff evidence is supplied',evidenceStatus:'unverified'}));
+  if(review.nextOpponent)tasks.push(Object.freeze({priority:'context-only',category:'upcoming-opponent',question:'What independently checked lineup context matters before facing the next opponent?',reason:'An upcoming opponent is scheduled in the isolated universe; matchup readiness is not established',evidenceStatus:'unverified'}));
+  return Object.freeze({kind:'isolated-human-gm-evidence-action-queue',team:audit.team,asOfDate:audit.asOfDate,completedGames:audit.completedGames,scheduledGames:audit.scheduledGames,readiness:audit.readiness,sourceQualityIssues:audit.dataQualityIssues,questions:Object.freeze(tasks),sourceLimits:audit.requiresIndependentVerification,independentVerification:'pending',canExecute:false,productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,finalDecisionMaker:'human-gm'});
+ }
+ return {key:KEY,summary,load,importIsolated,advance,reviewSimulationEvidence,reviewControlledTeamDecisions,auditControlledTeamEvidence,prepareControlledTeamEvidenceActions};
 }
 return {createBridge,KEY};
 });
