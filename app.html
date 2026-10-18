@@ -5,6 +5,7 @@
 </style></head>
 <body><div class="app"><aside class="side"><div class="brand">🏒 HLM 27 Front Office<small>Franchise operating system</small></div><div class="nav" id="nav"></div></aside><main class="main"><div class="top"><div><div class="title" id="title">Command Center</div><div class="sub" id="sub">Your franchise at a glance</div></div><div class="teamBadge" id="controlled">Controlled Team: Not Set</div></div><div id="view"></div></main></div>
 <div class="modal" id="modal"><div class="modalbox"><button class="btn close" onclick="closeModal()">Close</button><div id="modalContent"></div></div></div>
+<script src="./hlm-phase10-game-simulator.js"></script>
 <script src="./hlm-phase11-readonly-schedule.js"></script>
 <script src="./hlm-phase2-browser-diagnostic.js"></script>\n<script src="./hlm-front-office-live-diagnostic.js"></script>\n<script src="./hlm-front-office-state-source-browser.js"></script>
 <script src="./hlm-phase11-roster-preview-adapter.js"></script>
@@ -114,6 +115,30 @@ function contracts(){const controlled=numOrNull(db.settings?.controlledTeamId);c
 function teamdepth(){const rows=db.teams.map(t=>{const ps=activePlayers().filter(p=>p.teamId==t.id);return `<tr><td>${esc(t.name)}</td><td>${ps.filter(p=>['C','LW','RW'].some(pos=>hasPosition(p,pos))).length}</td><td>${ps.filter(p=>['LD','RD'].some(pos=>hasPosition(p,pos))).length}</td><td>${ps.filter(p=>hasPosition(p,'G')).length}</td></tr>`});shell('Team Depth Charts','League-wide roster composition',table(['Team','Forwards','Defense','Goalies'],rows))}
 function standings(){const rows=projectedStandingsRows();shell('Standings','Projected standings derived from current roster strength (not game-sim results)',table(['Rank','Team','Conf','Players','Avg OVR','G Avg','POT 85+','U24','Proj Record','Proj Pts','Pts %','Top Player'],rows.map((r,i)=>`<tr><td>${i+1}</td><td>${esc(r.team.name)}</td><td>${r.conf==='1'?'W':'E'}</td><td>${r.players}</td><td>${r.avg?r.avg.toFixed(1):'--'}</td><td>${r.gAvg?r.gAvg.toFixed(1):'--'}</td><td>${r.elite}</td><td>${r.youth}</td><td>${r.rec.w}-${r.rec.l}-${r.rec.otl}</td><td>${r.rec.pts}</td><td>${r.rec.pct.toFixed(1)}%</td><td>${esc(r.top)}</td></tr>`)))}
 let importedSchedulePreview=null;
+let selectedScheduleGameId=null;
+let isolatedGamePreview=null;
+function selectImportedGameAt(index){
+ const p=importedSchedulePreview;
+ if(!p||!Number.isSafeInteger(index)||index<0||index>=p.teamGames.length)return;
+ selectImportedGame(p.teamGames[index].id);
+}
+function selectImportedGame(id){
+ const p=importedSchedulePreview;
+ if(!p||String(p.controlledTeamId)!==String(db.settings?.controlledTeamId))return;
+ const game=p.teamGames.find(g=>g.id===String(id)&&g.status==='scheduled');
+ if(!game)return;
+ selectedScheduleGameId=game.id;isolatedGamePreview=null;go('schedule');
+}
+function approveImportedGamePreview(){
+ const p=importedSchedulePreview;
+ const g=p&&String(p.controlledTeamId)===String(db.settings?.controlledTeamId)&&p.teamGames.find(x=>x.id===selectedScheduleGameId&&x.status==='scheduled');
+ if(!g)throw Error('Select a scheduled imported game first');
+ if(!window.confirm('Approve isolated score preview for '+g.homeTeamId+' vs '+g.awayTeamId+' on '+g.date+'? This does not advance or save your franchise.'))return;
+ const score=window.HLMPhase10GameSimulator.simulateGameScore({gameId:g.id,homeTeamId:g.homeTeamId,awayTeamId:g.awayTeamId,seed:1339});
+ isolatedGamePreview=Object.freeze({gameId:g.id,date:g.date,score});
+ go('schedule');
+}
+
 async function importReadOnlySchedule(input){
  const report=document.getElementById('hlm-schedule-import-report');
  try{
@@ -122,15 +147,16 @@ async function importReadOnlySchedule(input){
   if(file.size>4*1024*1024)throw Error('Schedule file exceeds 4 MB');
   const json=JSON.parse(await file.text());
   importedSchedulePreview=window.HLMReadOnlySchedule.parse(json,db.settings?.controlledTeamId);
+  selectedScheduleGameId=null;isolatedGamePreview=null;
   go('schedule');
- }catch(e){importedSchedulePreview=null;if(report)report.textContent='Schedule not loaded: '+e.message}
+ }catch(e){importedSchedulePreview=null;selectedScheduleGameId=null;isolatedGamePreview=null;if(report)report.textContent='Schedule not loaded: '+e.message}
 }
 function schedulePreviewMarkup(){
  const p=importedSchedulePreview;
  const current=db.settings?.controlledTeamId;
  const valid=p&&String(p.controlledTeamId)===String(current);
  const rows=valid?p.teamGames:[];
- return `<div class="section">Imported game schedule (read-only)</div><div class="card" id="hlm-schedule-session"><p class="mini">Import an existing GameState JSON export to view actual scheduled games for your controlled team. No games are generated, simulated, activated or saved. Import is session-only.</p><label for="hlm-schedule-file">GameState JSON export</label><input class="input" id="hlm-schedule-file" type="file" accept=".json,application/json" onchange="importReadOnlySchedule(this)"><div id="hlm-schedule-import-report" role="status" aria-live="polite">${valid?'Source: '+esc(p.source)+'; '+rows.length+' controlled-team games of '+p.totalGames+' imported games.':'No imported schedule in this session.'}</div>${valid?table(['Date','Home ID','Away ID','Status'],rows.map(g=>`<tr><td>${esc(g.date)}</td><td>${esc(g.homeTeamId)}</td><td>${esc(g.awayTeamId)}</td><td>${esc(g.status)}</td></tr>`)):''}</div>`;
+ return `<div class="section">Imported game schedule (read-only)</div><div class="card" id="hlm-schedule-session"><p class="mini">Import an existing GameState JSON export to view actual scheduled games for your controlled team. No games are generated, simulated, activated or saved. Import is session-only.</p><label for="hlm-schedule-file">GameState JSON export</label><input class="input" id="hlm-schedule-file" type="file" accept=".json,application/json" onchange="importReadOnlySchedule(this)"><div id="hlm-schedule-import-report" role="status" aria-live="polite">${valid?'Source: '+esc(p.source)+'; '+rows.length+' controlled-team games of '+p.totalGames+' imported games.':'No imported schedule in this session.'}</div>${valid?table(['Date','Home ID','Away ID','Status','Preview'],rows.map((g,i)=>`<tr><td>${esc(g.date)}</td><td>${esc(g.homeTeamId)}</td><td>${esc(g.awayTeamId)}</td><td>${esc(g.status)}</td><td>${g.status==='scheduled'?`<button class="btn" type="button" onclick="selectImportedGameAt(${i})">Select game</button>`:'Not eligible'}</td></tr>`)):''}<div id="hlm-isolated-game-preview" role="status" aria-live="polite"><p class="mini">Score previews reuse the existing deterministic Phase 10 prototype. They do not calculate player statistics, standings or season advancement.</p>${valid&&selectedScheduleGameId?'<p>Selected imported game: '+esc(selectedScheduleGameId)+'</p><button class="btn primary" type="button" id="hlm-approve-game-preview" onclick="approveImportedGamePreview()">Approve isolated score preview</button>':''}${valid&&isolatedGamePreview&&p.teamGames.some(g=>g.id===isolatedGamePreview.gameId)?'<p>Isolated prototype result: '+esc(isolatedGamePreview.score.homeTeamId)+' '+isolatedGamePreview.score.homeGoals+' : '+isolatedGamePreview.score.awayGoals+' '+esc(isolatedGamePreview.score.awayTeamId)+' (not saved)</p>':''}</div></div>`;
 }
 function schedule(){const season=numOrNull(db.settings?.season)??2026;const recent=normalizedHistoryRows().slice(0,20);const milestones=[{label:'Preseason setup',season},{label:'Regular season management',season},{label:'Trade deadline review',season},{label:'Draft preparation',season},{label:'Offseason planning',season:season+1}];shell('Schedule','Season timeline foundation from existing franchise data',`${schedulePreviewMarkup()}<div class="notice">Game-by-game schedule data is not present in the current HLM universe export. This view tracks your franchise timeline checkpoints and season logs.</div><div class="section">Season checkpoints</div>${table(['Season','Milestone'],milestones.map(m=>`<tr><td>${m.season}</td><td>${esc(m.label)}</td></tr>`))}<div class="section">Recent season logs</div>${table(['Season','Transactions','Tx Total','Players','Avg OVR','Cap Hit','Notes'],recent.map(h=>`<tr><td>${h._season??'--'}</td><td>${h._tx??0}</td><td>${h._txTotal??h._tx??0}</td><td>${h._players??'--'}</td><td>${h._avg??'--'}</td><td>${money(h._cap||0)}</td><td>${esc(h.notes||'')}</td></tr>`))}`)}
 function playerstats(){const seasons=normalizedSeasonRows();const byPlayer=new Map();for(const s of seasons){if(s.playerId==null)continue;const id=String(s.playerId);let rec=byPlayer.get(id);if(!rec)rec={id:s.playerId,name:(db.players.find(p=>p.id==s.playerId)||{}).name||s.playerId,rows:0,ovrSum:0,ovrCnt:0,peak:null,lastYear:null,lastTeam:null};rec.rows++;if(s._ovr!=null){rec.ovrSum+=s._ovr;rec.ovrCnt++;rec.peak=rec.peak==null?s._ovr:Math.max(rec.peak,s._ovr)}if(s._year!=null&&(rec.lastYear==null||s._year>rec.lastYear)){rec.lastYear=s._year;rec.lastTeam=s.teamId}byPlayer.set(id,rec)}const rows=[...byPlayer.values()].sort((a,b)=>(b.peak??-1)-(a.peak??-1)||(b.ovrCnt?b.ovrSum/b.ovrCnt:0)-(a.ovrCnt?a.ovrSum/a.ovrCnt:0)).slice(0,200);shell('Player Stats','Historical player OVR trends from season records',table(['Player','Seasons','Avg OVR','Peak OVR','Last Year','Last Team'],rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${r.rows}</td><td>${r.ovrCnt?(r.ovrSum/r.ovrCnt).toFixed(1):'--'}</td><td>${r.peak??'--'}</td><td>${r.lastYear??'--'}</td><td>${esc(teamName(r.lastTeam))}</td></tr>`)))}
