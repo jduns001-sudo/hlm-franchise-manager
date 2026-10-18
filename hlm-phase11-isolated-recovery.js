@@ -1,0 +1,20 @@
+/* Experimental isolated checkpoint export/restore. Never accesses production storage. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMIsolatedRecovery=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+const KIND='hlm-isolated-checkpoint-v1';
+function validate(state){
+ if(!state||typeof state!=='object'||Array.isArray(state))throw Error('Invalid checkpoint state');
+ const meta=state.meta,universe=state.universe,activity=state.activity;
+ if(!meta||meta.controlledTeamId==null||!universe||!Array.isArray(universe.teams)||!Array.isArray(universe.players)||!activity||!Array.isArray(activity.games))throw Error('Incomplete isolated franchise');
+ const ids=new Set();for(const t of universe.teams){if(t.id==null||ids.has(String(t.id)))throw Error('Duplicate or missing team');ids.add(String(t.id))}
+ if(!ids.has(String(meta.controlledTeamId)))throw Error('Controlled team missing');
+ const games=new Set();for(const g of activity.games){if(!g||g.id==null||games.has(String(g.id))||!ids.has(String(g.homeTeamId))||!ids.has(String(g.awayTeamId))||String(g.homeTeamId)===String(g.awayTeamId))throw Error('Invalid game schedule');games.add(String(g.id));if(g.status!=='scheduled'&&g.status!=='final')throw Error('Invalid game status');if(g.status==='final'&&(!Number.isSafeInteger(g.homeGoals)||g.homeGoals<0||!Number.isSafeInteger(g.awayGoals)||g.awayGoals<0))throw Error('Invalid final score')}
+ const players=new Set();for(const p of universe.players){if(!p||p.id==null||players.has(String(p.id)))throw Error('Duplicate or missing player');players.add(String(p.id));if(p.teamId!=null&&!ids.has(String(p.teamId)))throw Error('Unknown player team')}
+ return true;
+}
+function cloneSafe(state){const copy=JSON.parse(JSON.stringify(state));validate(copy);return {meta:{controlledTeamId:copy.meta.controlledTeamId,currentDate:copy.meta.currentDate},universe:{teams:copy.universe.teams,players:copy.universe.players},activity:{games:copy.activity.games}}}
+function exportCheckpoint(state){const clean=cloneSafe(state);return JSON.stringify({kind:KIND,version:1,isolated:true,activation:false,requiresHumanApproval:true,state:clean});}
+function previewRestore(serialized){if(typeof serialized!=='string'||serialized.length>20000000)throw Error('Invalid checkpoint size');const packet=JSON.parse(serialized);if(!packet||packet.kind!==KIND||packet.version!==1||packet.isolated!==true||packet.activation!==false||packet.requiresHumanApproval!==true)throw Error('Not a safe isolated checkpoint');const state=cloneSafe(packet.state);return Object.freeze({kind:KIND,teamCount:state.universe.teams.length,playerCount:state.universe.players.length,gameCount:state.activity.games.length,controlledTeamId:state.meta.controlledTeamId,requiresHumanApproval:true,productionWrite:false,state});}
+function restoreApproved(preview,approved,isolatedStore){if(approved!==true)throw Error('Human approval required');if(!preview||preview.kind!==KIND||!preview.state||!isolatedStore||typeof isolatedStore.save!=='function'||isolatedStore.isolated!==true)throw Error('Dedicated isolated store required');const state=cloneSafe(preview.state);isolatedStore.save(state);return {restored:true,productionWrite:false,finalDecisionMaker:'human-gm'};}
+return Object.freeze({exportCheckpoint,previewRestore,restoreApproved,validate});
+});
