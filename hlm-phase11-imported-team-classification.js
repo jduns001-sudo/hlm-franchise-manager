@@ -1,0 +1,6 @@
+/* Deterministic, privacy-minimal classification of imported team references. No mutation or guesses. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMImportedTeamClassification=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+function classify(db){if(!db||!Array.isArray(db.teams)||!Array.isArray(db.players))throw Error('Invalid universe');const known=new Set(db.teams.map(t=>String(t.id)));const counts={assignedActive:0,retiredUnknownTeam:0,activeUnknownTeam:0,activeUnassigned:0,retiredKnownOrUnassigned:0};for(const p of db.players){const has=p.teamId!==null&&p.teamId!==undefined;const matched=has&&known.has(String(p.teamId));if(p.retired){if(has&&!matched)counts.retiredUnknownTeam++;else counts.retiredKnownOrUnassigned++;}else if(!has)counts.activeUnassigned++;else if(!matched)counts.activeUnknownTeam++;else counts.assignedActive++;}return Object.freeze({...counts,excludedUnknownTeamCount:counts.retiredUnknownTeam+counts.activeUnknownTeam,classification:'identity-only',noInferredFreeAgentOrProspectStatus:true,productionWrite:false,activationEnabled:false});}
+return Object.freeze({classify});
+});
