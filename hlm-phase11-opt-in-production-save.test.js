@@ -14,5 +14,8 @@ test('legacy saves retain schema and identity fields',()=>{
  assert.match(app,/function writeState\(state\)/);
 });
 test('no automatic guard activation in production HTML',()=>{
- assert.match(app,/HLM_PHASE11_SAVE_GUARD_OPT_IN=false/);\n assert.match(app,/authorization!=='I ENABLE GUARDED SAVES'/);\n assert.match(app,/authorization!=='I DISABLE GUARDED SAVES'/);\n assert.match(app,/phase11GuardBlocked=true/);
+ assert.match(app,/HLM_PHASE11_SAVE_GUARD_OPT_IN=false/);
+ assert.match(app,/authorization!=='I ENABLE GUARDED SAVES'/);
+ assert.match(app,/authorization!=='I DISABLE GUARDED SAVES'/);
+ assert.match(app,/phase11GuardBlocked=true/);
 });
