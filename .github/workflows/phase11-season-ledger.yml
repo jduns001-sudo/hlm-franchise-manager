@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'hlm-phase11-season-ledger*'
+      - 'hlm-phase11-isolated-journal*'
       - '.github/workflows/phase11-season-ledger.yml'
   workflow_dispatch:
 jobs:
@@ -15,6 +16,7 @@ jobs:
           node-version: '22'
       - run: node hlm-phase11-season-ledger.test.js
       - run: node hlm-phase11-season-ledger-session.test.js
+      - run: node hlm-phase11-isolated-journal.test.js
   mobile-chromium:
     runs-on: ubuntu-latest
     steps:
