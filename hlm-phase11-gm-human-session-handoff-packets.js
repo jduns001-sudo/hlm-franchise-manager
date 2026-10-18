@@ -1,0 +1,18 @@
+/* Mission 1273: source-grounded, read-only human GM session handoff packets. */
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./hlm-phase11-gm-cross-group-verification-session-planner'):null);if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMGMHumanSessionHandoffPackets=api;})(typeof globalThis!=='undefined'?globalThis:this,function(dep){
+'use strict';
+function prepare(review,annotations,approved){
+if(approved!==true)throw Error('Explicit human GM approval required');
+const planner=dep||(typeof globalThis!=='undefined'&&globalThis.HLMGMCrossGroupVerificationSessionPlanner);
+if(!planner||typeof planner.plan!=='function')throw Error('GM verification session planner unavailable');
+const source=planner.plan(review,annotations,true);
+const packets=source.sessions.map(session=>{
+const checks=session.actions.map(action=>({
+taskId:action.taskId,queuePosition:action.queuePosition,roundNumber:action.roundNumber,sessionNumber:action.sessionNumber,gateId:action.gateId,documentationStatus:action.documentationStatus,remainingGap:action.remainingGap,uncertainty:action.uncertainty,outstandingQuestion:action.outstandingQuestion,sourceRequirement:action.nextHumanVerificationAction,independentVerificationCriteria:[...action.independentVerificationCriteria],humanReviewCheckpoint:'human-gm-independent-evidence-review-required',sourceVerification:'not-performed',evidenceResolution:'unresolved',checkCompleted:false,eligibility:'unknown'
+}));
+const criteria=[...new Set(checks.flatMap(c=>c.independentVerificationCriteria))].sort();
+return {sessionOrder:session.sessionOrder,prerequisite:session.prerequisite,humanHandoffPriority:session.humanHandoffPriority,checkCount:session.checkCount,notCollectedCount:session.notCollectedCount,manuallyDocumentedStillUnverifiedCount:session.manuallyDocumentedStillUnverifiedCount,sharedBlockers:session.sharedBlockers.map(b=>({...b})),checks,sourceRequirements:checks.map(c=>({taskId:c.taskId,requirement:c.sourceRequirement,documentationStatus:c.documentationStatus,remainingGap:c.remainingGap})),independentVerificationCriteria:criteria,gmReviewCheckpoints:[{checkpoint:'source-provenance',status:'pending-human-review',instruction:'Confirm source identifier, authenticity, date and location outside this preview.'},{checkpoint:'independent-evidence',status:'pending-human-review',instruction:'Independently assess the cited evidence against each check requirement.'},{checkpoint:'human-gm-decision',status:'pending-human-review',instruction:'Human GM evaluates verified evidence separately; this packet does not establish eligibility.'}],handoffStatus:'pending-human-review',sourceVerification:'not-performed',evidenceResolution:'unresolved',completedCheckCount:0,eligibility:'unknown'};
+});
+return {kind:'experimental-gm-human-session-handoff-packets',packets,packetCount:packets.length,actionCount:source.actionCount,notCollectedCount:source.notCollectedCount,manuallyDocumentedStillUnverifiedCount:source.manuallyDocumentedStillUnverifiedCount,completedCheckCount:0,sharedBlockers:source.sharedBlockers.map(b=>({...b})),repeatedPrerequisites:source.repeatedPrerequisites.map(p=>({...p})),readiness:'blocked-pending-human-evidence-and-independent-verification',sourceVerification:'not-performed',evidenceResolution:'unresolved',eligibility:'unknown',confidence:'not-established',warning:'Handoff packets organize human review only. Manually documented does not mean verified. No check, GM checkpoint or eligibility decision is completed.',productionActivationAllowed:false,persistencePerformed:false,automaticTransactionsAllowed:false,automaticRosterChangesAllowed:false,finalDecisionMaker:'human-gm'};
+}
+return {prepare};});
