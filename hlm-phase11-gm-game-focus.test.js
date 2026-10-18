@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('hlm-phase11-isolated-single-game.html','utf8');
+assert.match(html,/const gmNext=games\.filter/);
+assert.match(html,/\.sort\(\(a,b\)=>String\(a\.date\)\.localeCompare/);
+assert.match(html,/if\(gmNext\)\$\('game'\)\.value=String\(gmNext\.id\)/);
+assert.match(html,/manager\.reviewNextDay/);
+assert.match(html,/manager\.advanceNextDay/);
+assert.match(html,/navigator\.locks\.request/);
+assert.match(html,/confirm\('Human GM/);
+assert.match(html,/HLMIsolatedSeasonDashboard\.overview/);
+assert.match(html,/hlm-phase11-isolated-single-game\.js/);
+assert.doesNotThrow(()=>new Function([...html.matchAll(/<script>([\s\S]*?)<\/script>/g)][0][1]));
+console.log('GM-focused chronological schedule and existing safety contracts passed');
