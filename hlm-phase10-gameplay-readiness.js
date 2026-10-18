@@ -14,7 +14,8 @@ function auditGameplayReadiness(state) {
   catch (_) { issues.push({code: 'INVALID_CURRENT_DATE'}); }
   if (typeof meta.saveId !== 'string' || !meta.saveId.trim()) issues.push({code: 'MISSING_SAVE_ID'});
   const scheduledGames = activity.games.filter(game => game && game.status === 'scheduled').length;
-  if (!scheduledGames) issues.push({code: 'NO_SCHEDULED_GAMES'});
+  const finalGames = activity.games.filter(game => game && game.status === 'final').length;
+  if (!scheduledGames && !finalGames) issues.push({code: 'NO_SEASON_GAMES'});
   return {
     ready: issues.length === 0,
     issues,
@@ -25,7 +26,8 @@ function auditGameplayReadiness(state) {
       currentDate: meta.currentDate || null,
       teamCount: universe.teams.length,
       playerCount: universe.players.length,
-      scheduledGames
+      scheduledGames,
+      finalGames
     }
   };
 }
