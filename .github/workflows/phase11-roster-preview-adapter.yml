@@ -1,0 +1,26 @@
+name: Phase 11 Roster Preview Adapter
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-roster-preview-adapter*'
+      - '.github/workflows/phase11-roster-preview-adapter.yml'
+  workflow_dispatch:
+jobs:
+  node-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-roster-preview-adapter.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-roster-preview-adapter.chromium.test.js
