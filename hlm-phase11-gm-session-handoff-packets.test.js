@@ -1,0 +1,30 @@
+'use strict';
+const assert=require('node:assert/strict'),{prepare:preparePacket}=require('./hlm-phase11-gm-session-handoff-packets'),{coverage}=require('./hlm-phase11-gm-cross-session-dependency-coverage'),{plan}=require('./hlm-phase11-gm-manual-collection-action-plan'),{prepare,acknowledge}=require('./hlm-phase11-gm-source-review-notes'),{generateRoundRobinSchedule}=require('./hlm-phase10-season-schedule'),{createGameStateEnvelope}=require('./hlm-game-state'),{analyze}=require('./hlm-phase11-gm-review-workflow');
+const teams=Array.from({length:4},(_,i)=>({id:i+1,name:'Club '+i})),players=[{id:11,teamId:1,name:'A',position:'C',overall:81},{id:12,teamId:1,name:'B'},...teams.slice(1).map(t=>({id:100+t.id,teamId:t.id,name:'Other'}))],state=createGameStateEnvelope({meta:{saveId:'isolated-stage:test',controlledTeamId:1,currentDate:'2026-10-17'},teams,players,games:generateRoundRobinSchedule(teams,'2026-10-17',2),extensions:{staging:{source:'front-office',productionActivationAllowed:false}}}),before=JSON.stringify(state),review=prepare(analyze(state,120,true),state,'lineup',[11,12],'lineup-eligibility','unknown-positions',true),ack=acknowledge(review,'unknown-positions','Check imported position evidence',true),reviewBefore=JSON.stringify(ack),action=plan(ack,true),id=action.workstreams[0].tasks[0].taskId,annotations=[{taskId:id,note:'Candidate source, not verified'}],notesBefore=JSON.stringify(annotations);
+assert.throws(()=>preparePacket(ack,annotations,false),/approval/);assert.throws(()=>preparePacket(ack,{},true),/annotations/);assert.throws(()=>preparePacket(ack,[{taskId:'invalid',note:'x'}],true),/Unknown/);assert.throws(()=>preparePacket(ack,[...annotations,...annotations],true),/Duplicate/);
+const report=preparePacket(ack,annotations,true);
+assert.equal(report.kind,'experimental-gm-session-handoff-packets');
+assert.equal(report.actionCount,14);assert.equal(report.completedCheckCount,0);
+assert.equal(report.notCollectedCount,13);assert.equal(report.manuallyDocumentedStillUnverifiedCount,1);
+assert.equal(report.packetCount,report.sessionCount);assert.ok(report.packetCount>=1);
+assert.equal(report.packets.reduce((sum,p)=>sum+p.sourceRequirementCount,0),14);
+assert.equal(report.packets.reduce((sum,p)=>sum+p.documentationState.notCollectedCount,0),13);
+assert.equal(report.packets.reduce((sum,p)=>sum+p.documentationState.manuallyDocumentedStillUnverifiedCount,0),1);
+assert.deepEqual(report.packets.map(p=>p.packetOrder),Array.from({length:report.packetCount},(_,i)=>i+1));
+for(const p of report.packets){
+assert.equal(p.sourceRequirements.length,p.sourceRequirementCount);
+assert.equal(p.unresolvedEvidence.length,p.sourceRequirementCount);
+assert.equal(p.gmReviewCheckpoints.length,5);
+assert.ok(p.gmReviewCheckpoints.every((c,i)=>c.order===i+1&&c.completed===false&&c.requiresHumanGM&&c.eligibility==='unknown'));
+assert.ok(p.sourceRequirements.every(x=>x.checkCompleted===false&&x.sourceVerification==='not-performed'&&x.evidenceResolution==='unresolved'&&x.eligibility==='unknown'&&x.independentVerificationCriteria.length===3));
+assert.ok(p.unresolvedEvidence.every(x=>x.status==='unresolved'));
+assert.equal(p.documentationState.verifiedCount,0);assert.equal(p.completionStatus,'not-completed');
+}
+assert.ok(report.sharedBlockers.length>0&&report.repeatedPrerequisites.length>0);
+assert.equal(report.readiness,'blocked-pending-human-evidence-and-independent-verification');
+assert.equal(report.sourceVerification,'not-performed');assert.equal(report.evidenceResolution,'unresolved');assert.equal(report.eligibility,'unknown');assert.equal(report.finalDecisionMaker,'human-gm');
+for(const key of ['productionActivationAllowed','persistencePerformed','automaticTransactionsAllowed','automaticRosterChangesAllowed'])assert.equal(report[key],false);
+assert.deepEqual(report,preparePacket(ack,annotations,true));
+assert.equal(JSON.stringify(state),before);assert.equal(JSON.stringify(ack),reviewBefore);assert.equal(JSON.stringify(annotations),notesBefore);
+const empty=preparePacket(review,[],true);assert.equal(empty.actionCount,14);assert.equal(empty.notCollectedCount,14);assert.equal(empty.manuallyDocumentedStillUnverifiedCount,0);
+console.log('Mission 1273 deterministic GM session handoff packets and safety regressions passed');
