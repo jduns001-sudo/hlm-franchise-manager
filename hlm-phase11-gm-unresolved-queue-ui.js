@@ -1,0 +1,19 @@
+/* Mission 1285: accessible category filter and mobile review navigation. */
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./hlm-phase11-gm-unified-human-review'):null,typeof module==='object'&&module.exports?require('./hlm-phase11-gm-review-discovery'):null,typeof module==='object'&&module.exports?require('./hlm-phase11-gm-review-workbench'):null,typeof module==='object'&&module.exports?require('./hlm-phase11-gm-private-handoff'):null,typeof module==='object'&&module.exports?require('./hlm-phase11-gm-readiness-checklist'):null,typeof module==='object'&&module.exports?require('./hlm-phase11-gm-unresolved-queue'):null);if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMGMUnresolvedQueueUI=api;})(typeof globalThis!=='undefined'?globalThis:this,function(unifiedDep,discoveryDep,workbenchDep,handoffDep,checklistDep,queueDep){
+'use strict';
+function mount(container,ledger,sources,approved,pageSize=10){
+ if(!container||typeof container.replaceChildren!=='function')throw Error('DOM container required');
+ const g=typeof globalThis!=='undefined'?globalThis:{},unified=unifiedDep||g.HLMGMUnifiedHumanReview,discovery=discoveryDep||g.HLMGMReviewDiscovery,workbench=workbenchDep||g.HLMGMReviewWorkbench,handoff=handoffDep||g.HLMGMPrivateHandoff,checklist=checklistDep||g.HLMGMReadinessChecklist,queue=queueDep||g.HLMGMUnresolvedQueue;
+ if(!unified||!discovery||!workbench||!handoff||!checklist||!queue)throw Error('Review dependencies unavailable');
+ const review=workbench.create(discovery.create(unified.create(ledger,sources,approved)),pageSize),preparation=checklist.create(handoff.create(review)),session=queue.create(preparation),doc=container.ownerDocument;
+ const el=(tag,value)=>{const n=doc.createElement(tag);if(value!==undefined)n.textContent=String(value);return n};
+ const root=el('section');root.className='gm-unresolved-queue';root.setAttribute('aria-label','Unresolved human GM review queue');root.append(el('h2','Unresolved review requirements'),el('p','Preparation is not verification. No evidence approvals or production changes.'));
+ const categoryLabel=el('label','Requirement category'),select=el('select');select.setAttribute('aria-label','Requirement category');for(const value of ['all','evidence','verification','approval','preparation']){const option=el('option',value);option.value=value;select.append(option)}
+ const status=el('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');const list=el('ol');list.setAttribute('aria-label','Unresolved requirements');const previous=el('button','Previous');previous.type='button';const next=el('button','Next');next.type='button';
+ const label=el('label','Privacy-safe queue handoff JSON'),output=el('textarea');output.readOnly=true;output.rows=7;output.setAttribute('aria-label','Privacy-safe queue handoff JSON');
+ function render(){const s=session.snapshot();status.textContent=s.total+' matching unresolved requirements. Page '+s.page+' of '+s.pages+'. Independent verification pending.';list.replaceChildren();for(const item of s.items)list.append(el('li',item.title+' ('+item.category+')'));previous.disabled=s.page===1;next.disabled=s.page===s.pages;output.value=session.serialize()}
+ select.addEventListener('change',()=>{session.filter(select.value);render()});previous.addEventListener('click',()=>{session.previous();render()});next.addEventListener('click',()=>{session.next();render()});
+ root.append(categoryLabel,select,status,list,previous,next,label,output);render();container.replaceChildren(root);return Object.freeze({queue:session,preparation,refresh:render});
+}
+return {mount};
+});
