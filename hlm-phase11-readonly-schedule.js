@@ -13,7 +13,7 @@ function parse(value,controlledTeamId){
  const rows=games.map(g=>{
   if(!g||typeof g!=='object'||g.id==null||seen.has(String(g.id)))throw Error('Invalid or duplicate game ID');
   seen.add(String(g.id));
-  if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(g.date))||!Number.isFinite(Date.parse(g.date+'T00:00:00Z')))throw Error('Invalid game date');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(g.date))||!Number.isFinite(Date.parse(g.date+'T00:00:00Z')))throw Error('Invalid game date');
   if(g.homeTeamId==null||g.awayTeamId==null||String(g.homeTeamId)===String(g.awayTeamId))throw Error('Invalid game teams');
   if(!teams.some(t=>t&&String(t.id)===String(g.homeTeamId))||!teams.some(t=>t&&String(t.id)===String(g.awayTeamId)))throw Error('Game references unknown team');
   return {id:String(g.id),date:String(g.date),homeTeamId:String(g.homeTeamId),awayTeamId:String(g.awayTeamId),status:String(g.status||'unknown')};
