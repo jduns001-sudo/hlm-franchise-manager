@@ -11,7 +11,8 @@ function refresh(){
  $('game').replaceChildren();
  for(const g of games){const o=document.createElement('option');o.value=String(g.id);o.textContent=g.date+' | '+teamName(g.homeTeamId)+' vs '+teamName(g.awayTeamId);$('game').append(o)}
  const gmId=state?.meta?.controlledTeamId;
- const gmNext=games.find(g=>String(g.homeTeamId)===String(gmId)||String(g.awayTeamId)===String(gmId));
+ const gmNext=games.filter(g=>String(g.homeTeamId)===String(gmId)||String(g.awayTeamId)===String(gmId)).sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id)))[0];
+ if(gmNext)$('game').value=String(gmNext.id);
  const summary=window.HLMIsolatedSeasonDashboard.overview(state,engine);
  $('season-dashboard').textContent=summary?'Date: '+summary.date+'\nCompleted games: '+summary.completedCount+' | Upcoming games: '+summary.scheduledCount+'\nNext GM game: '+(gmNext?gmNext.date+' | '+teamName(gmNext.homeTeamId)+' vs '+teamName(gmNext.awayTeamId):'None')+'\nRecent results:\n'+(summary.latestResults.map(g=>g.date+' | '+teamName(g.homeTeamId)+' '+g.homeGoals+' : '+g.awayGoals+' '+teamName(g.awayTeamId)).join('\n')||'None')+'\nNext scheduled:\n'+(summary.upcoming.map(g=>g.date+' | '+teamName(g.homeTeamId)+' vs '+teamName(g.awayTeamId)).join('\n')||'None')+'\nStandings:\n'+JSON.stringify(summary.standings,null,2):'No isolated season loaded.';
  $('approve').disabled=!games.length;
