@@ -7,7 +7,7 @@ try{const context=await browser.newContext({viewport:{width:390,height:844}});co
 await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-gameplay-bridge.html');
 assert.equal(await page.locator('#advance').isDisabled(),true);
 await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION'));
-const state={schemaVersion:1,meta:{saveId:'m1207',controlledTeamId:1,currentDate:'2026-10-12'},universe:{teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],players:[],leagues:[],prospects:[],staff:[]},assets:{contracts:[],draftPicks:[]},activity:{games:[{id:'G1',date:'2026-10-13',status:'scheduled',homeTeamId:1,awayTeamId:2}],transactions:[],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{},extensions:{}};
+const state={schemaVersion:1,meta:{saveId:'m1207',controlledTeamId:1,currentDate:'2026-10-12'},universe:{teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],players:[],leagues:[],prospects:[],staff:[]},assets:{contracts:[],draftPicks:[]},activity:{games:[{id:'G1',date:'2026-10-13',status:'scheduled',homeTeamId:1,awayTeamId:2},{id:'G2',date:'2026-10-14',status:'scheduled',homeTeamId:2,awayTeamId:1}],transactions:[],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{},extensions:{}};
 await page.locator('#file').setInputFiles({name:'test.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
 await page.waitForFunction(()=>document.getElementById('preview').textContent.includes('Owner'));
 assert.equal(await page.locator('#save').isDisabled(),true);
@@ -15,7 +15,14 @@ await page.locator('#optin').check();await page.locator('#save').click();await p
 assert.match(await page.locator('#results').textContent(),/G1/);
 await page.reload();await page.locator('#reload').click();
 assert.match(await page.locator('#preview').textContent(),/2026-10-13/);
+assert.equal(await page.locator('#advance').isDisabled(),true,'Reload must require fresh GM opt-in');
+await page.locator('#optin').check();
+await page.locator('#advance').click();
+assert.match(await page.locator('#results').textContent(),/G2/);
+await page.reload();await page.locator('#reload').click();
+assert.match(await page.locator('#preview').textContent(),/2026-10-14/);
+assert.equal(await page.locator('#advance').isDisabled(),true,'Second reload must reset GM opt-in');
 assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION');
 assert.equal(await page.locator('#advance').isDisabled(),true);
-console.log('Mission 1207 mobile Chromium isolated game/reload/production protection passed');
+console.log('Mission 1336 mobile Chromium two-day GM opt-in, reload and production protection passed');
 }finally{await browser.close();await new Promise(r=>server.close(r))}})().catch(e=>{console.error(e);process.exitCode=1});
