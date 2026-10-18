@@ -7,6 +7,7 @@ on:
       - 'hlm-phase11-isolated-season-advance*'
       - 'hlm-phase11-isolated-day-stage*'
       - 'hlm-phase11-isolated-season-integration*'
+      - 'hlm-phase11-isolated-recovery-store*'
       - '.github/workflows/phase11-isolated-recovery.yml'
   workflow_dispatch:
 jobs:
@@ -21,6 +22,7 @@ jobs:
       - run: node hlm-phase11-recovery-season-review.test.js
       - run: node hlm-phase11-isolated-season-advance.test.js
       - run: node hlm-phase11-isolated-season-integration.test.js
+      - run: node hlm-phase11-isolated-recovery-store.test.js
 
   mobile-chromium:
     runs-on: ubuntu-latest
