@@ -15,7 +15,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.dismiss());await page.locator('#import').click();
  assert.match(await page.locator('#output').innerText(),/No isolated save loaded/);
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
- await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining: 1'));
+ await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining: 2'));
  await page.locator('#day-review').click();
  assert.match(await page.locator('#day-report').innerText(),/2026-10-19/);
  page.once('dialog',d=>d.dismiss());await page.locator('#day-approve').click();
