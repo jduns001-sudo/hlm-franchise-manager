@@ -21,9 +21,32 @@ function openStateDB(){return new Promise((resolve,reject)=>{const r=indexedDB.o
 function readState(){return new Promise((resolve,reject)=>{const r=idb.transaction(STORE,'readonly').objectStore(STORE).get('db');r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error)})}
 function writeState(state){return new Promise((resolve,reject)=>{const r=idb.transaction(STORE,'readwrite').objectStore(STORE).put(state,'db');r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error)})}
 function compactState(){const base=new Map(U.players.map(p=>[String(p.id),p]));const custom=[];for(const p of db.players){if(!base.has(String(p.id))) custom.push(p)}return {schema:7,draftPickDataVersion:DRAFT_PICK_DATA_VERSION,settings:db.settings,customPlayers:custom,playerOverrides:db.playerOverrides||{},draftPickOverrides:db.draftPickOverrides||{},extraDraftPicks:db.extraDraftPicks||[],decisions:db.decisions,transactions:db.transactions,lines:db.lines,depth:db.depth,contracts:db.contracts,prospects:db.prospects,draftBoard:db.draftBoard,history:db.history,waivers:db.waivers,notes:db.notes}}
-let phase11ExpectedState=null,phase11SaveQueue=Promise.resolve();
+let phase11ExpectedState=null,phase11SaveQueue=Promise.resolve(),phase11GuardBlocked=false;
+window.HLM_PHASE11_SAVE_GUARD_OPT_IN=false;
+window.HLMPhase11ProductionGuard={
+ async enable(authorization){
+  if(authorization!=='I ENABLE GUARDED SAVES')throw Error('Explicit human GM approval required');
+  if(phase11GuardBlocked)throw Error('Reload required after save conflict');
+  await phase11SaveQueue;
+  if(!window.HLMPhase11AtomicCutover||!phase11ExpectedState)throw Error('Verified existing save required');
+  const current=await readState();
+  if(JSON.stringify(current)!==JSON.stringify(phase11ExpectedState))throw Error('Concurrent save detected: reload before enabling');
+  window.HLM_PHASE11_SAVE_GUARD_OPT_IN=true;
+  return {enabled:true};
+ },
+ async disable(authorization){
+  if(authorization!=='I DISABLE GUARDED SAVES')throw Error('Explicit human GM approval required');
+  await phase11SaveQueue;
+  if(phase11GuardBlocked)throw Error('Conflict requires reload, cannot silently downgrade');
+  window.HLM_PHASE11_SAVE_GUARD_OPT_IN=false;
+  return {enabled:false};
+ },
+ status(){return {enabled:window.HLM_PHASE11_SAVE_GUARD_OPT_IN===true,blocked:phase11GuardBlocked,conflict:!!window.HLM_PHASE11_SAVE_CONFLICT}},
+ cancel(){return {cancelled:true,enabled:window.HLM_PHASE11_SAVE_GUARD_OPT_IN===true}}
+};
 function save(){const next=compactState();if(window.HLM_PHASE11_SAVE_GUARD_OPT_IN!==true){writeState(next).catch(e=>console.error('Save failed',e));return}
-phase11SaveQueue=phase11SaveQueue.then(async()=>{if(!window.HLMPhase11AtomicCutover||phase11ExpectedState===null)throw Error('Phase 11 guard requires an existing verified save');await window.HLMPhase11AtomicCutover.guardedSave(indexedDB,phase11ExpectedState,next);phase11ExpectedState=JSON.parse(JSON.stringify(next))}).catch(e=>{console.error('Phase 11 save conflict: no data overwritten',e);window.HLM_PHASE11_SAVE_CONFLICT=e.message});}
+if(phase11GuardBlocked)return;
+phase11SaveQueue=phase11SaveQueue.then(async()=>{if(!window.HLMPhase11AtomicCutover||phase11ExpectedState===null)throw Error('Phase 11 guard requires an existing verified save');await window.HLMPhase11AtomicCutover.guardedSave(indexedDB,phase11ExpectedState,next);phase11ExpectedState=JSON.parse(JSON.stringify(next))}).catch(e=>{phase11GuardBlocked=true;console.error('Phase 11 save conflict: no data overwritten',e);window.HLM_PHASE11_SAVE_CONFLICT=e.message;});}
 async function readOldV4(){return new Promise(resolve=>{try{const r=indexedDB.open(OLDDB,1);r.onsuccess=()=>{const od=r.result;try{const q=od.transaction('state','readonly').objectStore('state').get('db');q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>resolve(null)}catch(e){resolve(null)}};r.onerror=()=>resolve(null)}catch(e){resolve(null)}})}
 async function initDB(){await openStateDB();const old=await readState();phase11ExpectedState=old?JSON.parse(JSON.stringify(old)):null;let st=old;if(!st){const migrated=await readOldV4();st=migrated?{schema:6,settings:migrated.settings||{controlledTeamId:null,franchiseName:'HLM 27 Franchise',season:2026,capLimit:88500000},customPlayers:migrated.customPlayers||[],playerOverrides:{},draftPickOverrides:migrated.draftPickOverrides||{},extraDraftPicks:migrated.extraDraftPicks||[],decisions:migrated.decisions||[],transactions:migrated.transactions||[],lines:migrated.lines||{},depth:migrated.depth||{},contracts:migrated.contracts||[],prospects:migrated.prospects||[],draftBoard:migrated.draftBoard||[],history:migrated.history||[],waivers:migrated.waivers||[],notes:migrated.notes||[]}:null}if(!st)st={schema:6,settings:{controlledTeamId:null,franchiseName:'HLM 27 Franchise',season:2026,capLimit:88500000},customPlayers:[],playerOverrides:{},draftPickOverrides:{},extraDraftPicks:[],decisions:[],transactions:[],lines:{},depth:{},contracts:[],prospects:[],draftBoard:[],history:[],waivers:[],notes:[]};db={schema:7,settings:st.settings||{controlledTeamId:null,franchiseName:'HLM 27 Franchise',season:2026,capLimit:88500000},playerOverrides:st.playerOverrides||{},players:U.players.map(p=>{const f=PLAYER_FIXES[String(p.id)]||{};return {...p,...f,...(st.playerOverrides?.[String(p.id)]||{}),positions:(f.positions&&f.positions.length?f.positions:(p.positions&&p.positions.length?p.positions:(p.position?[p.position]:[]))),position:f.position||p.position||((f.positions&&f.positions[0])||'--'),potential:(f.potential??p.potential??0),potentialMin:(f.potentialMin??p.potentialMin??f.potential??p.potential??0),potentialMax:(f.potentialMax??p.potentialMax??f.potential??p.potential??0),potentialLabel:f.potentialLabel||p.potentialLabel||''}}).concat(st.customPlayers||[]),teams:U.teams,seasons:U.seasons,draftPickOverrides:st.draftPickOverrides||{},extraDraftPicks:st.extraDraftPicks||[],draftPicks:applyDraftPickOverrides(normalizeDraftPicks(U.draftPicks.concat(st.extraDraftPicks||[]),st.settings?.season||2026),st.draftPickOverrides||{}),rookies:U.rookies,decisions:st.decisions||[],transactions:st.transactions||[],lines:st.lines||{},depth:st.depth||{},contracts:st.contracts||[],prospects:st.prospects||[],draftBoard:st.draftBoard||[],history:st.history||[],waivers:st.waivers||[],notes:st.notes||[]};db.settings.capLimit=numOrNull(db.settings.capLimit)??88500000;db.draftPickValidation=validateDraftPicks(db.draftPicks);if(!db.draftPickValidation.valid)console.warn('Draft pick data validation errors',db.draftPickValidation.errors);if(db.draftPickValidation.warnings.length)console.warn('Draft pick data validation warnings',db.draftPickValidation.warnings);if(!old||st.schema<7||Number(st.draftPickDataVersion||0)<DRAFT_PICK_DATA_VERSION)save()}
                                                                                                                                                                     
