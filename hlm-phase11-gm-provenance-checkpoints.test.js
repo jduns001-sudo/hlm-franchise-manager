@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {prepare}=require('./hlm-phase11-gm-provenance-checkpoints');
+const ledger={kind:'experimental-gm-human-evidence-review-ledger',entries:[{taskId:'A',gateId:'gate',sourceRequirement:'verify source'}]};
+assert.throws(()=>prepare(ledger,[],false),/approval/);
+assert.throws(()=>prepare({},[],true),/ledger/);
+assert.throws(()=>prepare(ledger,[{taskId:'X',sourceId:'x',sourceLocation:'x',sourceDate:'x',reviewerNote:''}],true),/Unknown/);
+const src=[{taskId:'A',sourceId:'document-1',sourceLocation:'archive',sourceDate:'2026-10-17',reviewerNote:'human review needed'}];
+const result=prepare(ledger,src,true);
+assert.equal(result.entries[0].missingEvidence.includes('independent authenticity verification'),true);
+assert.equal(result.verifiedCount,0);
+assert.equal(result.entries[0].eligibility,'unknown');
+assert.equal(result.productionActivationAllowed,false);
+assert.equal(result.persistencePerformed,false);
+assert.equal(result.automaticTransactionsAllowed,false);
+assert.equal(result.finalDecisionMaker,'human-gm');
+assert.deepEqual(prepare(ledger,src,true),result);
+console.log('Mission 1275 Node regressions passed');
