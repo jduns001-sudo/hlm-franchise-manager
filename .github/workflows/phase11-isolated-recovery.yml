@@ -1,0 +1,16 @@
+name: Phase 11 Isolated Checkpoint Recovery
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-recovery*'
+      - '.github/workflows/phase11-isolated-recovery.yml'
+  workflow_dispatch:
+jobs:
+  node-regressions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-isolated-recovery.test.js
