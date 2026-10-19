@@ -35,6 +35,27 @@ function create(engine,storage,boxScores=null){
   baseline=storage.getItem(KEY);
   return {result:result.result,standings,state:next};
  }
+ function reviewGoalieChoice(playerId){
+  const state=store.load();if(!state)throw Error('Import an isolated franchise first');
+  const teamId=state.meta?.controlledTeamId;
+  const candidates=state.universe?.players?.filter(p=>String(p.id)===String(playerId)&&String(p.teamId)===String(teamId)&&String(p.position||'').toUpperCase()==='G')||[];
+  if(candidates.length!==1)throw Error('Choose one goalie on your controlled-team roster');
+  const goalie=candidates[0];
+  const injuries=state.activity?.injuries||[];
+  const unresolved=injuries.some(i=>String(i.playerId)===String(goalie.id)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false);
+  if(unresolved)throw Error('Goalie has an unresolved injury record; selection blocked pending GM review');
+  return Object.freeze({playerId:goalie.id,playerName:String(goalie.name||goalie.id),teamId});
+ }
+ function approveGoalieChoice(playerId,approved){
+  if(approved!==true)throw Error('Human GM approval required for goalie selection');
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const choice=reviewGoalieChoice(playerId);
+  const state=store.load();
+  const next={...state,extensions:{...state.extensions,phase11GmGoaliePlan:{playerId:choice.playerId,teamId:choice.teamId}}};
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(next);baseline=storage.getItem(KEY);
+  return choice;
+ }
  function reviewNextDay(){
   if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
   const state=store.load();if(!state)throw Error('No isolated save');
@@ -131,7 +152,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot};
+ return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot,reviewGoalieChoice,approveGoalieChoice};
 }
 return {KEY,create};
 });
