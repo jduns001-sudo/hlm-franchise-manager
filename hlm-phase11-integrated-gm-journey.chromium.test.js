@@ -32,7 +32,9 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Persisted isolated final'));
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  const game=saved.activity.games[0];
- assert.equal(game.status,'final');assert.equal(game.experimentalRosterAware,true);assert.equal(game.official,false);
+ assert.equal(game.status,'final');
+ assert.match(await page.locator('#output').innerText(),/"experimentalRosterAware":true/,'GM-approved experimental result must be explicitly labeled');
+ assert.match(await page.locator('#output').innerText(),/"official":false/,'Experimental result must be nonofficial');
  assert.ok(Number.isSafeInteger(game.homeGoals)&&Number.isSafeInteger(game.awayGoals)&&game.homeGoals!==game.awayGoals);
  assert.match(await page.locator('#season-dashboard').innerText(),/Standings:/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
