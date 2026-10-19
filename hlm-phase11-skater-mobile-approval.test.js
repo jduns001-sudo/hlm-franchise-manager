@@ -1,0 +1,11 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync(require('node:path').join(__dirname,'hlm-phase11-isolated-single-game.html'),'utf8');
+for(const id of ['gm-skater-choice','gm-skater-review','gm-skater-approve','gm-skater-status'])assert.match(html,new RegExp('id="'+id+'"'));
+assert.match(html,/manager\.approveSkaterParticipation\(pendingSkaters,true\)/);
+assert.match(html,/await locked\(\(\)=>manager\.approveSkaterParticipation/);
+assert.match(html,/pendingSkaters=null;\$\('gm-skater-approve'\)\.disabled=true/);
+assert.match(html,/if\(!confirm\('Human GM: approve these/);
+assert.match(html,/Experimental scoring remains separately opt-in/);
+assert.match(html,/aria-live="polite"/);
+console.log('Mission 1374 Node: mobile approval UI wiring, review invalidation, explicit confirmation, locked save and default-off disclosure pass');
