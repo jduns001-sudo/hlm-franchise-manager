@@ -59,6 +59,15 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-roster').innerText(),/Players: 5/);
  assert.match(await page.locator('#gm-stat-report').innerText(),/NOT OFFICIAL/);
  assert.deepEqual(await page.locator('#gm-stat-season option').allTextContents(),['All seasons','2025-26','2026-27']);
+ await page.locator('#gm-stat-season').selectOption('2026-27');
+ await page.locator('#gm-stat-kind').selectOption('playoffs');
+ const archivedPlayoffReport=await page.locator('#gm-stat-report').innerText();
+ assert.match(archivedPlayoffReport,/NOT OFFICIAL/);
+ assert.match(archivedPlayoffReport,/Games: [1-9][0-9]*/);
+ await page.reload();
+ await page.locator('#gm-stat-season').selectOption('2026-27');
+ await page.locator('#gm-stat-kind').selectOption('playoffs');
+ assert.equal(await page.locator('#gm-stat-report').innerText(),archivedPlayoffReport);
  assert.equal(await page.locator('#next-season').isDisabled(),true);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  console.log('Mission 1359 continuous real-app mobile journey: roster, imported synthetic history, GM-approved season, playoffs, offseason, next season, reload and production isolation passed');
