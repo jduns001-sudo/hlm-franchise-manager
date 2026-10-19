@@ -1,5 +1,12 @@
 'use strict';
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const browserBundle=fs.readFileSync(require('node:path').join(__dirname,'hlm-phase10-browser.bundle.js'),'utf8');
+for(const moduleName of ['hlm-phase10-apply-game.js','hlm-phase10-game-simulator.js']){
+ const source=fs.readFileSync(require('node:path').join(__dirname,moduleName),'utf8').trimEnd();
+ assert.ok(browserBundle.includes(source),'Browser bundle must include current '+moduleName+' implementation');
+}
+
 const {createGameStateEnvelope}=require('./hlm-game-state');
 const {applyScheduledGame}=require('./hlm-phase10-apply-game');
 const {calculateStandings}=require('./hlm-phase10-standings');
