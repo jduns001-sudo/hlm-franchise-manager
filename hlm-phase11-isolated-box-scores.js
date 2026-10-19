@@ -9,8 +9,9 @@ function append(before,after,build,seed=1){
   const playoffs=rounds.flatMap(round=>round.flatMap(series=>series.games||[])).filter(g=>g.status==='final').map(g=>({...g,id:g.gameId,playoff:true}));
   return [...regular,...playoffs];
  };
- const previous=new Set(finals(before).map(g=>String(g.id)));
- const additions=finals(after).filter(g=>!previous.has(String(g.id)));
+ const identity=g=>String(g.playoff?'playoffs':'regular')+':'+String(g.id);
+ const previous=new Set(finals(before).map(identity));
+ const additions=finals(after).filter(g=>!previous.has(identity(g)));
  if(!additions.length)return after;
  const ext=after.extensions||{};
  const existing=ext.phase11ExperimentalBoxScores||[];
@@ -28,7 +29,9 @@ function append(before,after,build,seed=1){
  const start=match?(Number(match[2])>=7?year:year-1):null;
  const inferred=start==null?null:String(start)+'-'+String((start+1)%100).padStart(2,'0');
  const season=before.extensions?.phase10CurrentSeasonId||inferred||'Imported';
- const games=eligible.map(g=>({...g,season:g.season??g.seasonId??season})).filter(g=>!seen.has(String(g.season)+':'+String(g.id))); 
+ const games=eligible.map(g=>({...g,season:g.season??g.seasonId??season})).filter(g=>!seen.has(String(g.season)+':'+String(g.id)));
+ const unique=new Set();
+ for(const g of games){const key=String(g.season)+':'+String(g.id);if(unique.has(key))throw Error('Duplicate authoritative season game ID');unique.add(key)}
  if(!games.length)return after;
  const events=[];
  for(const g of games)for(const [teamId,count] of [[g.homeTeamId,g.homeGoals],[g.awayTeamId,g.awayGoals]]){
