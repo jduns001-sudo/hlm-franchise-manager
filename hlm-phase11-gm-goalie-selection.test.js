@@ -22,7 +22,7 @@ assert.equal(a.load().extensions.phase11GmGoaliePlan.playerId,11);
 assert.throws(()=>stale.approveGoalieChoice(11,true),/changed/);
 assert.equal(memory.get('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
 const state2=a.load();state2.activity.injuries=[{playerId:11,status:'out'}];
-const storage2={getItem:k=>k===KEY?null:null,setItem:(k,v)=>{if(k===KEY)memory.set('alternate',v)}};
+const isolated2=new Map();const storage2={getItem:k=>isolated2.get(k)??null,setItem:(k,v)=>isolated2.set(k,v)};
 const fresh=create(engine,storage2);fresh.stage(state2,true);
 assert.throws(()=>fresh.reviewGoalieChoice(11),/unresolved injury/);
 console.log('Mission 1368: goalie review, GM approval, stale-write, injury guard and production isolation passed');
