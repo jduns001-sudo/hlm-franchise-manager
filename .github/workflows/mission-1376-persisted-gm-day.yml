@@ -2,6 +2,8 @@ name: Mission 1376 Persisted GM Day Journey
 on:
   pull_request:
     paths:
+      - 'hlm-phase10-browser.bundle.js'
+      - 'hlm-phase10-simulate-day.js'
       - 'hlm-phase11-isolated-single-game.html'
       - 'hlm-phase11-isolated-season-dashboard.js'
       - 'hlm-phase11-persisted-day-journey.test.js'
