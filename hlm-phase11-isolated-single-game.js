@@ -34,7 +34,7 @@ function create(engine,storage,boxScores=null){
   if(approved!==true)throw Error('Explicit human GM experimental simulation approval required');
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
   const before=store.load();if(!before)throw Error('No isolated save');
-  if(enabled===true)verifyApprovedGoaliePlan(before);
+  if(enabled===true){const choice=verifyApprovedGoaliePlan(before);if(!choice)throw Error('Approved goalie selection required');const goalie=before.universe.players.find(p=>String(p.id)===String(choice.playerId)&&String(p.teamId)===String(choice.teamId));const rating=goalie?.overall??goalie?.ovr;if(!Number.isSafeInteger(rating)||rating<1||rating>99)throw Error('Rated goalie required for experimental score opt-in');}
   const next={...before,extensions:{...before.extensions,phase11ExperimentalRosterAwareScores:enabled===true}};
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
   store.save(next);baseline=storage.getItem(KEY);
