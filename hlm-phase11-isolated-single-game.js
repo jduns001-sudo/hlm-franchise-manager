@@ -83,6 +83,7 @@ function create(engine,storage){
   return result;
  }
  function reviewOffseason(options){
+  pendingOffseason=null;
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
   const before=store.load();if(!before)throw Error('No isolated save');
   if(typeof engine.completeOffseasonAndStartSeason!=='function')throw Error('Existing Phase 10 offseason workflow required');
