@@ -23,7 +23,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining: 6'));
  assert.match(await page.locator('#gm-next-action').innerText(),/Review the next scheduled day/);
- const beforeMatchup=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
+ let beforeMatchup=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
  assert.match(await page.locator('#gm-matchup-review').innerText(),/Your team: Team 1/);
  assert.match(await page.locator('#gm-matchup-review').innerText(),/Opponent: Team 2/);
  assert.match(await page.locator('#gm-matchup-review').innerText(),/not a win prediction/);
@@ -38,6 +38,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#gm-goalie-status')?.textContent.includes('Saved GM goalie plan:'));
  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')).extensions.phase11GmGoaliePlan.playerId),104);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ beforeMatchup=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
 
  await page.locator('#game').selectOption('r2');
  assert.match(await page.locator('#gm-matchup-review').innerText(),/Opponent: Team 3/);
