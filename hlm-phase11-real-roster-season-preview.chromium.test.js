@@ -16,6 +16,8 @@ const state=createGameStateEnvelope({meta:{controlledTeamId:1,currentDate:'2026-
 const preview=previewRosterCareer(state,{offseason:{contracts:{expiredContractIds:[],signings:[]},draftSelections:[]}});
 assert.equal(preview.nextState.history.seasons.length,1);
 assert.equal(preview.official,false);
+assert.equal(preview.assistsShotsGoalieStatisticsCertified,false);
+assert.equal(preview.nextState.extensions.phase11ExperimentalCareerGoalEvents.length,preview.experimentalGoals.regular+preview.experimentalGoals.playoffs);
 await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
 await page.locator('#file').setInputFiles({name:'experimental-career.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(preview.nextState))});
 await page.waitForFunction(()=>!document.querySelector('#import').disabled);
@@ -24,6 +26,9 @@ await page.waitForFunction(()=>document.querySelector('#career-continuity')?.tex
 await page.reload();
 const snapshot=JSON.parse(await page.locator('#career-continuity').innerText());
 assert.equal(snapshot.completedSeasons.length,1);
+const persisted=await page.evaluate(()=>{const key=Object.keys(localStorage).find(k=>k.startsWith('hlm-phase11-m1340-isolated-single-game'));return key?JSON.parse(localStorage.getItem(key)):null});
+assert(persisted);
+assert.equal(persisted.extensions.phase11ExperimentalCareerGoalEvents.length,preview.experimentalGoals.regular+preview.experimentalGoals.playoffs);
 assert.equal(snapshot.playerCount,92);
 assert.equal(snapshot.contractCount,92);
 assert.equal(snapshot.seasonId,'2027-28');
