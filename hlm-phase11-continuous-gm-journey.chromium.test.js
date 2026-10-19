@@ -23,6 +23,15 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining: 6'));
  assert.match(await page.locator('#gm-next-action').innerText(),/Review the next scheduled day/);
+ const beforeMatchup=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
+ assert.match(await page.locator('#gm-matchup-review').innerText(),/Your team: Team 1/);
+ assert.match(await page.locator('#gm-matchup-review').innerText(),/Opponent: Team 2/);
+ assert.match(await page.locator('#gm-matchup-review').innerText(),/not a win prediction/);
+ await page.locator('#game').selectOption('r1');
+ assert.match(await page.locator('#gm-matchup-review').innerText(),/Opponent: Team 3/);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')),beforeMatchup);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ await page.locator('#game').selectOption('r0');
  assert.equal(await page.locator('#gm-next-action-link').getAttribute('href'),'#day-review');
  assert.match(await page.locator('#gm-roster').innerText(),/Controlled team: Team 1 \\| Players: 5/);
  assert.match(await page.locator('#gm-roster').innerText(),/Player 100 \\| C \\| OVR 80/);
