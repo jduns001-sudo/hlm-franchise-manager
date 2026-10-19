@@ -13,6 +13,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const games=pairs.map(([homeTeamId,awayTeamId],i)=>({id:'r'+i,date:'2026-10-'+(19+i),homeTeamId,awayTeamId,status:'scheduled'}));
  const state={schemaVersion:1,meta:{saveId:'career-acceptance',createdAt:null,updatedAt:null,controlledTeamId:1,currentDate:'2026-10-18'},universe:{players:[{id:'p1',name:'Free Agent One'}],teams,leagues:[],prospects:[{id:'pros1',name:'Prospect One'}],staff:[]},assets:{contracts:[{contractId:'old1',playerId:'p1',teamId:1,aav:1000000,years:1,season:'2026-27',status:'active'}],draftPicks:[{pickId:'pick1',currentOwnerId:1,status:'available'}]},activity:{transactions:[],games,injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{},extensions:{}};
  await page.locator('#file').setInputFiles({name:'season.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
+ await page.waitForFunction(()=>!document.querySelector('#import').disabled||document.querySelector('#import-status').textContent.includes('Invalid'),{timeout:10000}).catch(async()=>{throw Error('Import validation did not settle: '+await page.locator('#import-status').innerText())});
+ assert.equal(await page.locator('#import').isDisabled(),false,'Valid GameState import must be enabled');
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining: 6'));
  for(let i=0;i<6;i++){await page.locator('#day-review').click();page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();await page.waitForFunction(n=>document.querySelector('#output')?.textContent.includes('Completed: '+n),i+1)}
