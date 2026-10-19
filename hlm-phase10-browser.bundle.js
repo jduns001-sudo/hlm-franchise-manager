@@ -139,7 +139,7 @@ const {simulateGameScore}=require('./hlm-phase10-game-simulator');
  * Apply one deterministic game result to a cloned save.
  * The caller owns persistence and standings projection.
  */
-function applyScheduledGame(state, gameId, seed) {
+function applyScheduledGame(state, gameId, seed, options={}) {
   const validation=validateGameStateEnvelope(state);
   if (!validation.valid) {
     const error=new Error('Invalid game state');
@@ -156,7 +156,39 @@ function applyScheduledGame(state, gameId, seed) {
       !nextState.universe.teams.some(team=>team && String(team.id)===String(game.awayTeamId))) {
     throw new Error('Game references unknown team');
   }
-  const result=simulateGameScore({gameId:game.id,homeTeamId:game.homeTeamId,awayTeamId:game.awayTeamId,seed});
+  const input={gameId:game.id,homeTeamId:game.homeTeamId,awayTeamId:game.awayTeamId,seed};
+  if(options.experimentalRosterAware===true){
+    const plan=nextState.extensions?.phase11GmGoaliePlan;
+    if(!plan||String(plan.teamId)!==String(nextState.meta.controlledTeamId))throw Error('Explicit GM goalie approval required for experimental roster-aware simulation');
+    const side=String(plan.teamId)===String(game.homeTeamId)?'home':String(plan.teamId)===String(game.awayTeamId)?'away':null;
+    if(side){
+      const goalie=nextState.universe.players.filter(p=>String(p.id)===String(plan.playerId)&&String(p.teamId)===String(plan.teamId)&&p.position==='G');
+      if(goalie.length!==1)throw Error('Approved goalie is not eligible');
+      if((nextState.activity.injuries||[]).some(i=>String(i.playerId)===String(plan.playerId)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false))throw Error('Approved goalie is injured');
+      const rating=goalie[0].overall??goalie[0].ovr;
+      if(!Number.isSafeInteger(rating)||rating<1||rating>99)throw Error('Rated goalie required for experimental roster-aware simulation');
+      input.experimentalApprovedGoalieOverall=rating;
+      input.experimentalApprovedGoalieSide=side;
+      // Only the controlled team's current, healthy, rated roster skaters participate.
+      // Require three eligible skaters to avoid claiming lineup influence from incomplete rosters.
+      const healthy=nextState.universe.players.filter(p=>String(p.teamId)===String(plan.teamId)&&['C','LW','RW','D','F'].includes(String(p.position||'').toUpperCase())&&!(nextState.activity.injuries||[]).some(i=>String(i.playerId)===String(p.id)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false));
+      const approved=nextState.extensions?.phase11GmApprovedSkaters;
+      let candidates=healthy;
+      if(approved!==undefined){
+        if(!approved||String(approved.teamId)!==String(plan.teamId)||!Array.isArray(approved.playerIds)||approved.playerIds.length<3||new Set(approved.playerIds.map(String)).size!==approved.playerIds.length)throw Error('Invalid GM-approved skater participation plan');
+        const ids=new Set(approved.playerIds.map(String));
+        candidates=healthy.filter(p=>ids.has(String(p.id)));
+        if(candidates.length!==ids.size)throw Error('Approved skater is not eligible or is injured');
+      }
+      const eligible=candidates.filter(p=>Number.isSafeInteger(p.overall??p.ovr)&&(p.overall??p.ovr)>=1&&(p.overall??p.ovr)<=99);
+      if(approved!==undefined&&eligible.length!==candidates.length)throw Error('Approved skater rating is unavailable');
+      if(eligible.length>=3){
+        input.experimentalVerifiedSkaterAverage=Math.round(eligible.reduce((total,p)=>total+(p.overall??p.ovr),0)/eligible.length);
+        input.experimentalVerifiedSkaterSide=side;
+      }
+    }
+  }
+  const result=simulateGameScore(input);
   Object.assign(game,result);
   return {nextState,result};
 }
@@ -218,6 +250,10 @@ module.exports={calculateStandings};
 function simulateGameScore(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new TypeError('Game input must be an object');
   const {gameId, homeTeamId, awayTeamId, seed} = input;
+  const rating=input.experimentalApprovedGoalieOverall;
+  const skaterAverage=input.experimentalVerifiedSkaterAverage;
+  if(skaterAverage!==undefined&&(!Number.isSafeInteger(skaterAverage)||skaterAverage<1||skaterAverage>99||!['home','away'].includes(input.experimentalVerifiedSkaterSide)||rating===undefined))throw Error('Invalid experimental verified skater average or side');
+  if(rating!==undefined&&(!Number.isSafeInteger(rating)||rating<1||rating>99||!['home','away'].includes(input.experimentalApprovedGoalieSide)))throw Error('Invalid experimental approved goalie rating or side');
   if (gameId == null || homeTeamId == null || awayTeamId == null ||
       String(homeTeamId) === String(awayTeamId) ||
       !Number.isSafeInteger(seed) || seed < 0) {
@@ -234,14 +270,35 @@ function simulateGameScore(input) {
   const overtime = homeGoals === awayGoals;
   const finalHome = homeGoals + (overtime && next() >= 0.5 ? 1 : 0);
   const finalAway = awayGoals + (overtime && finalHome === homeGoals ? 1 : 0);
+  // Experimental, opt-in-only bounded goalie effect; legacy deterministic results remain unchanged.
+  let adjustedAway=finalAway,adjustedHome=finalHome;
+  if(rating!==undefined){
+    const shift=rating>=85?-1:rating<=65?1:0;
+    if(input.experimentalApprovedGoalieSide==='home')adjustedAway=Math.max(0,finalAway+shift);
+    else adjustedHome=Math.max(0,finalHome+shift);
+  }
+  if(skaterAverage!==undefined){
+    // One bounded team-level scoring effect from healthy, rated roster skaters; no invented player statistics.
+    const shift=skaterAverage>=85?1:skaterAverage<=65?-1:0;
+    if(input.experimentalVerifiedSkaterSide==='home')adjustedHome=Math.max(0,adjustedHome+shift);
+    else adjustedAway=Math.max(0,adjustedAway+shift);
+  }
+  const experimentalOvertime=rating!==undefined&&adjustedHome===adjustedAway;
+  if(experimentalOvertime){
+    // A rating-created tie is resolved in overtime, never misreported as a regulation win.
+    if((seed+String(gameId).length)%2===0)adjustedHome++;
+    else adjustedAway++;
+  }
   return Object.freeze({
     gameId, homeTeamId, awayTeamId,
-    homeGoals: finalHome, awayGoals: finalAway,
-    overtime, winnerTeamId: finalHome > finalAway ? homeTeamId : awayTeamId,
+    homeGoals: adjustedHome, awayGoals: adjustedAway,
+    overtime: overtime||experimentalOvertime, winnerTeamId: adjustedHome > adjustedAway ? homeTeamId : awayTeamId,
+    ...(rating===undefined?{}:{experimentalRosterAware:true,official:false}),
     status: 'final'
   });
 }
-module.exports = {simulateGameScore};
+if (typeof module === 'object' && module.exports) module.exports = {simulateGameScore};
+if (typeof window !== 'undefined') window.HLMPhase10GameSimulator = Object.freeze({simulateGameScore});
 
 },
 "hlm-game-state.js":function(module,exports,require){

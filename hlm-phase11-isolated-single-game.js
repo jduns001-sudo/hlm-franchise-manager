@@ -7,6 +7,7 @@ function create(engine,storage,boxScores=null){
  const store=engine.createBrowserFranchiseSaveStore(storage,KEY);
  let baseline=storage.getItem(KEY);
  let pendingOffseason=null;
+ function peek(){return store.load()}
  function load(){const state=store.load();baseline=storage.getItem(KEY);pendingOffseason=null;return state}
  function stage(state,approved){
   if(approved!==true)throw Error('Human GM import approval required');
@@ -193,7 +194,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
+ return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
 return {KEY,create};
 });

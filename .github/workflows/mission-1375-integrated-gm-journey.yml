@@ -1,0 +1,38 @@
+name: Mission 1375 Integrated GM Journey
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase10-browser.bundle.js'
+      - 'hlm-phase10-apply-game.js'
+      - 'hlm-phase10-game-simulator.js'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-isolated-single-game.js'
+      - 'hlm-phase10-browser.bundle.js'
+      - 'hlm-phase11-integrated-gm-journey.test.js'
+      - 'hlm-phase11-integrated-gm-journey.chromium.test.js'
+      - '.github/workflows/mission-1375-integrated-gm-journey.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-integrated-gm-journey.test.js
+      - run: node hlm-phase11-approved-skater-participation.test.js
+      - run: node hlm-phase11-mobile-skater-controls.test.js
+      - run: node hlm-phase11-isolated-single-game.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-integrated-gm-journey.chromium.test.js
+      - run: node hlm-phase11-mobile-skater-controls.chromium.test.js
