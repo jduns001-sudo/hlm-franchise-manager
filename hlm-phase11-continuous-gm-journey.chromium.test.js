@@ -127,5 +127,16 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#career-report').innerText(),/Archived championships: 2/);
  assert.equal(await page.locator('#next-season').isDisabled(),true);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ // Real mobile round trip: leave the isolated simulation and return through existing Front Office navigation.
+ const isolatedBeforeReturn=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
+ await page.getByRole('link',{name:'Back to Front Office'}).click();
+ await page.locator('#hlm-gm-season-entry').waitFor({timeout:90000});
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ await page.evaluate(()=>go('schedule'));
+ await page.locator('#hlm-isolated-single-game-link').click();
+ await page.locator('#career-report').waitFor();
+ assert.match(await page.locator('#career-report').innerText(),/Archived championships: 2/);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')),isolatedBeforeReturn);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  console.log('Mission 1359 continuous real-app mobile journey: roster, imported synthetic history, GM-approved season, playoffs, offseason, next season, reload and production isolation passed');
 }finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
