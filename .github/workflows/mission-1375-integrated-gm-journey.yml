@@ -2,6 +2,9 @@ name: Mission 1375 Integrated GM Journey
 on:
   pull_request:
     paths:
+      - 'hlm-phase10-browser.bundle.js'
+      - 'hlm-phase10-apply-game.js'
+      - 'hlm-phase10-game-simulator.js'
       - 'hlm-phase11-isolated-single-game.html'
       - 'hlm-phase11-isolated-single-game.js'
       - 'hlm-phase11-integrated-gm-journey.test.js'
