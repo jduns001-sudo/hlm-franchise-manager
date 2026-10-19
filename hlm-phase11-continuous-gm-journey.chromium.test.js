@@ -53,6 +53,10 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-stat-report').innerText(),/Games: 1/);
  await page.locator('#gm-stat-kind').selectOption('regular');assert.match(await page.locator('#gm-stat-report').innerText(),/Games: 1/);
  for(let i=0;i<6;i++){await page.locator('#day-review').click();page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();await page.waitForFunction(n=>document.querySelector('#output')?.textContent.includes('Completed: '+n),i+1)}
+ const attributed=await page.evaluate(()=>JSON.parse(localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')).extensions.phase11ExperimentalBoxScores.filter(b=>b.season==='2026-27'&&(b.home.teamId===1||b.away.teamId===1)).map(b=>b.home.teamId===1?b.home.goalie.playerId:b.away.goalie.playerId));
+ assert.equal(attributed.length,3);
+ assert.ok(attributed.every(id=>id===104),'GM-approved goalie must receive controlled-team experimental attribution');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  await page.locator('#gm-stat-season').selectOption('2026-27');
  await page.locator('#gm-stat-kind').selectOption('regular');
  assert.match(await page.locator('#gm-stat-report').innerText(),/NOT OFFICIAL/);
