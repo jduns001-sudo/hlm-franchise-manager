@@ -27,6 +27,9 @@ assert.equal(calculateStandings(day.nextState.universe.teams,day.nextState.activ
 const legacy=applyScheduledGame(base,'g1',1376);
 assert.equal(legacy.nextState.activity.games[0].experimentalRosterAware,undefined);
 assert.equal(legacy.nextState.activity.games[0].official,undefined);
+const bundledDay=fs.readFileSync(path.join(__dirname,'hlm-phase10-browser.bundle.js'),'utf8');
+const currentDay=fs.readFileSync(path.join(__dirname,'hlm-phase10-simulate-day.js'),'utf8').trimEnd();
+assert.ok(bundledDay.includes(currentDay),'Browser day engine must match current options-aware Phase 10 source');
 const html=fs.readFileSync(path.join(__dirname,'hlm-phase11-isolated-single-game.html'),'utf8');
 assert.match(html,/EXPERIMENTAL, NONOFFICIAL/);
 assert.match(html,/Legacy result/);
