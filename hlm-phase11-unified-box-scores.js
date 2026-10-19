@@ -40,8 +40,43 @@ function buildUnifiedBoxScores(state,games,goalEvents,seed=1){
    goalie.savePercentage=goalie.shotsAgainst?goalie.saves/goalie.shotsAgainst:null;
    if(goalie.saves<0)throw Error('Negative saves');
   }
-  output.push({gameId:game.id,playoff:Boolean(game.playoff||game.isPlayoff),home:rows.home,away:rows.away,experimental:true,official:false});
+  output.push({gameId:game.id,season:game.season??game.seasonId??null,playoff:Boolean(game.playoff||game.isPlayoff),home:rows.home,away:rows.away,experimental:true,official:false,attributionModel:'synthetic-from-roster-goals-v1'});
  }
  return output;
 }
-module.exports={buildUnifiedBoxScores};
+/** Aggregate immutable game reports, keeping playoff and season boundaries separate. */
+function aggregateUnifiedBoxScores(boxScores){
+ const seasons=new Map();const games=new Set();
+ for(const box of boxScores){
+  if(!box||box.experimental!==true||box.official!==false)throw Error('Experimental report required');
+  const gameKey=String(box.season??'unspecified')+':'+String(box.gameId);
+  if(games.has(gameKey))throw Error('Duplicate season game box score');games.add(gameKey);
+  const season=String(box.season??'unspecified'),kind=box.playoff?'playoffs':'regular';
+  const key=season+':'+kind;
+  if(!seasons.has(key))seasons.set(key,{season,kind,games:0,players:new Map(),goalies:new Map()});
+  const bucket=seasons.get(key);bucket.games++;
+  for(const side of ['home','away']){
+   const team=box[side];
+   if(team.players.reduce((n,p)=>n+p.goals,0)!==team.goals||team.players.reduce((n,p)=>n+p.shots,0)!==team.shots)throw Error('Team box score mismatch');
+   for(const p of team.players){
+    if(p.points!==p.goals+p.assists||p.shots<p.goals)throw Error('Player box score mismatch');
+    const id=String(team.teamId)+':'+String(p.playerId);
+    const row=bucket.players.get(id)||{teamId:team.teamId,playerId:p.playerId,games:0,goals:0,assists:0,shots:0,points:0};
+    row.games++;for(const stat of ['goals','assists','shots','points'])row[stat]+=p[stat];
+    bucket.players.set(id,row);
+   }
+   const g=team.goalie;
+   if(g.saves+g.goalsAgainst!==g.shotsAgainst||g.saves<0)throw Error('Goalie box score mismatch');
+   const id=String(team.teamId)+':'+String(g.playerId);
+   const row=bucket.goalies.get(id)||{teamId:team.teamId,playerId:g.playerId,games:0,saves:0,shotsAgainst:0,goalsAgainst:0};
+   row.games++;for(const stat of ['saves','shotsAgainst','goalsAgainst'])row[stat]+=g[stat];
+   bucket.goalies.set(id,row);
+  }
+ }
+ return [...seasons.values()].map(s=>({season:s.season,kind:s.kind,games:s.games,
+  players:[...s.players.values()].sort((a,b)=>String(a.teamId).localeCompare(String(b.teamId))||String(a.playerId).localeCompare(String(b.playerId))),
+  goalies:[...s.goalies.values()].map(g=>({...g,savePercentage:g.shotsAgainst?g.saves/g.shotsAgainst:null})).sort((a,b)=>String(a.teamId).localeCompare(String(b.teamId))||String(a.playerId).localeCompare(String(b.playerId))),
+  experimental:true,official:false
+ })).sort((a,b)=>a.season.localeCompare(b.season)||a.kind.localeCompare(b.kind));
+}
+module.exports={buildUnifiedBoxScores,aggregateUnifiedBoxScores};
