@@ -32,7 +32,16 @@ function buildUnifiedBoxScores(state,games,goalEvents,seed=1){
    const extra=6+(seed+id.length+String(teamId).length)%7;
    for(let i=0;i<extra;i++)players[(seed+i)%players.length].shots++;
    for(const p of players)p.points=p.goals+p.assists;
-   rows[side]={teamId,players,shots:players.reduce((n,p)=>n+p.shots,0),goals,goalie:{playerId:goalies[0].id}};
+   const plan=state.extensions?.phase11GmGoaliePlan;
+   let selected=goalies[0];
+   if(plan&&String(plan.teamId)===String(teamId)&&String(state.meta?.controlledTeamId)===String(teamId)){
+    const matches=goalies.filter(p=>String(p.id)===String(plan.playerId));
+    if(matches.length!==1)throw Error('Approved GM goalie plan is no longer valid for this roster');
+    const injured=(state.activity?.injuries||[]).some(i=>String(i.playerId)===String(plan.playerId)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false);
+    if(injured)throw Error('Approved GM goalie has an unresolved injury; simulation save blocked');
+    selected=matches[0];
+   }
+   rows[side]={teamId,players,shots:players.reduce((n,p)=>n+p.shots,0),goals,goalie:{playerId:selected.id}};
   }
   for(const side of ['home','away']){
    const goalie=rows[side].goalie,opponent=rows[side==='home'?'away':'home'];
