@@ -19,3 +19,14 @@ jobs:
           node-version: '22'
       - run: node hlm-phase10-roster-day-with-stats.test.js
       - run: node hlm-phase11-unified-box-scores.test.js
+  mobile-box-scores:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-unified-box-scores.chromium.test.js
