@@ -77,5 +77,6 @@ assert.equal(snapshot.scheduledGames,12);
 assert.deepEqual(saved.universe.players.map(p=>p.id),originalIds);
 assert.equal(JSON.stringify(snapshot.finances),initialFinances);
 assert.equal(backing.get('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
-assert.throws(()=>recovered.startNextSeason(secondOptions,true),/already initialized|unfinished/);
+assert.throws(()=>recovered.startNextSeason(secondOptions,true),/already initialized|unfinished|already expired/);
+assert.equal(recovered.careerSnapshot().completedSeasons.length,2);
 console.log('Two champions, 92-player franchise, real contracts, draft continuity, finances, owner, reload, duplicate/stale protections and production isolation passed');
