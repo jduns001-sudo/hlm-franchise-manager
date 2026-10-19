@@ -27,6 +27,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-matchup-review').innerText(),/Your team: Team 1/);
  assert.match(await page.locator('#gm-matchup-review').innerText(),/Opponent: Team 2/);
  assert.match(await page.locator('#gm-matchup-review').innerText(),/not a win prediction/);
+ assert.match(await page.locator('#gm-injury-readiness').innerText(),/Reported unresolved injuries: 0/);
+ assert.match(await page.locator('#gm-injury-readiness').innerText(),/Availability and lineup eligibility are not inferred/);
  await page.locator('#game').selectOption('r2');
  assert.match(await page.locator('#gm-matchup-review').innerText(),/Opponent: Team 3/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')),beforeMatchup);
