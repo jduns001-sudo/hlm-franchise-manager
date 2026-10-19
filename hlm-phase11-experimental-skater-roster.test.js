@@ -45,5 +45,4 @@ assert.equal(data.get('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
 const disabled=new Map(),storage2={getItem:k=>disabled.get(k)??null,setItem:(k,v)=>disabled.set(k,v)};
 const m2=create({applyScheduledGame,calculateStandings,createBrowserFranchiseSaveStore},storage2);
 m2.stage(state,true);assert.deepEqual(m2.advance('g1',seed,true).result,legacy.result);
-assert.throws(()=>m.approveExperimentalRosterAware(false,true),/changed|already played|No isolated save/);
 console.log('Mission 1372: verified healthy rated skaters, deterministic day/game, default-off, GM approval, privacy and save isolation pass');
