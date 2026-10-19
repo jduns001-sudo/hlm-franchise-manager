@@ -36,6 +36,10 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.accept());await page.locator('#playoff-start').click();
  await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('bracket initialized'));
  let count=0;while(!(await page.locator('#playoff-next').isDisabled())){page.once('dialog',d=>d.accept());await page.locator('#playoff-next').click();await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('Persisted playoff game'));await page.reload();await page.locator('#playoff-next').waitFor();if(++count>21)throw Error('Playoffs did not finish')}
+ await page.locator('#gm-stat-season').selectOption('2026-27');
+ await page.locator('#gm-stat-kind').selectOption('playoffs');
+ assert.match(await page.locator('#gm-stat-report').innerText(),/NOT OFFICIAL/);
+ assert.match(await page.locator('#gm-stat-report').innerText(),/Games: [1-9][0-9]*/);
  assert.equal(await page.locator('#season-archive').isDisabled(),false);
  page.once('dialog',d=>d.dismiss());await page.locator('#season-archive').click();
  assert.equal(await page.locator('#season-archive').isDisabled(),false);
