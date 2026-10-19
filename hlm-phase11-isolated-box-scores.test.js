@@ -36,4 +36,25 @@ const nextYearAfter={...nextYearBefore,activity:{games:[final]}};
 const nextYear=append(nextYearBefore,nextYearAfter,buildUnifiedBoxScores,17);
 assert.equal(review(nextYear,{season:'2027-28',kind:'regular'}).games,1);
 assert.equal(review(nextYear,{season:'2026-27',kind:'playoffs'}).games,1);
+// A completed championship is archived, then the Phase 10 offseason clears the bracket.
+// Reused playoff game IDs must generate distinct synthetic reports in the next season.
+const archived={...withPlayoffs,history:{seasons:[{seasonId:'2026-27',championTeamId:1,playoffRounds:[[{games:[playoffGame]}]]}]}};
+const rollover={...archived,meta:{...archived.meta,currentDate:'2027-10-18'},activity:{games:[{id:'g1',status:'scheduled',homeTeamId:1,awayTeamId:2}]},extensions:{...archived.extensions,phase10CurrentSeasonId:'2027-28'}};
+delete rollover.extensions.phase10Playoffs;
+const nextPlayoffBefore={...rollover,extensions:{...rollover.extensions,phase10Playoffs:{rounds:[[{games:[]}]]}}};
+const nextPlayoffAfter={...nextPlayoffBefore,extensions:{...nextPlayoffBefore.extensions,phase10Playoffs:{rounds:[[{games:[playoffGame]}]]}}};
+const twoSeasons=append(nextPlayoffBefore,nextPlayoffAfter,buildUnifiedBoxScores,17);
+assert.equal(twoSeasons.extensions.phase11ExperimentalBoxScores.length,3);
+assert.equal(review(twoSeasons,{season:'2026-27',kind:'playoffs'}).games,1);
+assert.equal(review(twoSeasons,{season:'2027-28',kind:'playoffs'}).games,1);
+assert.equal(review(twoSeasons,{season:'2026-27',kind:'regular'}).games,1);
+assert.equal(twoSeasons.extensions.phase11ExperimentalBoxScores.at(-1).official,false);
+assert.equal(append(nextPlayoffAfter,twoSeasons,buildUnifiedBoxScores,17).extensions.phase11ExperimentalBoxScores.length,3);
+assert.equal(rollover.history.seasons[0].seasonId,'2026-27');
+assert.equal(withPlayoffs.extensions.phase11ExperimentalBoxScores.length,2);
+const sameIdBefore={...before,activity:{games:[{id:'PO-R1-S1-G1',status:'final',homeTeamId:1,awayTeamId:2,homeGoals:1,awayGoals:0}]},extensions:{phase10CurrentSeasonId:'2026-27',phase10Playoffs:{rounds:[[{games:[]}]]}}};
+const sameIdAfter={...sameIdBefore,extensions:{...sameIdBefore.extensions,phase10Playoffs:{rounds:[[{games:[playoffGame]}]]}}};
+const sameIdBox=append(sameIdBefore,sameIdAfter,buildUnifiedBoxScores,17);
+assert.equal(review(sameIdBox,{season:'2026-27',kind:'playoffs'}).games,1);
+assert.throws(()=>append(before,{...after,activity:{games:[final,{...final}]}},buildUnifiedBoxScores,17),/Duplicate authoritative season game ID/);
 console.log('Mission 1360 synthetic final attribution, persistence, deduplication, legacy roster safety and read-only review passed');
