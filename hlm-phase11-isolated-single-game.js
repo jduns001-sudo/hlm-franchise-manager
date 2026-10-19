@@ -82,6 +82,24 @@ function create(engine,storage){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
+ function careerSnapshot(){
+  const state=store.load();if(!state)throw Error('No isolated save');
+  const contracts=state.assets.contracts;
+  const active=contracts.filter(c=>c&&c.status==='active');
+  const picks=state.assets.draftPicks;
+  const seasons=state.history.seasons;
+  return Object.freeze({
+   controlledTeamId:state.meta.controlledTeamId,
+   seasonId:state.extensions.phase10CurrentSeasonId||null,
+   completedSeasons:seasons.map(s=>({seasonId:s.seasonId,championTeamId:s.championTeamId})),
+   playerCount:state.universe.players.length,teamCount:state.universe.teams.length,
+   prospectCount:state.universe.prospects.length,contractCount:contracts.length,
+   activeContractCount:active.length,draftPickCount:picks.length,
+   usedDraftPickCount:picks.filter(p=>p.status==='used').length,
+   scheduledGames:state.activity.games.filter(g=>g.status==='scheduled').length,
+   finances:JSON.parse(JSON.stringify(state.finances))
+  });
+ }
  function reviewOffseason(options){
   pendingOffseason=null;
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
@@ -110,7 +128,7 @@ function create(engine,storage){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason};
+ return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot};
 }
 return {KEY,create};
 });
