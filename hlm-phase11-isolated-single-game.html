@@ -64,6 +64,7 @@ $('season-archive').addEventListener('click',async()=>{const id=$('season-id').v
 let reviewedOffseason=null;
 function invalidateOffseason(){reviewedOffseason=null;$('next-season').disabled=true;$('offseason-preview').textContent='Review required before approval.'}
 for(const id of ['offseason-operations','season-id','next-season-id','next-season-date'])$(id).addEventListener('input',invalidateOffseason);
+$('season-id').addEventListener('input',()=>{const state=manager.load(),bracket=state?.extensions?.phase10Playoffs,archived=state?.history?.seasons||[];$('season-archive').disabled=!bracket||bracket.status!=='complete'||archived.some(entry=>entry.seasonId===$('season-id').value.trim())});
 $('offseason-review').addEventListener('click',()=>{invalidateOffseason();try{
  const operations=JSON.parse($('offseason-operations').value);
  if(!operations||typeof operations!=='object'||Array.isArray(operations)||Object.keys(operations).some(k=>!['contracts','draftSelections'].includes(k)))throw Error('Only contracts and draftSelections are supported');

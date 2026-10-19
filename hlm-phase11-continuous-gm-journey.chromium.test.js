@@ -68,6 +68,53 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.locator('#gm-stat-season').selectOption('2026-27');
  await page.locator('#gm-stat-kind').selectOption('playoffs');
  assert.equal(await page.locator('#gm-stat-report').innerText(),archivedPlayoffReport);
+ // Complete the generated second season through the actual mobile UI, never bypassing GM approvals.
+ let secondDays=0;
+ while(!(await page.locator('#day-review').isDisabled())){
+  await page.locator('#day-review').click();
+  page.once('dialog',d=>d.accept());
+  await page.locator('#day-approve').click();
+  await page.waitForFunction(()=>document.querySelector('#day-report')?.textContent.includes('Persisted isolated day'));
+  if(++secondDays>40)throw Error('Second season did not complete');
+ }
+ assert.ok(secondDays>0);
+ await page.locator('#gm-stat-season').selectOption('2027-28');
+ await page.locator('#gm-stat-kind').selectOption('regular');
+ assert.match(await page.locator('#gm-stat-report').innerText(),/Games: [1-9][0-9]*/);
+ page.once('dialog',d=>d.accept());await page.locator('#playoff-start').click();
+ await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('bracket initialized'));
+ let secondPlayoffGames=0;
+ while(!(await page.locator('#playoff-next').isDisabled())){
+  page.once('dialog',d=>d.accept());await page.locator('#playoff-next').click();
+  await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('Persisted playoff game'));
+  await page.reload();await page.locator('#playoff-next').waitFor();
+  if(++secondPlayoffGames>21)throw Error('Second playoffs did not complete');
+ }
+ await page.locator('#gm-stat-season').selectOption('2027-28');
+ await page.locator('#gm-stat-kind').selectOption('playoffs');
+ assert.match(await page.locator('#gm-stat-report').innerText(),/NOT OFFICIAL/);
+ assert.match(await page.locator('#gm-stat-report').innerText(),/Games: [1-9][0-9]*/);
+ const persisted=await page.evaluate(()=>JSON.parse(localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')));
+ const boxes=persisted.extensions.phase11ExperimentalBoxScores;
+ const previousPlayoff=boxes.filter(b=>b.season==='2026-27'&&b.playoff);
+ const currentPlayoff=boxes.filter(b=>b.season==='2027-28'&&b.playoff);
+ assert.ok(previousPlayoff.length>0&&currentPlayoff.length>0);
+ assert.ok(previousPlayoff.some(a=>currentPlayoff.some(b=>String(a.gameId)===String(b.gameId))),'Expected reused playoff IDs across seasons');
+ assert.equal(new Set(boxes.map(b=>String(b.season)+':'+String(b.gameId))).size,boxes.length);
+ assert.ok(boxes.every(b=>b.experimental===true&&b.official===false));
+ assert.ok(boxes.every(b=>b.home.goalie.saves>=0&&b.away.goalie.saves>=0));
+ await page.locator('#season-id').fill('2027-28');
+ await page.locator('#reload').click(); // Re-evaluate archive eligibility after the season ID changes.
+ await page.waitForFunction(()=>document.querySelector('#season-archive')?.disabled===false);
+ page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
+ await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion '));
+ await page.reload();await page.locator('#gm-stat-season').selectOption('2026-27');
+ await page.locator('#gm-stat-kind').selectOption('playoffs');
+ assert.equal(await page.locator('#gm-stat-report').innerText(),archivedPlayoffReport);
+ await page.locator('#gm-stat-season').selectOption('2027-28');
+ await page.locator('#gm-stat-kind').selectOption('playoffs');
+ assert.match(await page.locator('#gm-stat-report').innerText(),/Games: [1-9][0-9]*/);
+ assert.match(await page.locator('#career-report').innerText(),/Archived championships: 2/);
  assert.equal(await page.locator('#next-season').isDisabled(),true);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  console.log('Mission 1359 continuous real-app mobile journey: roster, imported synthetic history, GM-approved season, playoffs, offseason, next season, reload and production isolation passed');
