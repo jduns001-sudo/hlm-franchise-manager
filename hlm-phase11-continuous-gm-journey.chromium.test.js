@@ -32,7 +32,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const goaliePlanBefore=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
  await page.locator('#gm-goalie-choice').selectOption('104');
  await page.locator('#gm-goalie-review').click();
- assert.match(await page.locator('#gm-goalie-status').innerText(),/saved GM plan only/);
+ assert.match(await page.locator('#gm-goalie-status').innerText(),/experimental goalie attribution only/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')),goaliePlanBefore);
  page.once('dialog',d=>d.accept());await page.locator('#gm-goalie-approve').click();
  await page.waitForFunction(()=>document.querySelector('#gm-goalie-status')?.textContent.includes('Saved GM goalie plan:'));
