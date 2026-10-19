@@ -1,0 +1,31 @@
+name: Mission 1368 GM Goalie Selection
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-single-game.js'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-gm-goalie-selection.test.js'
+      - 'hlm-phase11-continuous-gm-journey.chromium.test.js'
+      - '.github/workflows/mission-1368-gm-goalie-selection.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-gm-goalie-selection.test.js
+      - run: node hlm-phase11-isolated-single-game.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-continuous-gm-journey.chromium.test.js
