@@ -30,13 +30,24 @@ function create(engine,storage,boxScores=null){
   if(String(choice.teamId)!==String(plan.teamId))throw Error('Approved GM goalie plan no longer valid');
   return choice;
  }
+ function approveExperimentalRosterAware(enabled,approved){
+  if(approved!==true)throw Error('Explicit human GM experimental simulation approval required');
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  if(enabled===true)verifyApprovedGoaliePlan(before);
+  const next={...before,extensions:{...before.extensions,phase11ExperimentalRosterAwareScores:enabled===true}};
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(next);baseline=storage.getItem(KEY);
+  return enabled===true;
+ }
+ function experimentalOptions(state){return state.extensions?.phase11ExperimentalRosterAwareScores===true?{experimentalRosterAware:true}:{};}
  function advance(gameId,seed,approved){
   if(approved!==true)throw Error('Human GM game approval required');
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
   const before=store.load();if(!before)throw Error('No isolated save');
   review(gameId);
   verifyApprovedGoaliePlan(before);
-  const result=engine.applyScheduledGame(before,gameId,seed);
+  const result=engine.applyScheduledGame(before,gameId,seed,experimentalOptions(before));
   const standings=engine.calculateStandings(result.nextState.universe.teams,result.nextState.activity.games);
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
   const next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
@@ -78,7 +89,7 @@ function create(engine,storage,boxScores=null){
   const before=store.load();if(!before)throw Error('No isolated save');
   if(!before.activity.games.some(g=>g.status==='scheduled'))throw Error('No scheduled games remain');
   verifyApprovedGoaliePlan(before);
-  const result=engine.simulateNextDay(before,seed);
+  const result=engine.simulateNextDay(before,seed,experimentalOptions(before));
   if(result.toDate===before.meta.currentDate)throw Error('Duplicate day advance refused');
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
   const next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
@@ -163,7 +174,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot,reviewGoalieChoice,approveGoalieChoice};
+ return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot,reviewGoalieChoice,approveGoalieChoice,approveExperimentalRosterAware};
 }
 return {KEY,create};
 });
