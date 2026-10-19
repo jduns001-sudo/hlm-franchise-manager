@@ -9,6 +9,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.goto(url+'/app.html',{waitUntil:'domcontentloaded'});await page.locator('#hlm-gm-season-entry').waitFor({timeout:90000});
  await page.evaluate(()=>{localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL');go('schedule')});
  await page.locator('#hlm-isolated-single-game-link').click();await page.locator('#file').waitFor();
+ await page.waitForFunction(()=>document.querySelector('#gm-next-action')?.textContent.includes('Import a GameState JSON'));
  assert.match(await page.locator('#gm-next-action').innerText(),/Import a GameState JSON/);
  assert.equal(await page.locator('#gm-next-action-link').getAttribute('href'),'#file');
  const teams=[1,2,3,4].map(id=>({id,name:'Team '+id}));
