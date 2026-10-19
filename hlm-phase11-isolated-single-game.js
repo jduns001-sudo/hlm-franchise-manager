@@ -51,7 +51,27 @@ function create(engine,storage){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return {fromDate:result.fromDate,toDate:result.toDate,results:result.results,standings:result.standings,state:result.nextState};
  }
- return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay};
+ function startPlayoffs(approved,spots=4,bestOf=7){
+  if(approved!==true)throw Error('Human GM playoff approval required');
+  if(typeof engine.startSeasonPlayoffs!=='function')throw Error('Existing Phase 10 playoff engine required');
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  const result=engine.startSeasonPlayoffs(before,spots,bestOf);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(result.nextState);baseline=storage.getItem(KEY);
+  return result;
+ }
+ function advancePlayoff(seed,approved){
+  if(approved!==true)throw Error('Human GM playoff game approval required');
+  if(typeof engine.simulateNextPlayoffGame!=='function')throw Error('Existing Phase 10 playoff simulation required');
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  const result=engine.simulateNextPlayoffGame(before,seed);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(result.nextState);baseline=storage.getItem(KEY);
+  return result;
+ }
+ return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff};
 }
 return {KEY,create};
 });
