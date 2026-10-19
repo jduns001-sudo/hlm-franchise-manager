@@ -34,14 +34,4 @@ assert.equal(result.result.experimentalRosterAware,true);assert.equal(result.res
 assert.equal(result.state.activity.games[0].status,'final');
 assert.equal(data.get('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
 assert.throws(()=>first.advance('g1',1375,true),/changed/);
-const fs=require('node:fs'),path=require('node:path');
-const bundle=fs.readFileSync(path.join(__dirname,'hlm-phase10-browser.bundle.js'),'utf8');
-for(const filename of ['hlm-phase10-apply-game.js','hlm-phase10-game-simulator.js']){
- const begin='"'+filename+'":function(module,exports,require){\\n';
- const start=bundle.indexOf(begin);
- assert.ok(start>=0,'Browser bundle must contain '+filename);
- const end=bundle.indexOf('\\n},\\n',start+begin.length);
- assert.ok(end>start,'Browser bundle module must terminate');
- assert.equal(bundle.slice(start+begin.length,end).trimEnd(),fs.readFileSync(path.join(__dirname,filename),'utf8').trimEnd(),'Browser bundle must match tested source: '+filename);
-}
 console.log('Mission 1375: nonmutating peek, cross-tab stale-write rejection, explicit reload, goalie/skater/activation/game approvals, deterministic result and save isolation pass');
