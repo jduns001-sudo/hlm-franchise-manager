@@ -1,3 +1,4 @@
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMUnifiedBoxScores=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 /** Experimental box scores derived from authoritative roster-day goal events, not a second game simulation. */
 function buildUnifiedBoxScores(state,games,goalEvents,seed=1){
@@ -79,4 +80,5 @@ function aggregateUnifiedBoxScores(boxScores){
   experimental:true,official:false
  })).sort((a,b)=>a.season.localeCompare(b.season)||a.kind.localeCompare(b.kind));
 }
-module.exports={buildUnifiedBoxScores,aggregateUnifiedBoxScores};
+return {buildUnifiedBoxScores,aggregateUnifiedBoxScores};
+});

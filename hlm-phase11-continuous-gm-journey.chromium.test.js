@@ -26,6 +26,13 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-stat-report').innerText(),/Games: 1/);
  await page.locator('#gm-stat-kind').selectOption('regular');assert.match(await page.locator('#gm-stat-report').innerText(),/Games: 1/);
  for(let i=0;i<6;i++){await page.locator('#day-review').click();page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();await page.waitForFunction(n=>document.querySelector('#output')?.textContent.includes('Completed: '+n),i+1)}
+ await page.locator('#gm-stat-season').selectOption('2026-27');
+ await page.locator('#gm-stat-kind').selectOption('regular');
+ assert.match(await page.locator('#gm-stat-report').innerText(),/NOT OFFICIAL/);
+ assert.match(await page.locator('#gm-stat-report').innerText(),/Games: 3/);
+ await page.reload();await page.locator('#gm-stat-report').waitFor();
+ await page.locator('#gm-stat-season').selectOption('2026-27');
+ assert.match(await page.locator('#gm-stat-report').innerText(),/Games: 3/);
  page.once('dialog',d=>d.accept());await page.locator('#playoff-start').click();
  await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('bracket initialized'));
  let count=0;while(!(await page.locator('#playoff-next').isDisabled())){page.once('dialog',d=>d.accept());await page.locator('#playoff-next').click();await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('Persisted playoff game'));await page.reload();await page.locator('#playoff-next').waitFor();if(++count>21)throw Error('Playoffs did not finish')}
@@ -47,7 +54,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#career-report').innerText(),/Current season: 2027-28/);
  assert.match(await page.locator('#gm-roster').innerText(),/Players: 5/);
  assert.match(await page.locator('#gm-stat-report').innerText(),/NOT OFFICIAL/);
- assert.deepEqual(await page.locator('#gm-stat-season option').allTextContents(),['All seasons','2025-26']);
+ assert.deepEqual(await page.locator('#gm-stat-season option').allTextContents(),['All seasons','2025-26','2026-27']);
  assert.equal(await page.locator('#next-season').isDisabled(),true);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  console.log('Mission 1359 continuous real-app mobile journey: roster, imported synthetic history, GM-approved season, playoffs, offseason, next season, reload and production isolation passed');
