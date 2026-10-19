@@ -76,6 +76,25 @@ function create(engine,storage,boxScores=null){
   store.save(next);baseline=storage.getItem(KEY);
   return choice;
  }
+ function approveSkaterParticipation(playerIds,approved){
+  if(approved!==true)throw Error('Explicit human GM skater participation approval required');
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  const teamId=before.meta?.controlledTeamId;
+  if(!Array.isArray(playerIds)||playerIds.length<3||new Set(playerIds.map(String)).size!==playerIds.length)throw Error('Choose at least three distinct skaters');
+  const ids=new Set(playerIds.map(String));
+  const chosen=before.universe.players.filter(p=>ids.has(String(p.id))&&String(p.teamId)===String(teamId)&&['C','LW','RW','D','F'].includes(String(p.position||'').toUpperCase()));
+  if(chosen.length!==ids.size)throw Error('Skater selection must match controlled-team roster');
+  for(const p of chosen){
+   const rating=p.overall??p.ovr;
+   if(!Number.isSafeInteger(rating)||rating<1||rating>99)throw Error('Rated skater required');
+   if((before.activity.injuries||[]).some(i=>String(i.playerId)===String(p.id)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false))throw Error('Injured skater cannot be approved');
+  }
+  const next={...before,extensions:{...before.extensions,phase11GmApprovedSkaters:{teamId,playerIds:chosen.map(p=>p.id)}}};
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(next);baseline=storage.getItem(KEY);
+  return Object.freeze({teamId,playerIds:Object.freeze(chosen.map(p=>p.id))});
+ }
  function reviewNextDay(){
   if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
   const state=store.load();if(!state)throw Error('No isolated save');
@@ -174,7 +193,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot,reviewGoalieChoice,approveGoalieChoice,approveExperimentalRosterAware};
+ return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
 return {KEY,create};
 });
