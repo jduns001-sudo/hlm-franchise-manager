@@ -22,7 +22,7 @@ for(const {seed,side,rating,winner,loser} of scenarios){
  assert.equal(Math.abs(result.homeGoals-result.awayGoals),1);
  assert.deepEqual(simulateGameScore(input),result,'same input must replay exactly');
  assert.deepEqual(simulateGameScore({...matchup,seed}),legacy,'opt-in must not alter legacy replay');
- const table=calculateStandings([{id:1},{id:2}],[result]);
+ const table=calculateStandings([{id:1},{id:2}],[{...result,id:'g1'}]);
  assert.equal(table.find(t=>t.teamId===winner).points,2);
  assert.equal(table.find(t=>t.teamId===loser).otl,1);
  assert.equal(table.find(t=>t.teamId===loser).points,1);
