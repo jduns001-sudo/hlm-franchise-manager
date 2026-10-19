@@ -2,7 +2,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMIsolatedSingleGame=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 const KEY='hlm-phase11-m1340-isolated-single-game-v1';
-function create(engine,storage){
+function create(engine,storage,boxScores=null){
  if(!engine||typeof engine.applyScheduledGame!=='function'||typeof engine.createBrowserFranchiseSaveStore!=='function'||typeof engine.calculateStandings!=='function')throw Error('Existing Phase 10 game, standings and save engine required');
  const store=engine.createBrowserFranchiseSaveStore(storage,KEY);
  let baseline=storage.getItem(KEY);
@@ -30,9 +30,10 @@ function create(engine,storage){
   const result=engine.applyScheduledGame(before,gameId,seed);
   const standings=engine.calculateStandings(result.nextState.universe.teams,result.nextState.activity.games);
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
-  store.save(result.nextState);
+  const next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
+  store.save(next);
   baseline=storage.getItem(KEY);
-  return {result:result.result,standings,state:result.nextState};
+  return {result:result.result,standings,state:next};
  }
  function reviewNextDay(){
   if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
@@ -49,8 +50,9 @@ function create(engine,storage){
   const result=engine.simulateNextDay(before,seed);
   if(result.toDate===before.meta.currentDate)throw Error('Duplicate day advance refused');
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
-  store.save(result.nextState);baseline=storage.getItem(KEY);
-  return {fromDate:result.fromDate,toDate:result.toDate,results:result.results,standings:result.standings,state:result.nextState};
+  const next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
+  store.save(next);baseline=storage.getItem(KEY);
+  return {fromDate:result.fromDate,toDate:result.toDate,results:result.results,standings:result.standings,state:next};
  }
  function startPlayoffs(approved,spots=4,bestOf=7){
   if(approved!==true)throw Error('Human GM playoff approval required');
@@ -69,8 +71,9 @@ function create(engine,storage){
   const before=store.load();if(!before)throw Error('No isolated save');
   const result=engine.simulateNextPlayoffGame(before,seed);
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
-  store.save(result.nextState);baseline=storage.getItem(KEY);
-  return result;
+  const next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
+  store.save(next);baseline=storage.getItem(KEY);
+  return {...result,nextState:next};
  }
  function archiveSeason(seasonId,approved){
   if(approved!==true)throw Error('Human GM season archive approval required');
