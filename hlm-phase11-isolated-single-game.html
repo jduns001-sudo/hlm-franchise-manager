@@ -114,7 +114,7 @@ $('gm-goalie-review').addEventListener('click',()=>{try{pendingGoalie=manager.re
 $('gm-goalie-approve').addEventListener('click',async()=>{if(!pendingGoalie||String(pendingGoalie.playerId)!==$('gm-goalie-choice').value)return;if(!confirm('Human GM: approve saving the selected goalie as a planning preference? It affects experimental goalie statistics only, not authoritative game scores.'))return;try{const choice=await locked(()=>manager.approveGoalieChoice(pendingGoalie.playerId,true));pendingGoalie=null;refresh();$('gm-goalie-status').textContent='Saved GM goalie plan: '+choice.playerName+'. Experimental goalie attribution enabled; authoritative game scores unchanged.'}catch(e){pendingGoalie=null;$('gm-goalie-approve').disabled=true;$('gm-goalie-status').textContent=e.message}});
 $('gm-roster-scores').addEventListener('click',async()=>{
  const state=manager.load(),enabled=state?.extensions?.phase11ExperimentalRosterAwareScores===true,next=!enabled;
- if(!confirm('Human GM: '+(next?'ENABLE':'DISABLE')+' experimental goalie-rating effects on future regular-season scores? This changes simulation results, is not official, and does not alter past games.'))return;
+ if(!confirm('Human GM: '+(next?'ENABLE':'DISABLE')+' experimental goalie and approved-skater roster effects on future regular-season scores? This is nonofficial, changes only future experimental results, and never modifies past games or production saves.'))return;
  try{await locked(()=>manager.approveExperimentalRosterAware(next,true));refresh();$('gm-roster-scores-status').textContent='Experimental roster-aware regular-season scoring '+(next?'enabled':'disabled')+' by human GM.';}
  catch(e){$('gm-roster-scores-status').textContent=e.message}
 });

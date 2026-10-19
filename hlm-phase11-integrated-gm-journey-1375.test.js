@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const html=fs.readFileSync(path.join(__dirname,'hlm-phase11-isolated-single-game.html'),'utf8');
+assert.match(html,/experimental goalie and approved-skater roster effects on future regular-season scores/);
+assert.match(html,/locked\(\(\)=>manager\.approveSkaterParticipation/);
+assert.match(html,/locked\(\(\)=>manager\.approveGoalieChoice/);
+assert.match(html,/locked\(\(\)=>manager\.approveExperimentalRosterAware/);
+assert.match(html,/locked\(\(\)=>manager\.advance\(/);
+assert.match(html,/locked\(\(\)=>\{const current=manager\.reviewNextDay/);
+assert.match(html,/navigator\.locks\.request/);
+assert.match(html,/GM approved/);
+assert.match(html,/aria-live="polite"/);
+console.log('Mission 1375: existing GM approvals, explicit opt-in, locked game/day saves, accessible statuses and truthful nonofficial activation copy');
