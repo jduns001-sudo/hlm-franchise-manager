@@ -9,6 +9,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.goto(url+'/app.html',{waitUntil:'domcontentloaded'});await page.locator('#hlm-gm-season-entry').waitFor({timeout:90000});
  await page.evaluate(()=>{localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL');go('schedule')});
  await page.locator('#hlm-isolated-single-game-link').click();await page.locator('#file').waitFor();
+ assert.match(await page.locator('#gm-next-action').innerText(),/Import a GameState JSON/);
+ assert.equal(await page.locator('#gm-next-action-link').getAttribute('href'),'#file');
  const teams=[1,2,3,4].map(id=>({id,name:'Team '+id}));
  const pairs=[[1,2],[3,4],[1,3],[2,4],[1,4],[2,3]];
  const games=pairs.map(([homeTeamId,awayTeamId],i)=>({id:'r'+i,date:'2026-10-'+(19+i),homeTeamId,awayTeamId,status:'scheduled'}));
@@ -19,6 +21,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.locator('#file').setInputFiles({name:'season.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining: 6'));
+ assert.match(await page.locator('#gm-next-action').innerText(),/Review the next scheduled day/);
+ assert.equal(await page.locator('#gm-next-action-link').getAttribute('href'),'#day-review');
  assert.match(await page.locator('#gm-roster').innerText(),/Controlled team: Team 1 \\| Players: 5/);
  assert.match(await page.locator('#gm-roster').innerText(),/Player 100 \\| C \\| OVR 80/);
  assert.match(await page.locator('#gm-stat-report').innerText(),/EXPERIMENTAL GM STAT REVIEW \\| NOT OFFICIAL/);
@@ -33,19 +37,24 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.reload();await page.locator('#gm-stat-report').waitFor();
  await page.locator('#gm-stat-season').selectOption('2026-27');
  assert.match(await page.locator('#gm-stat-report').innerText(),/Games: 3/);
+ assert.match(await page.locator('#gm-next-action').innerText(),/Regular season complete/);
+ assert.equal(await page.locator('#gm-next-action-link').getAttribute('href'),'#playoff-start');
  page.once('dialog',d=>d.accept());await page.locator('#playoff-start').click();
  await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('bracket initialized'));
+ assert.match(await page.locator('#gm-next-action').innerText(),/Playoffs underway/);
  let count=0;while(!(await page.locator('#playoff-next').isDisabled())){page.once('dialog',d=>d.accept());await page.locator('#playoff-next').click();await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('Persisted playoff game'));await page.reload();await page.locator('#playoff-next').waitFor();if(++count>21)throw Error('Playoffs did not finish')}
  await page.locator('#gm-stat-season').selectOption('2026-27');
  await page.locator('#gm-stat-kind').selectOption('playoffs');
  assert.match(await page.locator('#gm-stat-report').innerText(),/NOT OFFICIAL/);
  assert.match(await page.locator('#gm-stat-report').innerText(),/Games: [1-9][0-9]*/);
+ assert.match(await page.locator('#gm-next-action').innerText(),/Champion determined/);
  assert.equal(await page.locator('#season-archive').isDisabled(),false);
  page.once('dialog',d=>d.dismiss());await page.locator('#season-archive').click();
  assert.equal(await page.locator('#season-archive').isDisabled(),false);
  page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
  await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion '));
  await page.reload();await page.locator('#next-season').waitFor();
+ assert.match(await page.locator('#gm-next-action').innerText(),/Championship archived/);
  assert.equal(await page.locator('#next-season').isDisabled(),true);
  await page.waitForFunction(()=>document.querySelector('#offseason-review')?.disabled===false,null,{timeout:15000}).catch(async error=>{const snapshot=await page.evaluate(()=>({career:document.querySelector('#career-report')?.textContent,playoff:document.querySelector('#playoff-report')?.textContent,archiveDisabled:document.querySelector('#season-archive')?.disabled,offseasonDisabled:document.querySelector('#offseason-review')?.disabled,output:document.querySelector('#output')?.textContent}));throw Error('Offseason prerequisite unavailable after archive/reload: '+JSON.stringify(snapshot)+'; '+error.message)});
  await page.locator('#offseason-review').click();
@@ -56,6 +65,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.reload();await page.locator('#output').waitFor();
  assert.match(await page.locator('#career-report').innerText(),/Archived championships: 1/);
  assert.match(await page.locator('#career-report').innerText(),/Current season: 2027-28/);
+ assert.match(await page.locator('#gm-next-action').innerText(),/Review the next scheduled day/);
  assert.match(await page.locator('#gm-roster').innerText(),/Players: 5/);
  assert.match(await page.locator('#gm-stat-report').innerText(),/NOT OFFICIAL/);
  assert.deepEqual(await page.locator('#gm-stat-season option').allTextContents(),['All seasons','2025-26','2026-27']);
