@@ -16,7 +16,12 @@ function append(before,after,build,seed=1){
   return roster.some(p=>['C','LW','RW','D'].includes(p.position))&&roster.some(p=>p.position==='G');
  }));
  if(!eligible.length)return after; // Existing roster-free saves remain compatible.
- const season=before.extensions?.phase10CurrentSeasonId||'Imported';
+ const date=String(before.meta?.currentDate||'');
+ const match=/^(\d{4})-(\d{2})-\d{2}$/.exec(date);
+ const year=match?Number(match[1]):null;
+ const start=match?(Number(match[2])>=7?year:year-1):null;
+ const inferred=start==null?null:String(start)+'-'+String((start+1)%100).padStart(2,'0');
+ const season=before.extensions?.phase10CurrentSeasonId||inferred||'Imported';
  const games=eligible.map(g=>({...g,season:g.season??g.seasonId??season}));
  const events=[];
  for(const g of games)for(const [teamId,count] of [[g.homeTeamId,g.homeGoals],[g.awayTeamId,g.awayGoals]]){
