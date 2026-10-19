@@ -104,6 +104,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.ok(boxes.every(b=>b.experimental===true&&b.official===false));
  assert.ok(boxes.every(b=>b.home.goalie.saves>=0&&b.away.goalie.saves>=0));
  await page.locator('#season-id').fill('2027-28');
+ await page.locator('#reload').click(); // Re-evaluate archive eligibility after the season ID changes.
+ await page.waitForFunction(()=>document.querySelector('#season-archive')?.disabled===false);
  page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
  await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion '));
  await page.reload();await page.locator('#gm-stat-season').selectOption('2026-27');
