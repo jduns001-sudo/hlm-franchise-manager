@@ -1,0 +1,32 @@
+name: Mission 1373 Approved Skater Participation
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase10-apply-game.js'
+      - 'hlm-phase11-isolated-single-game.js'
+      - 'hlm-phase11-approved-skater-participation.test.js'
+      - 'hlm-phase11-approved-skater-participation.chromium.test.js'
+      - '.github/workflows/mission-1373-approved-skater-participation.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-approved-skater-participation.test.js
+      - run: node hlm-phase11-experimental-skater-roster.test.js
+      - run: node hlm-phase11-experimental-overtime-integrity.test.js
+      - run: node hlm-phase11-experimental-roster-score.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-approved-skater-participation.chromium.test.js
