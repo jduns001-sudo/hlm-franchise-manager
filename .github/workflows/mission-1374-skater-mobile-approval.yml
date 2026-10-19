@@ -1,0 +1,30 @@
+name: Mission 1374 Skater Mobile Approval
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-skater-mobile-approval.test.js'
+      - 'hlm-phase11-skater-mobile-approval.chromium.test.js'
+      - '.github/workflows/mission-1374-skater-mobile-approval.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-skater-mobile-approval.test.js
+      - run: node hlm-phase11-approved-skater-participation.test.js
+      - run: node hlm-phase11-experimental-skater-roster.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-skater-mobile-approval.chromium.test.js
