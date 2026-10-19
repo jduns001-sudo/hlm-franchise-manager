@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {review}=require('./hlm-phase11-gm-matchup-review');
+const state={meta:{controlledTeamId:1},universe:{teams:[{id:1,name:'Home'},{id:2,name:'Away'}],players:[{id:1,teamId:1,position:'G',ovr:90},{id:2,teamId:1,position:'C',overall:80},{id:3,teamId:2,position:'G',ovr:70},{id:4,teamId:2,position:'C'}]},activity:{games:[{id:'g1',date:'2026-10-19',homeTeamId:1,awayTeamId:2,status:'scheduled'}]}};
+const original=JSON.stringify(state);
+assert.match(review(state,'g1'),/Your team: Home \| Players: 2 \| Goalies: 1 \| Available OVR: 85.0 \(2 rated\)/);
+assert.match(review(state,'g1'),/Opponent: Away \| Players: 2 \| Goalies: 1 \| Available OVR: 70.0 \(1 rated\)/);
+assert.match(review(state,'g1'),/not a win prediction/);
+assert.equal(review(state,'absent'),'Select an available scheduled game to review.');
+assert.equal(review(null,'g1'),'Import an isolated franchise to review a matchup.');
+assert.equal(JSON.stringify(state),original,'Review must never mutate the game state');
+console.log('Mission 1366 read-only matchup evidence Node regressions passed');
