@@ -1,0 +1,21 @@
+name: Mission 1357 Unified Box Scores
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-unified-box-scores*'
+      - 'hlm-phase10-roster-day-with-stats*'
+      - '.github/workflows/mission-1357-unified-box-scores.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-box-scores:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-day-with-stats.test.js
+      - run: node hlm-phase11-unified-box-scores.test.js
