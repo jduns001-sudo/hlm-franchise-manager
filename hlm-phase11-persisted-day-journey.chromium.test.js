@@ -57,7 +57,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Completed: 2'));
  assert.equal(await page.locator('#approve').isDisabled(),true);
  assert.match(await page.locator('#season-dashboard').innerText(),/EXPERIMENTAL, NONOFFICIAL/,'Reload must show persisted nonofficial provenance');
- assert.equal((await page.locator('#season-dashboard').innerText().match(/EXPERIMENTAL, NONOFFICIAL/g)||[]).length,2);
+ assert.equal(((await page.locator('#season-dashboard').innerText()).match(/EXPERIMENTAL, NONOFFICIAL/g)||[]).length,2);
  assert.deepEqual(await page.locator('#gm-skater-choice option:checked').evaluateAll(els=>els.map(e=>e.value)),['12','13','14']);
  assert.match(await page.locator('#gm-roster-scores-status').innerText(),/enabled by GM/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
