@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const html=fs.readFileSync('hlm-phase11-isolated-single-game.html','utf8');
+const manager=fs.readFileSync('hlm-phase11-isolated-single-game.js','utf8');
+const journey=fs.readFileSync('hlm-phase11-continuous-gm-journey.chromium.test.js','utf8');
+assert.match(html,/href="\.\/app\.html">Back to Front Office/);
+assert.match(html,/navigator\.locks\.request/);
+assert.match(manager,/Existing isolated save must not be overwritten/);
+assert.match(manager,/Human GM import approval required/);
+assert.match(journey,/Back to Front Office/);
+assert.match(journey,/isolatedBeforeReturn/);
+assert.match(journey,/PRODUCTION_SENTINEL/);
+console.log('Mission 1365 Node navigation and isolated-save safety contracts passed');
