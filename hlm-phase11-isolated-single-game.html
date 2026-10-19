@@ -5,7 +5,7 @@ const $=id=>document.getElementById(id),engine=window.HLMPhase10,manager=window.
 let candidate=null;
 async function locked(fn){if(!navigator.locks||typeof navigator.locks.request!=='function')throw Error('Safe cross-tab locking unavailable; save blocked');return navigator.locks.request('hlm-phase11-m1340-isolated-single-game-lock',{mode:'exclusive'},fn)}
 function refresh(){
- const state=manager.load(),games=state?.activity?.games?.filter(g=>g.status==='scheduled')||[];
+ const state=manager.peek(),games=state?.activity?.games?.filter(g=>g.status==='scheduled')||[];
  const teamNames=new Map((state?.universe?.teams||[]).map(t=>[String(t.id),String(t.name||t.id)]));
  const teamName=id=>teamNames.get(String(id))||String(id);
  $('game').replaceChildren();
@@ -144,7 +144,7 @@ $('next-season').addEventListener('click',async()=>{if(!reviewedOffseason)return
 let reviewedDay=null;
 $('day-review').addEventListener('click',()=>{try{reviewedDay=manager.reviewNextDay();$('day-report').textContent='Next isolated day: '+reviewedDay.fromDate+' to '+reviewedDay.toDate+'; games: '+reviewedDay.games+'. Approval required.';$('day-approve').disabled=false}catch(e){reviewedDay=null;$('day-report').textContent=e.message}});
 $('day-approve').addEventListener('click',async()=>{if(!reviewedDay)return;if(!confirm('Human GM: approve isolated franchise day '+reviewedDay.toDate+' with '+reviewedDay.games+' games? This persists only the isolated save.'))return;try{const result=await locked(()=>{const current=manager.reviewNextDay();if(current.fromDate!==reviewedDay.fromDate||current.toDate!==reviewedDay.toDate||current.games!==reviewedDay.games)throw Error('Reviewed day changed; review again');return manager.advanceNextDay(1341,true)});refresh();reviewedDay=null;$('day-report').textContent='Persisted isolated day '+result.toDate+'; '+result.results.length+' games. Standings updated.'}catch(e){reviewedDay=null;$('day-approve').disabled=true;$('day-report').textContent=e.message}});
-$('reload').addEventListener('click',()=>{try{pendingSkaters=null;pendingGoalie=null;reviewedDay=null;refresh()}catch(e){$('output').textContent=e.message}});
+$('reload').addEventListener('click',()=>{try{pendingSkaters=null;pendingGoalie=null;reviewedDay=null;manager.load();refresh()}catch(e){$('output').textContent=e.message}});
 try{refresh()}catch(e){$('output').textContent=e.message}
 })();
 </script></body></html>
