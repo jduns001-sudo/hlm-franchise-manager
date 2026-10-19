@@ -8,7 +8,7 @@ function overview(state,engine,limit=8){
  const completed=games.filter(g=>g.status==='final').sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(a.id).localeCompare(String(b.id)));
  const upcoming=games.filter(g=>g.status==='scheduled').sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id)));
  const standings=engine.calculateStandings(state.universe.teams,games);
- return {date:state.meta.currentDate,completedCount:completed.length,scheduledCount:upcoming.length,latestResults:completed.slice(0,limit).map(g=>({id:g.id,date:g.date,homeTeamId:g.homeTeamId,awayTeamId:g.awayTeamId,homeGoals:g.homeGoals,awayGoals:g.awayGoals})),upcoming:upcoming.slice(0,limit).map(g=>({id:g.id,date:g.date,homeTeamId:g.homeTeamId,awayTeamId:g.awayTeamId})),standings};
+ return {date:state.meta.currentDate,completedCount:completed.length,scheduledCount:upcoming.length,latestResults:completed.slice(0,limit).map(g=>({id:g.id,date:g.date,homeTeamId:g.homeTeamId,awayTeamId:g.awayTeamId,homeGoals:g.homeGoals,awayGoals:g.awayGoals,experimentalRosterAware:g.experimentalRosterAware===true,official:g.official===false?false:undefined})),upcoming:upcoming.slice(0,limit).map(g=>({id:g.id,date:g.date,homeTeamId:g.homeTeamId,awayTeamId:g.awayTeamId})),standings};
 }
 return {overview};
 });
