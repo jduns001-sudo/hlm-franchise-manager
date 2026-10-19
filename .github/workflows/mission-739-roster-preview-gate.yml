@@ -1,0 +1,20 @@
+name: Mission 739 Roster Preview Gate Tests
+on:
+  push:
+    branches:
+      - mission-739-roster-preview-gate
+  pull_request:
+    paths:
+      - 'hlm-phase10-roster-game-preview-gate.js'
+      - 'hlm-phase10-roster-game-preview-gate.test.js'
+      - 'docs/MISSION_739_ROSTER_PREVIEW_GATE.md'
+      - '.github/workflows/mission-739-roster-preview-gate.yml'
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase10-roster-game-preview-gate.test.js
