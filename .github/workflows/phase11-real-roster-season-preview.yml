@@ -1,0 +1,32 @@
+name: Phase 11 Real Roster Season Preview
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-real-roster-season-preview*'
+      - '.github/workflows/phase11-real-roster-season-preview.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-roster-career:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-real-roster-season-preview.test.js
+      - run: node hlm-phase10-controlled-roster-game.test.js
+      - run: node hlm-phase10-roster-playoff-game.test.js
+  mobile-roster-career:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-real-roster-season-preview.chromium.test.js
