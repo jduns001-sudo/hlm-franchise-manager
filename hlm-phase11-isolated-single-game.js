@@ -71,7 +71,27 @@ function create(engine,storage){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff};
+ function archiveSeason(seasonId,approved){
+  if(approved!==true)throw Error('Human GM season archive approval required');
+  if(typeof engine.finalizeChampionshipSeason!=='function')throw Error('Existing Phase 10 championship finalization required');
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  const result=engine.finalizeChampionshipSeason(before,seasonId);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(result.nextState);baseline=storage.getItem(KEY);
+  return result;
+ }
+ function startNextSeason(options,approved){
+  if(approved!==true)throw Error('Human GM offseason approval required');
+  if(typeof engine.completeOffseasonAndStartSeason!=='function')throw Error('Existing Phase 10 offseason workflow required');
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  const result=engine.completeOffseasonAndStartSeason(before,options);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(result.nextState);baseline=storage.getItem(KEY);
+  return result;
+ }
+ return {key:KEY,load,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason};
 }
 return {KEY,create};
 });

@@ -1,0 +1,33 @@
+name: Phase 11 Career Rollover
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-single-game.js'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-career-rollover*'
+      - '.github/workflows/phase11-career-rollover.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-career:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-career-rollover.test.js
+      - run: node hlm-phase11-playoff-transition.test.js
+  mobile-career:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-career-rollover.chromium.test.js
