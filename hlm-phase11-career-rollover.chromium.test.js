@@ -23,7 +23,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.dismiss());await page.locator('#season-archive').click();
  assert.equal(await page.locator('#season-archive').isDisabled(),false);
  page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
- await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion'));
+ await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion '));
  await page.reload();await page.locator('#next-season').waitFor();
  assert.equal(await page.locator('#next-season').isDisabled(),true);
  await page.waitForFunction(()=>document.querySelector('#offseason-review')?.disabled===false,null,{timeout:15000}).catch(async error=>{const snapshot=await page.evaluate(()=>({career:document.querySelector('#career-report')?.textContent,playoff:document.querySelector('#playoff-report')?.textContent,archiveDisabled:document.querySelector('#season-archive')?.disabled,offseasonDisabled:document.querySelector('#offseason-review')?.disabled,output:document.querySelector('#output')?.textContent}));throw Error('Offseason prerequisite unavailable after archive/reload: '+JSON.stringify(snapshot)+'; '+error.message)});
