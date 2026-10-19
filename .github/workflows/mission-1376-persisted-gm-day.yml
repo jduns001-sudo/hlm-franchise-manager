@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-isolated-season-dashboard.js'
       - 'hlm-phase11-persisted-day-journey.test.js'
       - 'hlm-phase11-persisted-day-journey.chromium.test.js'
       - '.github/workflows/mission-1376-persisted-gm-day.yml'
