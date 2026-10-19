@@ -25,6 +25,9 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
  await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion'));
  await page.reload();await page.locator('#next-season').waitFor();
+ assert.equal(await page.locator('#next-season').isDisabled(),true);
+ await page.locator('#offseason-review').click();
+ await page.waitForFunction(()=>document.querySelector('#offseason-preview')?.textContent.includes('Review only'));
  assert.equal(await page.locator('#next-season').isDisabled(),false);
  page.once('dialog',d=>d.accept());await page.locator('#next-season').click();
  await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Started 2027-28'));
