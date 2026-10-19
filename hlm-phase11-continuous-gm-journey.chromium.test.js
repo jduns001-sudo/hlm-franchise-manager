@@ -29,6 +29,16 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-matchup-review').innerText(),/not a win prediction/);
  assert.match(await page.locator('#gm-injury-readiness').innerText(),/Reported unresolved injuries: 0/);
  assert.match(await page.locator('#gm-injury-readiness').innerText(),/Availability and lineup eligibility are not inferred/);
+ const goaliePlanBefore=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
+ await page.locator('#gm-goalie-choice').selectOption('104');
+ await page.locator('#gm-goalie-review').click();
+ assert.match(await page.locator('#gm-goalie-status').innerText(),/saved GM plan only/);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')),goaliePlanBefore);
+ page.once('dialog',d=>d.accept());await page.locator('#gm-goalie-approve').click();
+ await page.waitForFunction(()=>document.querySelector('#gm-goalie-status')?.textContent.includes('Saved GM goalie plan:'));
+ assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')).extensions.phase11GmGoaliePlan.playerId),104);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+
  await page.locator('#game').selectOption('r2');
  assert.match(await page.locator('#gm-matchup-review').innerText(),/Opponent: Team 3/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')),beforeMatchup);
