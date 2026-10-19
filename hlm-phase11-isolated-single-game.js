@@ -22,11 +22,20 @@ function create(engine,storage,boxScores=null){
   const g=matches[0];
   return Object.freeze({id:g.id,date:g.date,homeTeamId:g.homeTeamId,awayTeamId:g.awayTeamId,status:g.status});
  }
+ function verifyApprovedGoaliePlan(state){
+  const plan=state.extensions?.phase11GmGoaliePlan;
+  if(!plan)return null;
+  if(String(plan.teamId)!==String(state.meta?.controlledTeamId))throw Error('Approved GM goalie plan team mismatch');
+  const choice=reviewGoalieChoice(plan.playerId);
+  if(String(choice.teamId)!==String(plan.teamId))throw Error('Approved GM goalie plan no longer valid');
+  return choice;
+ }
  function advance(gameId,seed,approved){
   if(approved!==true)throw Error('Human GM game approval required');
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
   const before=store.load();if(!before)throw Error('No isolated save');
   review(gameId);
+  verifyApprovedGoaliePlan(before);
   const result=engine.applyScheduledGame(before,gameId,seed);
   const standings=engine.calculateStandings(result.nextState.universe.teams,result.nextState.activity.games);
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
@@ -68,6 +77,7 @@ function create(engine,storage,boxScores=null){
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
   const before=store.load();if(!before)throw Error('No isolated save');
   if(!before.activity.games.some(g=>g.status==='scheduled'))throw Error('No scheduled games remain');
+  verifyApprovedGoaliePlan(before);
   const result=engine.simulateNextDay(before,seed);
   if(result.toDate===before.meta.currentDate)throw Error('Duplicate day advance refused');
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
@@ -90,6 +100,7 @@ function create(engine,storage,boxScores=null){
   if(typeof engine.simulateNextPlayoffGame!=='function')throw Error('Existing Phase 10 playoff simulation required');
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
   const before=store.load();if(!before)throw Error('No isolated save');
+  verifyApprovedGoaliePlan(before);
   const result=engine.simulateNextPlayoffGame(before,seed);
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
   const next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
