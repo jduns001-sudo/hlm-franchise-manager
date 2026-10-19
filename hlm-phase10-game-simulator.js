@@ -32,15 +32,16 @@ function simulateGameScore(input) {
     if(input.experimentalApprovedGoalieSide==='home')adjustedAway=Math.max(0,finalAway+shift);
     else adjustedHome=Math.max(0,finalHome+shift);
   }
-  if(rating!==undefined&&adjustedHome===adjustedAway){
-    // Preserve a winner deterministically; a tie created by the experimental adjustment goes to OT.
+  const experimentalOvertime=rating!==undefined&&adjustedHome===adjustedAway;
+  if(experimentalOvertime){
+    // A rating-created tie is resolved in overtime, never misreported as a regulation win.
     if((seed+String(gameId).length)%2===0)adjustedHome++;
     else adjustedAway++;
   }
   return Object.freeze({
     gameId, homeTeamId, awayTeamId,
     homeGoals: adjustedHome, awayGoals: adjustedAway,
-    overtime: overtime, winnerTeamId: adjustedHome > adjustedAway ? homeTeamId : awayTeamId,
+    overtime: overtime||experimentalOvertime, winnerTeamId: adjustedHome > adjustedAway ? homeTeamId : awayTeamId,
     ...(rating===undefined?{}:{experimentalRosterAware:true,official:false}),
     status: 'final'
   });
