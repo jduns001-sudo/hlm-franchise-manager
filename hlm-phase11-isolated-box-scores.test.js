@@ -22,4 +22,18 @@ assert.equal(append(after,next,buildUnifiedBoxScores,17).extensions.phase11Exper
 assert.deepEqual(before.activity.games[0].status,'scheduled');
 assert.equal(append(before,{...after,universe:{players:[]}},buildUnifiedBoxScores,17).extensions.phase11ExperimentalBoxScores,undefined);
 assert.throws(()=>append(before,{...after,activity:{games:[{...final,homeGoals:-1}]}},buildUnifiedBoxScores,17),/Invalid authoritative game goals/);
+const playoffGame={gameId:'PO-R1-S1-G1',status:'final',homeTeamId:1,awayTeamId:2,homeGoals:2,awayGoals:1,winnerTeamId:1};
+const playoffBefore={...next,extensions:{...next.extensions,phase10Playoffs:{rounds:[[{games:[]}]]}}};
+const playoffAfter={...playoffBefore,extensions:{...playoffBefore.extensions,phase10Playoffs:{rounds:[[{games:[playoffGame]}]]}}};
+const withPlayoffs=append(playoffBefore,playoffAfter,buildUnifiedBoxScores,17);
+assert.equal(review(withPlayoffs,{season:'2026-27',kind:'playoffs'}).games,1);
+assert.equal(review(withPlayoffs,{season:'2026-27',kind:'regular'}).games,1);
+assert.equal(withPlayoffs.extensions.phase11ExperimentalBoxScores.at(-1).playoff,true);
+assert.equal(withPlayoffs.extensions.phase11ExperimentalBoxScores.at(-1).official,false);
+assert.equal(append(playoffAfter,withPlayoffs,buildUnifiedBoxScores,17).extensions.phase11ExperimentalBoxScores.length,2);
+const nextYearBefore={...before,extensions:{phase10CurrentSeasonId:'2027-28',phase11ExperimentalBoxScores:withPlayoffs.extensions.phase11ExperimentalBoxScores}};
+const nextYearAfter={...nextYearBefore,activity:{games:[final]}};
+const nextYear=append(nextYearBefore,nextYearAfter,buildUnifiedBoxScores,17);
+assert.equal(review(nextYear,{season:'2027-28',kind:'regular'}).games,1);
+assert.equal(review(nextYear,{season:'2026-27',kind:'playoffs'}).games,1);
 console.log('Mission 1360 synthetic final attribution, persistence, deduplication, legacy roster safety and read-only review passed');
