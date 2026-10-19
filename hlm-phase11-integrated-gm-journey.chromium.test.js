@@ -32,8 +32,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Persisted isolated final'));
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  const game=saved.activity.games[0];
- assert.equal(game.status,'final');assert.equal(game.experimentalRosterAware,true);assert.equal(game.official,false);
- assert.ok(Number.isSafeInteger(game.homeGoals)&&Number.isSafeInteger(game.awayGoals)&&game.homeGoals!==game.awayGoals);
+ assert.equal(game.status,'final');assert.equal(game.result.experimentalRosterAware,true);assert.equal(game.result.official,false);
+ assert.ok(Number.isSafeInteger(game.result.homeGoals)&&Number.isSafeInteger(game.result.awayGoals)&&game.result.homeGoals!==game.result.awayGoals);
  assert.match(await page.locator('#season-dashboard').innerText(),/Standings:/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  await page.reload();await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Completed: 1'));
