@@ -8,7 +8,7 @@ function simulateGameScore(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new TypeError('Game input must be an object');
   const {gameId, homeTeamId, awayTeamId, seed} = input;
   const rating=input.experimentalApprovedGoalieOverall;
-  if(rating!==undefined&&(!Number.isSafeInteger(rating)||rating<1||rating>99))throw Error('Invalid experimental approved goalie rating');
+  if(rating!==undefined&&(!Number.isSafeInteger(rating)||rating<1||rating>99||!['home','away'].includes(input.experimentalApprovedGoalieSide)))throw Error('Invalid experimental approved goalie rating or side');
   if (gameId == null || homeTeamId == null || awayTeamId == null ||
       String(homeTeamId) === String(awayTeamId) ||
       !Number.isSafeInteger(seed) || seed < 0) {
@@ -26,12 +26,12 @@ function simulateGameScore(input) {
   const finalHome = homeGoals + (overtime && next() >= 0.5 ? 1 : 0);
   const finalAway = awayGoals + (overtime && finalHome === homeGoals ? 1 : 0);
   // Experimental, opt-in-only bounded goalie effect; legacy deterministic results remain unchanged.
-  let adjustedAway=finalAway;
+  let adjustedAway=finalAway,adjustedHome=finalHome;
   if(rating!==undefined){
     const shift=rating>=85?-1:rating<=65?1:0;
-    adjustedAway=Math.max(0,finalAway+shift);
+    if(input.experimentalApprovedGoalieSide==='home')adjustedAway=Math.max(0,finalAway+shift);
+    else adjustedHome=Math.max(0,finalHome+shift);
   }
-  let adjustedHome=finalHome;
   if(rating!==undefined&&adjustedHome===adjustedAway){
     // Preserve a winner deterministically; a tie created by the experimental adjustment goes to OT.
     if((seed+String(gameId).length)%2===0)adjustedHome++;
@@ -40,7 +40,7 @@ function simulateGameScore(input) {
   return Object.freeze({
     gameId, homeTeamId, awayTeamId,
     homeGoals: adjustedHome, awayGoals: adjustedAway,
-    overtime: rating===undefined?overtime:(overtime||adjustedHome===adjustedAway+1||adjustedAway===adjustedHome+1), winnerTeamId: adjustedHome > adjustedAway ? homeTeamId : awayTeamId,
+    overtime: overtime, winnerTeamId: adjustedHome > adjustedAway ? homeTeamId : awayTeamId,
     ...(rating===undefined?{}:{experimentalRosterAware:true,official:false}),
     status: 'final'
   });
