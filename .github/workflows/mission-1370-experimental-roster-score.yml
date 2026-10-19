@@ -1,0 +1,34 @@
+name: Mission 1370 Experimental Roster-Aware Scores
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase10-game-simulator.js'
+      - 'hlm-phase10-apply-game.js'
+      - 'hlm-phase10-simulate-day.js'
+      - 'hlm-phase11-isolated-single-game.js'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-experimental-roster-score.test.js'
+      - 'hlm-phase11-continuous-gm-journey.chromium.test.js'
+      - '.github/workflows/mission-1370-experimental-roster-score.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-experimental-roster-score.test.js
+      - run: node hlm-phase10-game-simulator.test.js
+      - run: node hlm-phase11-gm-goalie-game-integration.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-continuous-gm-journey.chromium.test.js
