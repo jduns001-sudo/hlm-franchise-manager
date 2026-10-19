@@ -1,7 +1,7 @@
 'use strict';
 const {simulateControlledRosterDay}=require('./hlm-phase10-controlled-roster-day');
 const {buildExperimentalGoalEvents,aggregateExperimentalGoals}=require('./hlm-phase10-experimental-player-goals');
-const {buildUnifiedBoxScores}=require('./hlm-phase11-unified-box-scores');
+const {buildUnifiedBoxScores,aggregateUnifiedBoxScores}=require('./hlm-phase11-unified-box-scores');
 /** Atomic day simulation with synthetic player goals, persisted only by caller. */
 function simulateRosterDayWithGoalStats(state,seed=1,options={}){
  const result=simulateControlledRosterDay(state,seed,options);
@@ -22,7 +22,8 @@ function simulateRosterDayWithGoalStats(state,seed=1,options={}){
  const boxScores=buildUnifiedBoxScores(nextState,result.results,newEvents,seed);
  const prior=Array.isArray(nextState.extensions.phase11ExperimentalBoxScores)?nextState.extensions.phase11ExperimentalBoxScores:[];
  nextState.extensions.phase11ExperimentalBoxScores=prior.concat(boxScores);
+ nextState.extensions.phase11ExperimentalStatHistory=aggregateUnifiedBoxScores(nextState.extensions.phase11ExperimentalBoxScores);
  nextState.extensions.phase10ExperimentalGoalLeaders=goalLeaders;
- return {...result,goalEvents:newEvents,goalLeaders,boxScores};
+ return {...result,goalEvents:newEvents,goalLeaders,boxScores,statHistory:nextState.extensions.phase11ExperimentalStatHistory};
 }
 module.exports={simulateRosterDayWithGoalStats};
