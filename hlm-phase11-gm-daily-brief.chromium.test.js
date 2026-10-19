@@ -12,7 +12,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const state={schemaVersion:1,meta:{saveId:'isolated',createdAt:null,updatedAt:null,controlledTeamId:1,currentDate:'2026-10-18'},universe:{players:[],teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],leagues:[],prospects:[],staff:[]},assets:{contracts:[],draftPicks:[]},activity:{transactions:[],games:[{id:'g2',date:'2026-10-20',homeTeamId:2,awayTeamId:1,status:'scheduled'},{id:'g1',date:'2026-10-19',homeTeamId:1,awayTeamId:2,status:'scheduled'}],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{},extensions:{}};
  await page.locator('#file').setInputFiles({name:'state.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
  await page.locator('#import').waitFor({state:'visible'});
- await page.waitForFunction(()=>document.querySelector('#import')?.disabled===false,{timeout:15000});
+ await page.waitForFunction(()=>document.querySelector('#import')?.disabled===false,null,{timeout:15000});
  page.once('dialog',d=>d.dismiss());await page.locator('#import').click();
  assert.match(await page.locator('#output').innerText(),/No isolated save loaded/);
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
