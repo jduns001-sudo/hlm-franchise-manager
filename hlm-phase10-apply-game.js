@@ -6,7 +6,7 @@ const {simulateGameScore}=require('./hlm-phase10-game-simulator');
  * Apply one deterministic game result to a cloned save.
  * The caller owns persistence and standings projection.
  */
-function applyScheduledGame(state, gameId, seed) {
+function applyScheduledGame(state, gameId, seed, options={}) {
   const validation=validateGameStateEnvelope(state);
   if (!validation.valid) {
     const error=new Error('Invalid game state');
@@ -23,7 +23,22 @@ function applyScheduledGame(state, gameId, seed) {
       !nextState.universe.teams.some(team=>team && String(team.id)===String(game.awayTeamId))) {
     throw new Error('Game references unknown team');
   }
-  const result=simulateGameScore({gameId:game.id,homeTeamId:game.homeTeamId,awayTeamId:game.awayTeamId,seed});
+  const input={gameId:game.id,homeTeamId:game.homeTeamId,awayTeamId:game.awayTeamId,seed};
+  if(options.experimentalRosterAware===true){
+    const plan=nextState.extensions?.phase11GmGoaliePlan;
+    if(!plan||String(plan.teamId)!==String(nextState.meta.controlledTeamId))throw Error('Explicit GM goalie approval required for experimental roster-aware simulation');
+    const side=String(plan.teamId)===String(game.homeTeamId)?'home':String(plan.teamId)===String(game.awayTeamId)?'away':null;
+    if(side){
+      const goalie=nextState.universe.players.filter(p=>String(p.id)===String(plan.playerId)&&String(p.teamId)===String(plan.teamId)&&p.position==='G');
+      if(goalie.length!==1)throw Error('Approved goalie is not eligible');
+      if((nextState.activity.injuries||[]).some(i=>String(i.playerId)===String(plan.playerId)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false))throw Error('Approved goalie is injured');
+      const rating=goalie[0].overall??goalie[0].ovr;
+      if(!Number.isSafeInteger(rating)||rating<1||rating>99)throw Error('Rated goalie required for experimental roster-aware simulation');
+      input.experimentalApprovedGoalieOverall=rating;
+      input.experimentalApprovedGoalieSide=side;
+    }
+  }
+  const result=simulateGameScore(input);
   Object.assign(game,result);
   return {nextState,result};
 }

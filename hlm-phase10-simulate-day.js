@@ -7,7 +7,7 @@ const {calculateStandings}=require('./hlm-phase10-standings');
  * Pure one-day simulation transaction. Returns a candidate state and standings;
  * persistence is deliberately delegated to the caller.
  */
-function simulateNextDay(state, seed=0) {
+function simulateNextDay(state, seed=0, options={}) {
   if (!Number.isSafeInteger(seed) || seed<0) throw new TypeError('Seed must be a nonnegative safe integer');
   const day=prepareDayAdvance(state);
   let nextState=day.nextState;
@@ -19,7 +19,7 @@ function simulateNextDay(state, seed=0) {
     ids.add(String(game.id));
   }
   for (const game of games) {
-    const applied=applyScheduledGame(nextState,game.id,seed);
+    const applied=applyScheduledGame(nextState,game.id,seed,options);
     nextState=applied.nextState;
     results.push(applied.result);
   }
