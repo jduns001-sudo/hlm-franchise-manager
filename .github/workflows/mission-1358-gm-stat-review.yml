@@ -1,0 +1,31 @@
+name: Mission 1358 GM Stat Review
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-gm-stat-review*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1358-gm-stat-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  node-stat-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-gm-stat-review.test.js
+  mobile-stat-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-gm-stat-review.chromium.test.js
