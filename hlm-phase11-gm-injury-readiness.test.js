@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict'),{review}=require('./hlm-phase11-gm-injury-readiness');
+const state={meta:{controlledTeamId:1},universe:{players:[{id:11,teamId:1,name:'Goalie'},{id:12,teamId:1,name:'Forward'},{id:21,teamId:2,name:'Opponent'}]},activity:{games:[{id:'g',homeTeamId:1,awayTeamId:2,status:'scheduled'},{id:'other',homeTeamId:2,awayTeamId:3,status:'scheduled'}],injuries:[{playerId:11,status:'out',type:'Lower body'},{playerId:12,status:'resolved'},{playerId:21,status:'out'}]}};
+const before=JSON.stringify(state);
+assert.match(review(state,'g'),/Reported unresolved injuries: 1/);
+assert.match(review(state,'g'),/Goalie \| out \| Lower body/);
+assert.doesNotMatch(review(state,'g'),/Opponent/);
+assert.match(review(state,'g'),/Availability and lineup eligibility are not inferred/);
+assert.equal(review(state,'other'),'Selected game does not involve your controlled team.');
+assert.equal(review(null,'g'),'Import an isolated franchise to review injury readiness.');
+assert.equal(JSON.stringify(state),before,'Review must not mutate saves');
+console.log('Mission 1367 GM injury readiness Node regressions passed');
