@@ -24,11 +24,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(await page.locator('#season-archive').isDisabled(),false);
  page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
  await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion'));
+ await page.waitForFunction(()=>document.querySelector('#season-archive')?.disabled===true);
  await page.reload();await page.locator('#next-season').waitFor();
  assert.equal(await page.locator('#next-season').isDisabled(),true);
  const operations={contracts:{expiredContractIds:['old1'],signings:[{playerId:'p1',teamId:1,contractId:'new1',aav:1500000,years:3,season:'2027-28',capLimit:10000000}]},draftSelections:[{pickId:'pick1',prospectId:'pros1',teamId:1}]};
  await page.locator('#offseason-operations').fill('{invalid json');
- console.log('Offseason pre-review:',await page.evaluate(()=>({career:document.querySelector('#career-report').textContent,playoffs:document.querySelector('#playoff-report').textContent,disabled:document.querySelector('#offseason-review').disabled,output:document.querySelector('#output').textContent.slice(0,160)})));
+
  await page.locator('#offseason-review').click();
  assert.match(await page.locator('#offseason-preview').innerText(),/Review rejected/);
  assert.equal(await page.locator('#next-season').isDisabled(),true);
