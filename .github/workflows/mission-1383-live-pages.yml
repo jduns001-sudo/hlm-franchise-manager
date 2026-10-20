@@ -1,0 +1,26 @@
+name: Mission 1383 Live Pages Verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'hlm-phase11-new-franchise.js'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-live-pages.chromium.test.js'
+      - '.github/workflows/mission-1383-live-pages.yml'
+  pull_request:
+    paths:
+      - 'hlm-phase11-live-pages.chromium.test.js'
+      - '.github/workflows/mission-1383-live-pages.yml'
+jobs:
+  live-pages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Verify deployed GitHub Pages read-only
+        run: node hlm-phase11-live-pages.chromium.test.js
