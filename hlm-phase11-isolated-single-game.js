@@ -100,7 +100,8 @@ function create(engine,storage,boxScores=null){
   if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
   const state=store.load();if(!state)throw Error('No isolated save');
   const preview=engine.simulateNextDay(state,1341);
-  return Object.freeze({fromDate:preview.fromDate,toDate:preview.toDate,scheduledGameIds:Object.freeze(preview.results.map(g=>g.gameId)),games:preview.results.length});
+  const matchups=preview.results.map(result=>{const game=state.activity.games.find(g=>String(g.id)===String(result.gameId));if(!game)throw Error('Reviewed game missing from schedule');return Object.freeze({gameId:game.id,date:game.date,homeTeamId:game.homeTeamId,awayTeamId:game.awayTeamId,controlledTeamInvolved:String(game.homeTeamId)===String(state.meta.controlledTeamId)||String(game.awayTeamId)===String(state.meta.controlledTeamId)});});
+  return Object.freeze({fromDate:preview.fromDate,toDate:preview.toDate,scheduledGameIds:Object.freeze(matchups.map(g=>g.gameId)),matchups:Object.freeze(matchups),games:matchups.length});
  }
  function advanceNextDay(seed,approved){
   if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
