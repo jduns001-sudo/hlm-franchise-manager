@@ -7,8 +7,9 @@ function create(engine,storage,boxScores=null){
  const store=engine.createBrowserFranchiseSaveStore(storage,KEY);
  let baseline=storage.getItem(KEY);
  let pendingOffseason=null;
+ let pendingProspectSigning=null;
  function peek(){return store.load()}
- function load(){const state=store.load();baseline=storage.getItem(KEY);pendingOffseason=null;return state}
+ function load(){const state=store.load();baseline=storage.getItem(KEY);pendingOffseason=null;pendingProspectSigning=null;return state}
  function stage(state,approved){
   if(approved!==true)throw Error('Human GM import approval required');
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
@@ -179,6 +180,30 @@ function create(engine,storage,boxScores=null){
    finances:JSON.parse(JSON.stringify(state.finances))
   });
  }
+ function reviewProspectSigning(input){
+  pendingProspectSigning=null;
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  if(String(input?.teamId)!==String(before.meta.controlledTeamId))throw Error('Human GM can sign only controlled-team prospects');
+  if(typeof engine.signDraftedProspect!=='function')throw Error('Prospect signing engine unavailable');
+  const options=JSON.parse(JSON.stringify(input));
+  const result=engine.signDraftedProspect(before,options);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  pendingProspectSigning={baseline,options};
+  return Object.freeze({summary:JSON.parse(JSON.stringify(result.summary)),playerName:result.nextState.universe.players.find(p=>String(p.id)===String(options.prospectId))?.name||String(options.prospectId)});
+ }
+ function approveReviewedProspectSigning(approved){
+  if(approved!==true)throw Error('Human GM prospect signing approval required');
+  if(!pendingProspectSigning)throw Error('Review prospect signing before approval');
+  if(storage.getItem(KEY)!==baseline||storage.getItem(KEY)!==pendingProspectSigning.baseline){pendingProspectSigning=null;throw Error('Isolated save changed; reload and review again')}
+  const options=pendingProspectSigning.options;pendingProspectSigning=null;
+  const before=store.load();if(!before)throw Error('No isolated save');
+  if(String(options.teamId)!==String(before.meta.controlledTeamId))throw Error('Controlled team changed');
+  const result=engine.signDraftedProspect(before,options);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(result.nextState);baseline=storage.getItem(KEY);
+  return result;
+ }
  function reviewOffseason(options){
   pendingOffseason=null;
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
@@ -207,7 +232,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,careerSnapshot,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
+ return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,careerSnapshot,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
 return {KEY,create};
 });
