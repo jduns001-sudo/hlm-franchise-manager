@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {teams,build}=require('./hlm-phase11-new-franchise');
+const engine={...require('./hlm-game-state'),...require('./hlm-phase10-season-schedule')};
+const universe={teams:[{id:5,name:'Pittsburgh',abbr:'PIT'},{id:3,name:'New York',abbr:'NYR'},{id:200,name:'Minor',abbr:'MINOR'}],players:[{id:10,name:'A',teamId:5,ovr:82,retired:false},{id:11,name:'B',teamId:3,ovr:80,retired:false},{id:12,name:'Retired',teamId:5,retired:true}]};
+assert.equal(teams(universe).length,2);
+assert.throws(()=>build(universe,200,engine),/active NHL/);
+const state=build(universe,5,engine);
+assert.equal(state.meta.controlledTeamId,5);
+assert.equal(state.universe.players.length,2);
+assert.equal(state.activity.games.length,2);
+assert.equal(state.extensions.phase11ExperimentalRosterAwareScores,false);
+assert.equal(engine.validateGameStateEnvelope(state).valid,true);
+assert.equal(state.activity.games[0].status,'scheduled');
+assert.equal(state.meta.currentDate,'2026-10-20');
+console.log('Mission 1381: real roster filtering, GameState validation, schedule and default-off passed');
