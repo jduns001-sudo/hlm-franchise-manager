@@ -1,0 +1,21 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium}=require('playwright');
+const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.url||'/').split('?')[0].slice(1));if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':'text/html');res.end(b)})});
+(async()=>{await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ const origin='http://127.0.0.1:'+server.address().port;
+ await page.goto(origin+'/index.html?tools=1');
+ assert.equal(await page.locator('a[href="./hlm-phase11-isolated-single-game.html"]').count(),1);
+ await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
+ await page.locator('a[href="./hlm-phase11-gameplay-bridge.html"]').click();
+ await page.locator('#franchise-play-link').waitFor({state:'visible'});
+ assert.match(await page.locator('#franchise-play-entry').innerText(),/separate isolated save/);
+ await page.locator('#franchise-play-link').click();
+ await page.waitForURL(/hlm-phase11-isolated-single-game\.html$/);
+ await page.locator('#file').waitFor({state:'visible'});
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')),null,'Navigation must not create an isolated save');
+ assert.match(await page.locator('#import-status').innerText(),/import|file|isolated/i);
+ console.log('Mission 1379: real mobile hub -> bridge -> integrated GM gameplay, no implicit import, isolated save untouched, production sentinel pass');
+}finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});

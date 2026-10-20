@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const bridge=fs.readFileSync(path.join(__dirname,'hlm-phase11-gameplay-bridge.html'),'utf8');
+const hub=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
+const gameplay=fs.readFileSync(path.join(__dirname,'hlm-phase11-isolated-single-game.html'),'utf8');
+const manager=fs.readFileSync(path.join(__dirname,'hlm-phase11-isolated-single-game.js'),'utf8');
+assert.match(bridge,/<a id="franchise-play-link" href="\.\/hlm-phase11-isolated-single-game\.html">/);
+assert.match(bridge,/never automatically transfers, replaces or edits the production Front Office save/);
+assert.match(bridge,/explicitly approve import/);
+assert.match(hub,/href="\.\/hlm-phase11-isolated-single-game\.html"/);
+assert.match(hub,/Production Front Office data is never automatically changed/);
+assert.match(gameplay,/Human GM/);
+assert.match(manager,/const KEY='hlm-phase11-m1340-isolated-single-game-v1'/);
+assert.doesNotMatch(manager,/setItem\(['"]hlm_front_office_v8['"]/);
+console.log('Mission 1379: Front Office tools hub -> Gameplay Bridge -> isolated GM gameplay route, approval and production isolation pass');
