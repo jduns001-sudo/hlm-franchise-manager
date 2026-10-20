@@ -123,26 +123,28 @@ const gitBlob=s=>crypto.createHash('sha1').update('blob '+Buffer.byteLength(s)+'
   assert.ok(prior.activity.games.some(g=>g.status!=='scheduled'),'ten-day stretch must include played games');
   // Independent standings oracle: compute team wins/losses from saved final scores,
   // then compare with the season dashboard's standings (not another engine helper).
-  const completed=prior.activity.games.filter(g=>g.status!=='scheduled');
-  assert.ok(completed.length>0,'standings verification needs completed games');
-  const expectedRecords=new Map();
-  const addTeam=(id,won)=>{const key=String(id);const r=expectedRecords.get(key)||{wins:0,losses:0};r[won?'wins':'losses']++;expectedRecords.set(key,r)};
+  const completed=prior.activity.games.filter(g=>g.status==='final');
+  assert.ok(completed.length>0,'standings verification needs final games');
+  const expectedRecords=new Map(prior.universe.teams.map(t=>[String(t.id),{gp:0,w:0,l:0,otl:0,gf:0,ga:0,points:0}]));
   for(const game of completed){
-   const home=Number(game.homeScore),away=Number(game.awayScore);
-   assert.ok(Number.isFinite(home)&&Number.isFinite(away)&&home!==away,'completed game must have a winner');
-   addTeam(game.homeTeamId,home>away);
-   addTeam(game.awayTeamId,away>home);
+   const home=game.homeGoals,away=game.awayGoals;
+   assert.ok(Number.isSafeInteger(home)&&Number.isSafeInteger(away)&&home>=0&&away>=0&&home!==away,'final game must have valid untied scores');
+   const h=expectedRecords.get(String(game.homeTeamId)),a=expectedRecords.get(String(game.awayTeamId));
+   assert.ok(h&&a&&h!==a,'final game teams must exist');
+   h.gp++;a.gp++;h.gf+=home;h.ga+=away;a.gf+=away;a.ga+=home;
+   const winner=home>away?h:a,loser=home>away?a:h;
+   winner.w++;winner.points+=2;
+   if(game.overtime===true){loser.otl++;loser.points++}else loser.l++;
   }
   const dashboard=await page.locator('#season-dashboard').innerText();
   assert.match(dashboard,/Standings:/,'deployed dashboard displays standings');
-  const standingsText=dashboard.split('Standings:').pop();
-  const displayed=JSON.parse(standingsText.trim());
+  const displayed=JSON.parse(dashboard.split('Standings:').pop().trim());
   assert.ok(Array.isArray(displayed),'dashboard standings are a team array');
+  assert.equal(displayed.length,expectedRecords.size,'every NHL team has a standings row');
   for(const [id,record] of expectedRecords){
-   const row=displayed.find(x=>String(x.teamId??x.id)===id);
+   const row=displayed.find(x=>String(x.teamId)===id);
    assert.ok(row,'standings row exists for team '+id);
-   assert.equal(Number(row.wins??row.w),record.wins,'wins match game ledger for '+id);
-   assert.equal(Number(row.losses??row.l),record.losses,'losses match game ledger for '+id);
+   for(const field of ['gp','w','l','otl','gf','ga','points'])assert.equal(row[field],record[field],field+' matches final game ledger for '+id);
   }
   console.log('Mission 1388 deployed mobile PASS: canonical 32, GM cancellation/approval, real roster, day, reload, no overwrite, experimental default off, production sentinel unchanged');
   await context.close();
