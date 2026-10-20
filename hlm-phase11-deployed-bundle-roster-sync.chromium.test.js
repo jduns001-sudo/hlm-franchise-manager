@@ -3,6 +3,7 @@
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 const crypto=require('node:crypto');
+const fs=require('node:fs');
 const base='https://jduns001-sudo.github.io/hlm-franchise-manager/';
 const expected=process.env.EXPECTED_NHL_JS_BLOB||'026b8c0cab5f89202237bc8cfafd00df0aa48507';
 const gitBlob=s=>crypto.createHash('sha1').update('blob '+Buffer.byteLength(s)+'\0').update(s).digest('hex');
@@ -20,7 +21,16 @@ const gitBlob=s=>crypto.createHash('sha1').update('blob '+Buffer.byteLength(s)+'
   const bundleResponse=await context.request.get(bundleUrl.toString(),{headers:{'Cache-Control':'no-cache'},timeout:45000});
   assert.equal(bundleResponse.status(),200);
   const bundleText=await bundleResponse.text();
-  assert.ok(bundleText.includes('signedPlayer.teamId=teamId;'),'deployed bundle must include GM-approved roster assignment');
+  const candidate=fs.readFileSync('hlm-phase10-browser.bundle.js','utf8');
+  assert.ok(candidate.includes('signedPlayer.teamId=teamId;'),'PR bundle must contain roster movement');
+  const liveRequired=process.env.MISSION1394_LIVE_PAGES==='1';
+  if(liveRequired){assert.equal(gitBlob(bundleText),gitBlob(candidate),'post-deployment live Pages bundle must match reviewed main');}
+  else {
+   // Pages is deployed from main, not the draft PR. Test the actual Pages UI against
+   // the PR's exact browser bundle without modifying the deployed site or user saves.
+   await page.route('**/hlm-phase10-browser.bundle.js',route=>route.fulfill({status:200,contentType:'application/javascript',body:candidate}));
+   console.log('Mission 1394 PR preview: Pages HTML + exact candidate bundle; live deployment separately gated on main');
+  }
   const response=await context.request.get(js.toString(),{headers:{'Cache-Control':'no-cache'},timeout:45000});
   assert.equal(response.status(),200);
   assert.equal(gitBlob(await response.text()),expected,'deployed selector JS must match reviewed source');
