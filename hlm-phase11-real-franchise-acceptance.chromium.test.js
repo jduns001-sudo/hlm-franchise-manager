@@ -28,7 +28,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const snapshot=before.find(x=>x.key!=='hlm_front_office_v8'&&x.value.includes('phase11ExperimentalRosterAwareScores'));
  assert.ok(snapshot.value.includes('Pittsburgh')||snapshot.value.includes('Anaheim'),'real NHL universe teams persisted');
  assert.ok(snapshot.value.includes('players'),'real player records persisted');
- assert.match(snapshot.value,/phase11ExperimentalRosterAwareScores[^:]*:\\s*false/,'experimental scoring remains disabled');
+ assert.equal(JSON.parse(snapshot.value).extensions.phase11ExperimentalRosterAwareScores,false,'experimental scoring remains disabled');
  await page.locator('#day-review').click();
  assert.match(await page.locator('#day-report').innerText(),/Approval required/);
  page.once('dialog',d=>d.dismiss());await page.locator('#day-approve').click();
