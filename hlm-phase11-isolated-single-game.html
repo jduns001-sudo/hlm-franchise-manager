@@ -69,7 +69,7 @@ function refresh(){
  const archivedCurrent=archivedSeason=>String(archivedSeason.seasonId)===currentSeason;
  const archivedForCurrent=(state?.history?.seasons||[]).some(archivedCurrent);
  let nextAction,nextTarget;
- if(!state){nextAction='Choose your team and review a new isolated franchise, or import GameState JSON.';nextTarget='new-team'}
+ if(!state){nextAction='Import a GameState JSON file, then approve creation of the isolated save. Or choose New Franchise above to start without a file.';nextTarget='file'}
  else if(games.length){nextAction='Review the next scheduled day, then approve it. '+games.length+' regular-season games remain.';nextTarget='day-review'}
  else if(!bracket){nextAction='Regular season complete. Review the standings, then approve playoff qualification.';nextTarget='playoff-start'}
  else if(bracket.status==='active'){nextAction='Playoffs underway. Review the bracket and approve the next playoff game.';nextTarget='playoff-next'}
