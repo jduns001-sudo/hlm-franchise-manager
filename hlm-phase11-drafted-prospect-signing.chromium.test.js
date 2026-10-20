@@ -68,6 +68,7 @@ const {chromium}=require('playwright');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#gm-skater-choice')?.options.length>=3,{timeout:60000});
   await page.locator('#gm-signed-skater-add').click();
+  const beforeLineupReview=await page.evaluate(key=>localStorage.getItem(key),key);
   await page.evaluate(()=>{
     const select=document.querySelector('#gm-skater-choice');
     const state=JSON.parse(localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
@@ -81,7 +82,7 @@ const {chromium}=require('playwright');
   assert.match(await page.locator('#gm-skater-status').innerText(),/Review only, nothing saved/);
   page.once('dialog',d=>d.dismiss());
   await page.locator('#gm-skater-approve').click();
-  assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),beforePlan,'cancelled lineup approval never saves');
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),beforeLineupReview,'cancelled lineup approval never saves');
   page.once('dialog',d=>d.accept());
   await page.locator('#gm-skater-approve').click();
   await page.waitForFunction(()=>document.querySelector('#gm-skater-status')?.textContent.includes('GM approved'),{timeout:60000});
