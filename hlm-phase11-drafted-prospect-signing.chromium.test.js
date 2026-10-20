@@ -34,11 +34,16 @@ const {chromium}=require('playwright');
   const after=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),key));
   assert.equal(after.universe.players.find(p=>p.id==='mission1396-prospect').teamId,5);
   assert.equal(after.assets.contracts.find(c=>c.contractId==='rookie-contract-1').playerId,'mission1396-prospect');
+  assert.equal(after.activity.transactions.filter(t=>t.type==='drafted-prospect-signing').length,1,'one signed transaction');
+  assert.equal(after.activity.transactions.find(t=>t.type==='drafted-prospect-signing').contractId,'rookie-contract-1');
+  assert.match(await page.locator('#gm-signing-history').innerText(),/rookie-contract-1/);
   assert.equal(after.extensions.phase11ExperimentalRosterAwareScores,false);
   assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'MISSION1396_PRODUCTION_SENTINEL');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>document.querySelector('#gm-roster')?.textContent.includes('Unsigned Prospect'),{timeout:60000});
   assert.equal(await page.locator('#prospect-sign-review').isDisabled(),true,'cannot sign twice');
+  assert.match(await page.locator('#gm-signing-history').innerText(),/rookie-contract-1/);
+  assert.equal(JSON.parse(await page.evaluate(key=>localStorage.getItem(key),key)).activity.transactions.filter(t=>t.type==='drafted-prospect-signing').length,1);
   assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'MISSION1396_PRODUCTION_SENTINEL');
   console.log('Mission 1396 mobile GM review, cancel, approve, roster, reload and isolation passed');
  }finally{await browser.close()}
