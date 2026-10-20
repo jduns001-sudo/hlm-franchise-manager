@@ -1,0 +1,18 @@
+name: Mission 1396 Prospect Signing Engine
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-drafted-prospect-signing.js'
+      - 'hlm-phase11-drafted-prospect-signing.test.js'
+      - '.github/workflows/mission-1396-prospect-signing.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-drafted-prospect-signing.test.js
+      - run: node hlm-phase11-draft-rights-visibility.test.js
