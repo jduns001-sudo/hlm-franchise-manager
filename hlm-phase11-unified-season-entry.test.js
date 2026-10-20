@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const index=fs.readFileSync('index.html','utf8');
+const bridge=fs.readFileSync('hlm-phase11-gameplay-bridge.html','utf8');
+const season=fs.readFileSync('hlm-phase11-isolated-single-game.html','utf8');
+const controller=fs.readFileSync('hlm-phase11-isolated-single-game.js','utf8');
+assert.match(index,/if\(!tools\)location\.replace\('\.\/app\.html'\)/,'Default production entry must remain unchanged');
+assert.match(index,/href="\.\/hlm-phase11-isolated-single-game\.html"/);
+assert.match(bridge,/id="playable-season-link" href="\.\/hlm-phase11-isolated-single-game\.html"/);
+assert.match(season,/id="season-entry-safety"/);
+assert.match(season,/id="import" disabled/);
+assert.match(season,/href="\.\/hlm-phase11-gameplay-bridge\.html"/);
+assert.match(bridge,/No automatic transfer of production saves/);
+assert.match(season,/production Front Office save remains separate/);
+assert.match(controller,/hlm-phase11-m1340-isolated-single-game-v1/);
+assert.doesNotMatch(controller,/setItem\(['"]hlm_front_office_v8/);
+console.log('Mission 1379: production entry preserved, manual GM import, connected season route and isolated storage contract pass');

@@ -150,7 +150,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.locator('#reload').click(); // Re-evaluate archive eligibility after the season ID changes.
  await page.waitForFunction(()=>document.querySelector('#season-archive')?.disabled===false);
  page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
- await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion '));
+ await page.waitForFunction(()=>{try{const s=JSON.parse(localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));return s?.history?.seasons?.length===2}catch{return false}},null,{timeout:15000});
+ assert.match(await page.locator('#career-report').innerText(),/Archived champion /);
  await page.reload();await page.locator('#gm-stat-season').selectOption('2026-27');
  await page.locator('#gm-stat-kind').selectOption('playoffs');
  assert.equal(await page.locator('#gm-stat-report').innerText(),archivedPlayoffReport);
@@ -167,7 +168,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  await page.evaluate(()=>go('schedule'));
  await page.locator('#hlm-isolated-single-game-link').click();
- await page.locator('#career-report').waitFor();
+ await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived championships: 2'),null,{timeout:15000});
  assert.match(await page.locator('#career-report').innerText(),/Archived championships: 2/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')),isolatedBeforeReturn);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
