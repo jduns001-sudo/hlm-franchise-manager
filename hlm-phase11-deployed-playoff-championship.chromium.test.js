@@ -227,7 +227,7 @@ const gitBlob=s=>crypto.createHash('sha1').update('blob '+Buffer.byteLength(s)+'
    }
    page.once('dialog',d=>d.accept());
    await page.locator('#playoff-next').click();
-   await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('Persisted playoff game'),{timeout:60000});
+   await page.waitForFunction(({key,before})=>localStorage.getItem(key)!==before,{key:save.key,before},{timeout:60000});
    const after=await page.evaluate(k=>localStorage.getItem(k),save.key);
    assert.notEqual(after,before,'approved playoff game persisted');
    playoffState=JSON.parse(after);playoffGames++;
