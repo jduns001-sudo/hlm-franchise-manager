@@ -48,5 +48,5 @@ assert.equal(ownerReview.matchups[0].readiness.goalieNeedsReview,true);
 assert.equal(ownerReview.matchups[0].readiness.approvedSkaters,3);
 assert.equal(ownerReview.matchups[0].readiness.skatersNeedReview,false);
 assert.throws(()=>gm2.advanceNextDay(1378,true),/injury|goalie/i,'Injured approved goalie remains blocked');
-assert.equal(mem2.getItem('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
+assert.equal(mem2.get('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
 console.log('Mission 1378: real matchup manifest, controlled team, no mutation, GM approval, stale tab, production isolation pass');
