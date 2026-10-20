@@ -875,6 +875,8 @@ function signDraftedProspect(state,{prospectId,teamId,contractId,aav,years,seaso
  if(active.some(c=>!Number.isFinite(Number(c.aav))||Number(c.aav)<0))throw new Error('Existing payroll has invalid salaries');
  const payroll=active.reduce((sum,c)=>sum+Number(c.aav),0);
  if(payroll+aav>capLimit)throw new Error('Signing exceeds salary cap');
+ const transactionId='drafted-prospect-signing:'+contractId;
+ if(state.activity.transactions.some(t=>String(t?.id??t?.transactionId)===transactionId))throw new Error('Signing transaction already recorded');
  const nextState=JSON.parse(JSON.stringify(state));
  const signed=nextState.universe.prospects.find(p=>String(p.id)===String(prospectId));
  signed.signedContractId=contractId;
@@ -885,7 +887,9 @@ function signDraftedProspect(state,{prospectId,teamId,contractId,aav,years,seaso
  nextState.universe.players.push(player);
  const contract={contractId,playerId:prospectId,teamId,aav,years,season,status:'active'};
  nextState.assets.contracts.push(contract);
- return {nextState,contract,summary:{prospectId,teamId,contractId,projectedPayroll:payroll+aav,capSpace:capLimit-payroll-aav}};
+ const transaction={id:transactionId,type:'drafted-prospect-signing',playerId:prospectId,teamId,contractId,draftPickId:prospect.draftPickId,season,aav,years};
+ nextState.activity.transactions.push(transaction);
+ return {nextState,contract,transaction,summary:{prospectId,teamId,contractId,projectedPayroll:payroll+aav,capSpace:capLimit-payroll-aav}};
 }
 module.exports={signDraftedProspect};
 
