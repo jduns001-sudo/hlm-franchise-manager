@@ -1,0 +1,32 @@
+name: Mission 1385 Deployed Gameplay Acceptance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-deployed-gameplay.chromium.test.js'
+      - '.github/workflows/mission-1385-deployed-gameplay.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'hlm-phase11-deployed-gameplay.chromium.test.js'
+      - '.github/workflows/mission-1385-deployed-gameplay.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-new-franchise.test.js
+  deployed-mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Verify live Pages gameplay in disposable browser context
+        run: node hlm-phase11-deployed-gameplay.chromium.test.js
