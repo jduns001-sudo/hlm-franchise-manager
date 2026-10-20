@@ -894,4 +894,32 @@ function signDraftedProspect(state,{prospectId,teamId,contractId,aav,years,seaso
 module.exports={signDraftedProspect};
 
 },
-};var cache={};function load(name){if(cache[name])return cache[name].exports;if(!modules[name])throw Error('Missing module '+name);var module={exports:{}};cache[name]=module;function localRequire(request){if(request.slice(0,2)!=='./')throw Error('Unsupported require '+request);return load(request.slice(2)+'.js')}modules[name](module,module.exports,localRequire);return module.exports;}var api={};for(var name of ['hlm-phase10-browser-storage.js','hlm-phase10-standings.js','hlm-master-calendar.js','hlm-game-state.js','hlm-phase10-season-playoffs.js','hlm-phase10-playoff-simulation.js','hlm-phase10-complete-offseason.js','hlm-phase10-season-finalization.js','hlm-phase10-season-schedule.js','hlm-phase10-simulate-day.js','hlm-phase10-apply-game.js','hlm-phase11-drafted-prospect-signing.js'])Object.assign(api,load(name));global.HLMPhase10=api;})(typeof window!=='undefined'?window:globalThis);
+"hlm-phase10-draft-selection.js":function(module,exports,require){
+'use strict';
+const {validateGameStateEnvelope}=require('./hlm-game-state');
+/** Execute a single verified draft selection; no automatic lottery or trade resolution. */
+function selectDraftProspect(state,{pickId,prospectId,teamId}={}){
+  if(!validateGameStateEnvelope(state).valid)throw new Error('Invalid franchise game state');
+  if(pickId==null||prospectId==null||teamId==null)throw new TypeError('Pick, prospect and team required');
+  const picks=state.assets.draftPicks.filter(p=>p&&String(p.pickId??p.id)===String(pickId));
+  if(picks.length!==1)throw new Error('Draft pick missing or ambiguous');
+  const pick=picks[0];
+  if(String(pick.currentOwnerId)!==String(teamId))throw new Error('Team does not own pick');
+  if(pick.selectedProspectId!=null||pick.status==='used')throw new Error('Draft pick already used');
+  if(!state.universe.teams.some(t=>String(t.id)===String(teamId)))throw new Error('Team not found');
+  const prospects=state.universe.prospects.filter(p=>p&&String(p.id)===String(prospectId));
+  if(prospects.length!==1)throw new Error('Prospect missing or ambiguous');
+  if(prospects[0].draftedByTeamId!=null||prospects[0].draftPickId!=null)throw new Error('Prospect already drafted');
+  const nextState=JSON.parse(JSON.stringify(state));
+  const nextPick=nextState.assets.draftPicks.find(p=>String(p.pickId??p.id)===String(pickId));
+  const nextProspect=nextState.universe.prospects.find(p=>String(p.id)===String(prospectId));
+  nextPick.selectedProspectId=nextProspect.id;
+  nextPick.status='used';
+  nextProspect.draftedByTeamId=teamId;
+  nextProspect.draftPickId=pickId;
+  return {nextState,selection:{pickId,prospectId,teamId}};
+}
+module.exports={selectDraftProspect};
+
+},
+};var cache={};function load(name){if(cache[name])return cache[name].exports;if(!modules[name])throw Error('Missing module '+name);var module={exports:{}};cache[name]=module;function localRequire(request){if(request.slice(0,2)!=='./')throw Error('Unsupported require '+request);return load(request.slice(2)+'.js')}modules[name](module,module.exports,localRequire);return module.exports;}var api={};for(var name of ['hlm-phase10-browser-storage.js','hlm-phase10-standings.js','hlm-master-calendar.js','hlm-game-state.js','hlm-phase10-season-playoffs.js','hlm-phase10-playoff-simulation.js','hlm-phase10-complete-offseason.js','hlm-phase10-season-finalization.js','hlm-phase10-season-schedule.js','hlm-phase10-simulate-day.js','hlm-phase10-apply-game.js','hlm-phase11-drafted-prospect-signing.js','hlm-phase10-draft-selection.js'])Object.assign(api,load(name));global.HLMPhase10=api;})(typeof window!=='undefined'?window:globalThis);
