@@ -34,7 +34,9 @@ function refresh(){
  const ownTeam=state?.universe?.teams?.find(t=>String(t.id)===String(gmId));
  const ownPlayers=(state?.universe?.players||[]).filter(p=>String(p.teamId)===String(gmId));
  const rosterLines=ownPlayers.slice().sort((a,b)=>String(a.position||'').localeCompare(String(b.position||''))||String(a.name||a.id).localeCompare(String(b.name||b.id))).map(p=>String(p.name||p.id)+' | '+String(p.position||'Unknown position')+' | OVR '+(p.overall??p.ovr??'N/A'));
- $('gm-roster').textContent=state?'Controlled team: '+String(ownTeam?.name||gmId)+' | Players: '+ownPlayers.length+'\\n'+(rosterLines.join('\\n')||'No roster players in this isolated franchise.'):'Import an isolated franchise to review its roster.';
+ const draftRights=(state?.universe?.prospects||[]).filter(p=>String(p.draftedByTeamId)===String(gmId));
+ const rightsLines=draftRights.slice().sort((a,b)=>String(a.name||a.id).localeCompare(String(b.name||b.id))).map(p=>String(p.name||p.id)+' | Draft pick '+String(p.draftPickId??'unknown')+' | rights only (not signed to roster)');
+ $('gm-roster').textContent=state?'Controlled team: '+String(ownTeam?.name||gmId)+' | Players: '+ownPlayers.length+'\\n'+(rosterLines.join('\\n')||'No roster players in this isolated franchise.')+'\\nDraft rights: '+draftRights.length+'\\n'+(rightsLines.join('\\n')||'No drafted prospects owned by this team.'):'Import an isolated franchise to review its roster.';
 
  const gmNext=games.filter(g=>String(g.homeTeamId)===String(gmId)||String(g.awayTeamId)===String(gmId)).sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id)))[0];
  if(gmNext)$('game').value=String(gmNext.id);
