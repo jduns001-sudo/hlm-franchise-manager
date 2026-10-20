@@ -125,8 +125,8 @@ const gitBlob=s=>crypto.createHash('sha1').update('blob '+Buffer.byteLength(s)+'
   // then compare with the season dashboard's standings (not another engine helper).
   const completed=prior.activity.games.filter(g=>g.status!=='scheduled');
   assert.ok(completed.length>0,'standings verification needs completed games');
-  const expected=new Map();
-  const addTeam=(id,won)=>{const key=String(id);const r=expected.get(key)||{wins:0,losses:0};r[won?'wins':'losses']++;expected.set(key,r)};
+  const expectedRecords=new Map();
+  const addTeam=(id,won)=>{const key=String(id);const r=expectedRecords.get(key)||{wins:0,losses:0};r[won?'wins':'losses']++;expectedRecords.set(key,r)};
   for(const game of completed){
    const home=Number(game.homeScore),away=Number(game.awayScore);
    assert.ok(Number.isFinite(home)&&Number.isFinite(away)&&home!==away,'completed game must have a winner');
@@ -138,7 +138,7 @@ const gitBlob=s=>crypto.createHash('sha1').update('blob '+Buffer.byteLength(s)+'
   const standingsText=dashboard.split('Standings:').pop();
   const displayed=JSON.parse(standingsText.trim());
   assert.ok(Array.isArray(displayed),'dashboard standings are a team array');
-  for(const [id,record] of expected){
+  for(const [id,record] of expectedRecords){
    const row=displayed.find(x=>String(x.teamId??x.id)===id);
    assert.ok(row,'standings row exists for team '+id);
    assert.equal(Number(row.wins??row.w),record.wins,'wins match game ledger for '+id);
