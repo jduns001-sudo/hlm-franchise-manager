@@ -168,7 +168,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  await page.evaluate(()=>go('schedule'));
  await page.locator('#hlm-isolated-single-game-link').click();
- await page.locator('#career-report').waitFor();
+ await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived championships: 2'),null,{timeout:15000});
  assert.match(await page.locator('#career-report').innerText(),/Archived championships: 2/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1')),isolatedBeforeReturn);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
