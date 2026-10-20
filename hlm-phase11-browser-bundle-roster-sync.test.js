@@ -19,6 +19,8 @@ state.universe.players.push({id:'m1394-fa',name:'FA',teamId:3});
 state.universe.prospects.push({id:'m1394-prospect',name:'Prospect'});
 state.assets.contracts.push({contractId:'m1394-old',playerId:'m1394-fa',teamId:3,aav:1000000,years:1,season:'2026-27',status:'active'});
 state.assets.draftPicks.push({pickId:'m1394-pick',currentOwnerId:5,status:'available'});
+state.history.seasons.push({seasonId:'2026-27',championTeamId:5});
+state.extensions.phase10Playoffs={status:'complete',championTeamId:5};
 const before=JSON.stringify(state);
 const result=api.completeOffseasonAndStartSeason(state,{
  contracts:{expiredContractIds:['m1394-old'],signings:[{playerId:'m1394-fa',teamId:5,contractId:'m1394-new',aav:1500000,years:3,season:'2027-28',capLimit:1000000000}]},
