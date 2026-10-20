@@ -29,7 +29,7 @@ assert.equal(archive.summary.championTeamId,manager.load().extensions.phase10Pla
 assert.throws(()=>manager.archiveSeason('2026-27',true),/already archived/);
 assert.throws(()=>stale.startNextSeason({},true),/changed/);
 const state=manager.load();
-state.universe.players.push({id:'p1',name:'Free Agent One'},{id:'p2',name:'Draft Prospect'});
+state.universe.players.push({id:'p1',name:'Free Agent One',teamId:2},{id:'p2',name:'Draft Prospect'});
 state.universe.prospects.push({id:'pros1',name:'Draft Prospect'});
 state.assets.contracts.push({contractId:'old1',playerId:'p1',teamId:1,aav:1000000,years:1,season:'2026-27',status:'active'});
 state.assets.draftPicks.push({pickId:'pick1',currentOwnerId:1,status:'available'});
@@ -59,6 +59,8 @@ assert.equal(next.meta.controlledTeamId,1);
 assert.equal(next.extensions.phase10CurrentSeasonId,'2027-28');
 assert.equal(next.assets.contracts.find(x=>x.contractId==='old1').status,'expired');
 assert.equal(next.assets.contracts.find(x=>x.contractId==='new1').aav,1500000);
+assert.equal(next.universe.players.find(x=>x.id==='p1').teamId,1,'approved signing changes actual roster');
+assert.equal(state.universe.players.find(x=>x.id==='p1').teamId,2,'previous season roster fixture unchanged');
 assert.equal(next.assets.draftPicks.find(x=>x.pickId==='pick1').status,'used');
 assert.equal(next.universe.prospects.find(x=>x.id==='pros1').draftedByTeamId,1);
 assert.equal(next.activity.games.length,result.summary.season.scheduledGames);
