@@ -52,6 +52,22 @@ const {chromium}=require('playwright');
   await page.locator('#gm-signed-skater-add').click();
   assert.equal(await page.locator('#gm-skater-choice option:checked').filter({hasText:'Unsigned Prospect'}).count(),1,'prospect added to proposed selection');
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),beforePlan,'adding proposal never saves');
+  await page.evaluate(key=>{
+    const state=JSON.parse(localStorage.getItem(key));
+    const teamId=String(state.meta.controlledTeamId);
+    const existing=new Set(state.universe.players.map(p=>String(p.id)));
+    let added=0;
+    for(let n=1;n<=3&&added<2;n++){
+      const id='mission1399-test-skater-'+n;
+      if(existing.has(id))continue;
+      state.universe.players.push({id,teamId:state.meta.controlledTeamId,name:'Disposable Skater '+n,position:'D',overall:72});
+      added++;
+    }
+    localStorage.setItem(key,JSON.stringify(state));
+  },key);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>document.querySelector('#gm-skater-choice')?.options.length>=3,{timeout:60000});
+  await page.locator('#gm-signed-skater-add').click();
   await page.evaluate(()=>{
     const select=document.querySelector('#gm-skater-choice');
     const state=JSON.parse(localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
