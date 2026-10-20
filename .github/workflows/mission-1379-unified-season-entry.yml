@@ -1,0 +1,33 @@
+name: Mission 1379 Unified Playable Season Entry
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'hlm-phase11-gameplay-bridge.html'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-unified-season-entry.test.js'
+      - 'hlm-phase11-unified-season-entry.chromium.test.js'
+      - '.github/workflows/mission-1379-unified-season-entry.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-unified-season-entry.test.js
+      - run: node hlm-phase11-gm-day-readiness.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-unified-season-entry.chromium.test.js
+      - run: node hlm-phase11-gm-day-readiness.chromium.test.js
