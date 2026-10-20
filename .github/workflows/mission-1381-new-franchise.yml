@@ -1,0 +1,27 @@
+name: Mission 1381 New Franchise
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-new-franchise*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1381-new-franchise.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-new-franchise.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-new-franchise.chromium.test.js
