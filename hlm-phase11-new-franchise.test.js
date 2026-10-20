@@ -14,3 +14,20 @@ assert.equal(engine.validateGameStateEnvelope(state).valid,true);
 assert.equal(state.activity.games[0].status,'scheduled');
 assert.equal(state.meta.currentDate,'2026-10-20');
 console.log('Mission 1381: real roster filtering, GameState validation, schedule and default-off passed');
+
+// The shipped universe includes colliding abbreviations and active junior players.
+const shipped=require('./hlm-universe.json');
+const liveTeams=teams(shipped);
+assert.equal(liveTeams.length,32,'exactly 32 canonical active NHL franchises');
+assert.equal(new Set(liveTeams.map(t=>t.abbr)).size,32,'unique franchise abbreviations');
+assert.deepEqual(liveTeams.filter(t=>t.abbr==='CGY').map(t=>t.id),[20]);
+assert.deepEqual(liveTeams.filter(t=>t.abbr==='CHI').map(t=>t.id),[16]);
+assert.ok(!liveTeams.some(t=>t.name==='Chicoutimi'||[207,244,130].includes(t.id)));
+assert.ok(liveTeams.some(t=>t.id===2&&t.abbr==='LII'));
+assert.throws(()=>build(shipped,207,engine),/active NHL/);
+assert.throws(()=>build(shipped,244,engine),/active NHL/);
+const duplicate={teams:[...universe.teams,{id:5,name:'Pittsburgh',abbr:'PIT'}],players:universe.players};
+assert.throws(()=>teams(duplicate),/Duplicate canonical NHL/);
+const spoof={teams:[{id:207,name:'Chicoutimi',abbr:'CHI'}],players:[{id:1,teamId:207,status:0}]};
+assert.equal(teams(spoof).length,0);
+console.log('Mission 1382: shipped universe canonical 32, collision exclusions and ambiguous duplicate rejection passed');

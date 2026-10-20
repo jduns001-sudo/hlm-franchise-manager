@@ -7,7 +7,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html',{waitUntil:'domcontentloaded'});
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
  await page.waitForFunction(()=>document.querySelector('#new-franchise')&&!document.querySelector('#new-franchise').disabled,{timeout:30000});
- assert.ok(await page.locator('#new-team option').count()>=20);
+ const options=await page.locator('#new-team option').allTextContents();
+ assert.equal(options.length,32,'real bundled universe must offer 32 NHL teams');
+ assert.equal(new Set(options).size,32,'no duplicate franchise choices');
+ assert.equal(options.filter(s=>s==='Calgary (CGY)').length,1);
+ assert.equal(options.filter(s=>s==='Chicago (CHI)').length,1);
+ assert.ok(!options.some(s=>/Chicoutimi/.test(s)),'junior Chicoutimi excluded');
  page.once('dialog',d=>d.dismiss());await page.locator('#new-franchise').click();
  assert.match(await page.locator('#output').innerText(),/No isolated save loaded/);
  page.once('dialog',d=>d.accept());await page.locator('#new-franchise').click();
