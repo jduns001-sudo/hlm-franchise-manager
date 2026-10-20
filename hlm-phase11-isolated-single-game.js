@@ -100,7 +100,19 @@ function create(engine,storage,boxScores=null){
   if(typeof engine.simulateNextDay!=='function')throw Error('Existing Phase 10 day simulation required');
   const state=store.load();if(!state)throw Error('No isolated save');
   const preview=engine.simulateNextDay(state,1341);
-  const matchups=preview.results.map(result=>{const game=state.activity.games.find(g=>String(g.id)===String(result.gameId));if(!game)throw Error('Reviewed game missing from schedule');return Object.freeze({gameId:game.id,date:game.date,homeTeamId:game.homeTeamId,awayTeamId:game.awayTeamId,controlledTeamInvolved:String(game.homeTeamId)===String(state.meta.controlledTeamId)||String(game.awayTeamId)===String(state.meta.controlledTeamId)});});
+  const teamId=state.meta.controlledTeamId;
+  const players=(state.universe.players||[]).filter(p=>String(p.teamId)===String(teamId));
+  const injuries=state.activity.injuries||[];
+  const unresolved=injuries.filter(i=>i&&i.active!==false&&i.status!=='resolved'&&i.status!=='recovered'&&players.some(p=>String(p.id)===String(i.playerId)));
+  const injuredIds=new Set(unresolved.map(i=>String(i.playerId)));
+  const goaliePlan=state.extensions?.phase11GmGoaliePlan;
+  const goalie=goaliePlan&&String(goaliePlan.teamId)===String(teamId)?players.find(p=>String(p.id)===String(goaliePlan.playerId)&&String(p.position||'').toUpperCase()==='G'):null;
+  const skaterPlan=state.extensions?.phase11GmApprovedSkaters;
+  const approvedSkaterIds=skaterPlan&&String(skaterPlan.teamId)===String(teamId)&&Array.isArray(skaterPlan.playerIds)?skaterPlan.playerIds:[];
+  const missingSkaters=approvedSkaterIds.filter(id=>!players.some(p=>String(p.id)===String(id)&&String(p.position||'').toUpperCase()!=='G'));
+  const injuredSkaters=approvedSkaterIds.filter(id=>injuredIds.has(String(id)));
+  const readiness=Object.freeze({rosterPlayers:players.length,unresolvedInjuries:unresolved.length,approvedGoalieId:goalie?.id??null,goalieNeedsReview:!!goaliePlan&&(!goalie||injuredIds.has(String(goalie.id))),approvedSkaters:approvedSkaterIds.length,skatersNeedReview:missingSkaters.length>0||injuredSkaters.length>0,experimentalEnabled:state.extensions?.phase11ExperimentalRosterAwareScores===true});
+  const matchups=preview.results.map(result=>{const game=state.activity.games.find(g=>String(g.id)===String(result.gameId));if(!game)throw Error('Reviewed game missing from schedule');const controlledTeamInvolved=String(game.homeTeamId)===String(teamId)||String(game.awayTeamId)===String(teamId);return Object.freeze({gameId:game.id,date:game.date,homeTeamId:game.homeTeamId,awayTeamId:game.awayTeamId,controlledTeamInvolved,readiness:controlledTeamInvolved?readiness:null});});
   return Object.freeze({fromDate:preview.fromDate,toDate:preview.toDate,scheduledGameIds:Object.freeze(matchups.map(g=>g.gameId)),matchups:Object.freeze(matchups),games:matchups.length});
  }
  function advanceNextDay(seed,approved){
