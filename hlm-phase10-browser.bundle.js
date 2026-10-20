@@ -700,9 +700,13 @@ function signOffseasonFreeAgent(state,{playerId,teamId,contractId,aav,years,seas
   const nextState=JSON.parse(JSON.stringify(state));
   const contract={contractId,playerId,teamId,aav,years,season,status:'active'};
   nextState.assets.contracts.push(contract);
+  // The approved signing must change the actual team roster, not only its contract ledger.
+  const signedPlayer=nextState.universe.players.find(p=>String(p.id)===String(playerId));
+  signedPlayer.teamId=teamId;
   return {nextState,contract,summary:{playerId,teamId,contractId,projectedPayroll:activePayroll+aav,capSpace:capLimit-activePayroll-aav}};
 }
 module.exports={signOffseasonFreeAgent};
+
 
 },
 "hlm-phase10-draft-selection.js":function(module,exports,require){
