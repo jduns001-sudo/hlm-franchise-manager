@@ -50,6 +50,13 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-season-postgame').innerText(),/Human GM game-day review required/);
  const preJump=await page.evaluate(key=>localStorage.getItem(key),KEY);
  assert.equal(await page.locator('#gm-next-game-jump').isDisabled(),false);
+ assert.equal(await page.locator('#gm-next-decision-review').isDisabled(),false);
+ await page.locator('#gm-next-decision-review').click();
+ assert.equal(await page.locator('#game').inputValue(),'g2');
+ assert.match(await page.locator('#gm-next-decision-action-status').innerText(),/Human GM approval required/);
+ assert.equal(await page.locator('#gm-game-day-approve').isDisabled(),false);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'one-click review must not save');
+ await page.reload();await page.waitForFunction(()=>document.querySelector('#gm-next-game-jump')&&!document.querySelector('#gm-next-game-jump').disabled);
  await page.locator('#gm-next-game-jump').click();
  assert.equal(await page.locator('#game').inputValue(),'g2','jump selects next controlled-team game, not arbitrary game');
  assert.match(await page.locator('#gm-next-game-jump-status').innerText(),/no save was made/);
