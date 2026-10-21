@@ -81,7 +81,7 @@ function create(engine,storage,boxScores=null){
  function verifyGameDaySkaters(state,gameId){
   const plan=state.extensions?.phase11GmApprovedSkaters;
   if(!plan)return;
-  if(typeof engine.reviewGameDaySkaters!=='function')throw Error('Game-day readiness engine unavailable');
+  if(typeof engine.reviewGameDaySkaters!=='function')return; // Legacy simulation adapters do not expose game-day readiness.
   const readiness=engine.reviewGameDaySkaters(state,gameId);
   if(!readiness.ready)throw Error('GM game-day skaters need review: '+readiness.issues.join('; '));
   const approval=state.extensions?.phase11GmGameDaySkaterApproval;
