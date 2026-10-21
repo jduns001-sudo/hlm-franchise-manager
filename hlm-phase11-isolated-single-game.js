@@ -50,6 +50,7 @@ function create(engine,storage,boxScores=null){
   const before=store.load();if(!before)throw Error('No isolated save');
   review(gameId);
   verifyApprovedGoaliePlan(before);
+  verifyGameDaySkaters(before,gameId);
   const result=engine.applyScheduledGame(before,gameId,seed,experimentalOptions(before));
   const standings=engine.calculateStandings(result.nextState.universe.teams,result.nextState.activity.games);
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
