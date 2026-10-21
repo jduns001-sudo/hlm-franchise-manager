@@ -131,6 +131,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#day-report')?.textContent.includes('Standings updated'));
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  assert.equal(saved.activity.games[1].status,'final');
+ assert.equal((saved.extensions?.phase11GmPostgameSkaterReviews||[]).some(r=>String(r.gameId)===String(saved.activity.games[1].id)),false,'Day advance must not fabricate an approved postgame review');
+ const beforeMissingReview=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ await page.locator('#gm-workspace-postgame-handoff').click();
+ assert.equal(await page.locator('#gm-postgame-game').inputValue(),'g1','Handoff must select the latest final with a real approved review, not a later day-simulated final');
+ assert.match(await page.locator('#gm-workspace-postgame-handoff-status').innerText(),/Read-only GM postgame review opened for g1/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeMissingReview,'Read-only handoff must not modify isolated save');
  assert.equal(saved.activity.games[1].experimentalRosterAware,true);
  assert.equal(saved.activity.games[1].official,false);
  await page.reload();
