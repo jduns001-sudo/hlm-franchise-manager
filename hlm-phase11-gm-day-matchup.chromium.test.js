@@ -132,7 +132,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  assert.equal(saved.activity.games[1].status,'final');
  assert.match(await page.locator('#gm-postgame-game option[value="g2"]').innerText(),/Final only; no approved plan/);
- assert.match(await page.locator('#gm-postgame-game option[value="g2"]').innerText(),/Team .* [0-9]+ - [0-9]+ Team/,'Final picker must show a real matchup score');
+ assert.match(await page.locator('#gm-postgame-game option[value="g2"]').innerText(),/(Owner|CPU) [0-9]+ - [0-9]+ (Owner|CPU)/,'Final picker must show a real matchup score');
  assert.match(await page.locator('#gm-postgame-game option[value="g2"]').innerText(),/EXPERIMENTAL, NONOFFICIAL/,'Final picker must disclose nonofficial results');
  const beforeFinalOnly=await page.evaluate(key=>localStorage.getItem(key),KEY);
  await page.locator('#gm-postgame-game').selectOption('g2');
