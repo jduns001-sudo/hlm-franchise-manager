@@ -131,6 +131,13 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#day-report')?.textContent.includes('Standings updated'));
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  assert.equal(saved.activity.games[1].status,'final');
+ assert.match(await page.locator('#gm-postgame-game option[value="g2"]').innerText(),/Final only; no approved plan/);
+ const beforeFinalOnly=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ await page.locator('#gm-postgame-game').selectOption('g2');
+ await page.locator('#gm-postgame-review').click();
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/Final game g2 \\| authoritative score/);
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/No saved GM-approved skater plan/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeFinalOnly,'Read-only final history must not write a save');
  assert.equal((saved.extensions?.phase11GmPostgameSkaterReviews||[]).some(r=>String(r.gameId)===String(saved.activity.games[1].id)),false,'Day advance must not fabricate an approved postgame review');
  const beforeMissingReview=await page.evaluate(key=>localStorage.getItem(key),KEY);
  await page.locator('#gm-workspace-postgame-handoff').click();
