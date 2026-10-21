@@ -29,6 +29,34 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await decision.locator('#gm-day-command-review').click();
  page.once('dialog',d=>d.dismiss());await decision.locator('#gm-day-command-confirm').click();
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'cancelled mobile approval must not save');
+ const gameDayState=JSON.parse(before);
+ const gmGame=gameDayState.activity.games.find(g=>g.status==='scheduled'&&(String(g.homeTeamId)===String(gameDayState.meta.controlledTeamId)||String(g.awayTeamId)===String(gameDayState.meta.controlledTeamId)));
+ assert.ok(gmGame,'real-universe season must contain a controlled-team matchup');
+ await page.locator('#game').selectOption(String(gmGame.id));
+ const workspace=page.locator('.gm-game-day-workspace');
+ assert.equal(await workspace.locator('button').count(),4,'mobile GM workspace exposes four game-day actions');
+ await workspace.locator('#gm-workspace-preview').click();
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'matchup preview must not save');
+ await workspace.locator('#gm-workspace-review').click();
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'skater review must not save');
+ const reviewStatus=await page.locator('#gm-game-day-approval-status').innerText();
+ const canApprove=await workspace.locator('#gm-workspace-approve').isEnabled();
+ const canDecline=await workspace.locator('#gm-workspace-decline').isEnabled();
+ assert.equal(canDecline,canApprove,'decline is available exactly when a valid reviewed skater plan awaits human GM approval');
+ if(canApprove){
+   assert.match(reviewStatus,/Human GM approval required/,'review must establish a pending skater plan');
+   await workspace.locator('#gm-workspace-decline').click();
+   assert.equal(await workspace.locator('#gm-workspace-approve').isDisabled(),true,'declined lineup cannot be approved');
+   assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'decline must not save');
+   await workspace.locator('#gm-workspace-review').click();
+   assert.equal(await workspace.locator('#gm-workspace-approve').isEnabled(),true,'re-review restores pending GM approval');
+   page.once('dialog',d=>d.dismiss());await workspace.locator('#gm-workspace-approve').click();
+   assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'cancelled skater approval must not save');
+ }else{
+   assert.match(reviewStatus,/unavailable|ineligible|no eligible|not found|requires|missing|cannot|invalid|not scheduled|no skaters|No skaters|No eligible|No signed|need GM review|not approved/i,'unavailable review must provide an explicit reason');
+   assert.equal(await workspace.locator('#gm-workspace-decline').isDisabled(),true,'no pending review means no decline action');
+   assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'unavailable review must not save');
+ }
  const dock=page.locator('.gm-command-dock');
  assert.equal(await dock.locator('a').count(),8,'mobile GM dock exposes eight real franchise destinations');
  assert.equal(await dock.getAttribute('aria-label'),'GM mobile command dock');
