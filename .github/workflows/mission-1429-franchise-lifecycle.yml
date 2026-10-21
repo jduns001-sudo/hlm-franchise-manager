@@ -1,0 +1,30 @@
+name: Mission 1429 Franchise Lifecycle
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-franchise-lifecycle.chromium.test.js'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1429-franchise-lifecycle.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-playable-loop-acceptance.test.js
+      - run: node hlm-phase11-reviewed-game-day-participation.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - run: node hlm-phase11-franchise-lifecycle.chromium.test.js
