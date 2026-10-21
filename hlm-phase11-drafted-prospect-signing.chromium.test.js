@@ -7,7 +7,7 @@ const {chromium}=require('playwright');
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
   const page=await context.newPage();
-  for(const file of ['hlm-phase11-isolated-single-game.html','hlm-phase10-browser.bundle.js','hlm-phase11-isolated-single-game.js']){
+  for(const file of ['hlm-phase11-isolated-single-game.html','hlm-phase10-browser.bundle.js','hlm-phase11-isolated-single-game.js','hlm-phase11-game-day-skater-readiness.js']){
    await page.route('**/'+file+'*',route=>route.fulfill({status:200,contentType:file.endsWith('.html')?'text/html':'application/javascript',body:fs.readFileSync(file,'utf8')}));
   }
   await page.goto('https://jduns001-sudo.github.io/hlm-franchise-manager/hlm-phase11-isolated-single-game.html?mission1396='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
