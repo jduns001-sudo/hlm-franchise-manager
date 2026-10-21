@@ -87,5 +87,25 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(rolled.extensions.phase11ExperimentalRosterAwareScores,false);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
 
+ // Two real mobile tabs share the same isolated save. A stale GM approval must never overwrite a newer day.
+ const second=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ await second.goto(page.url(),{waitUntil:'domcontentloaded'});
+ await second.waitForFunction(()=>document.querySelector('#day-review')&&!document.querySelector('#day-review').disabled,null,{timeout:30000});
+ await second.locator('#day-review').click();
+ await page.locator('#day-review').click();
+ page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();
+ const beforeSecond=await second.evaluate(k=>localStorage.getItem(k),key);
+ await second.waitForFunction(({key,before})=>localStorage.getItem(key)!==before,{key,before:beforeSecond},{timeout:30000}).catch(()=>{});
+ const authoritative=await page.evaluate(k=>localStorage.getItem(k),key);
+ assert.notEqual(authoritative,JSON.stringify(rolled),'first tab must advance the new season');
+ second.once('dialog',d=>d.accept());await second.locator('#day-approve').click();
+ await second.waitForFunction(()=>/changed|reload|conflict/i.test(document.querySelector('#day-report')?.textContent||''),null,{timeout:30000});
+ assert.equal(await second.evaluate(k=>localStorage.getItem(k),key),authoritative,'stale second tab must not overwrite authoritative save');
+ assert.equal(await second.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ await second.reload();
+ await second.waitForFunction(()=>document.querySelector('#day-review')&&!document.querySelector('#day-review').disabled,null,{timeout:30000});
+ assert.equal(await second.evaluate(k=>localStorage.getItem(k),key),authoritative,'second-tab reload must preserve winner');
+ await second.close();
+
  console.log('Mobile real-universe connected creation, day approval, declined no-save, authentic schedule, reload, production isolation and default-off passed');
 }finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
