@@ -1,0 +1,28 @@
+name: Mission 1423 GM Next Decision Handoff
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-gm-day-matchup.chromium.test.js'
+      - '.github/workflows/mission-1423-gm-next-decision-handoff.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-gm-day-matchup.chromium.test.js
+      - run: node hlm-phase11-reviewed-game-day-participation.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npx --yes playwright --version
+      - run: npx --yes playwright install --with-deps chromium
+      - run: node hlm-phase11-gm-day-matchup.chromium.test.js
