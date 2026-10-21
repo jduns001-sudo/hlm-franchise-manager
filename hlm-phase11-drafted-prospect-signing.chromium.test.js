@@ -7,7 +7,7 @@ const {chromium}=require('playwright');
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
   const page=await context.newPage();
-  for(const file of ['hlm-phase11-isolated-single-game.html','hlm-phase10-browser.bundle.js','hlm-phase11-isolated-single-game.js']){
+  for(const file of ['hlm-phase11-isolated-single-game.html','hlm-phase10-browser.bundle.js','hlm-phase11-isolated-single-game.js','hlm-phase11-game-day-skater-readiness.js']){
    await page.route('**/'+file+'*',route=>route.fulfill({status:200,contentType:file.endsWith('.html')?'text/html':'application/javascript',body:fs.readFileSync(file,'utf8')}));
   }
   await page.goto('https://jduns001-sudo.github.io/hlm-franchise-manager/hlm-phase11-isolated-single-game.html?mission1396='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
@@ -86,6 +86,9 @@ const {chromium}=require('playwright');
   page.once('dialog',d=>d.accept());
   await page.locator('#gm-skater-approve').click();
   await page.waitForFunction(()=>document.querySelector('#gm-skater-status')?.textContent.includes('GM approved'),{timeout:60000});
+  assert.match(await page.locator('#gm-game-day-skater-readiness').innerText(),/GM game-day skater plan: ready/);
+  const beforeGameDay=await page.evaluate(key=>localStorage.getItem(key),key);
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),beforeGameDay,'game-day readiness is read-only');
   const approvedPlan=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),key));
   assert.ok(approvedPlan.extensions.phase11GmApprovedSkaters.playerIds.includes('mission1396-prospect'),'prospect approved for skater plan');
   assert.equal(approvedPlan.extensions.phase11ExperimentalRosterAwareScores,false,'score experiment remains off');
@@ -95,6 +98,7 @@ const {chromium}=require('playwright');
   await page.waitForFunction(()=>document.querySelector('#gm-roster')?.textContent.includes('Unsigned Prospect'),{timeout:60000});
   assert.equal(await page.locator('#prospect-sign-review').isDisabled(),true,'cannot sign twice');
   assert.ok(JSON.parse(await page.evaluate(key=>localStorage.getItem(key),key)).extensions.phase11GmApprovedSkaters.playerIds.includes('mission1396-prospect'),'GM skater plan survives reload');
+  assert.match(await page.locator('#gm-game-day-skater-readiness').innerText(),/GM game-day skater plan: ready/);
   assert.match(await page.locator('#gm-signing-history').innerText(),/rookie-contract-1/);
   assert.equal(JSON.parse(await page.evaluate(key=>localStorage.getItem(key),key)).activity.transactions.filter(t=>t.type==='drafted-prospect-signing').length,1);
   assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'MISSION1396_PRODUCTION_SENTINEL');

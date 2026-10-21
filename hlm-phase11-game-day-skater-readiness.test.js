@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {review}=require('./hlm-phase11-game-day-skater-readiness');
+const base={meta:{controlledTeamId:5},universe:{players:[{id:'signed',teamId:5,name:'Signed Prospect',position:'C',overall:70},{id:'defense',teamId:5,position:'D',overall:75},{id:'wing',teamId:5,position:'LW',overall:76}]},activity:{games:[{id:'game1',status:'scheduled',homeTeamId:5,awayTeamId:3}],injuries:[],transactions:[{type:'drafted-prospect-signing',playerId:'signed',teamId:5}]},assets:{contracts:[{playerId:'signed',teamId:5,status:'active'}]},extensions:{phase11GmApprovedSkaters:{teamId:5,playerIds:['signed','defense','wing']},phase11ExperimentalRosterAwareScores:false}};
+const copy=x=>JSON.parse(JSON.stringify(x));const snapshot=JSON.stringify(base);
+assert.equal(review(base,'game1').status,'ready');
+assert.equal(review(base,'game1').players[0].name,'Signed Prospect');
+assert.equal(JSON.stringify(base),snapshot,'read-only');
+let s=copy(base);delete s.extensions.phase11GmApprovedSkaters;assert.equal(review(s,'game1').status,'no-approved-plan');
+s=copy(base);s.activity.injuries.push({playerId:'signed',status:'active'});assert.match(review(s,'game1').issues.join(' '),/injury/);
+s=copy(base);s.assets.contracts[0].status='expired';assert.match(review(s,'game1').issues.join(' '),/active controlled-team contract/);
+s=copy(base);s.universe.players[0].teamId=3;assert.match(review(s,'game1').issues.join(' '),/no longer owned/);
+s=copy(base);s.extensions.phase11GmApprovedSkaters.playerIds=['signed','signed','wing'];assert.match(review(s,'game1').issues.join(' '),/distinct/);
+s=copy(base);s.universe.players[1].overall=0;assert.match(review(s,'game1').issues.join(' '),/valid rating/);
+s=copy(base);s.activity.games[0].status='final';assert.throws(()=>review(s,'game1'),/scheduled game/);
+assert.equal(base.extensions.phase11ExperimentalRosterAwareScores,false);
+console.log('Mission 1400 read-only game-day approved skater eligibility passed');

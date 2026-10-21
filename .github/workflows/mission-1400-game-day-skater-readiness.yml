@@ -1,0 +1,32 @@
+name: Mission 1400 Game Day Signed Skater Readiness
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-game-day-skater-readiness.js'
+      - 'hlm-phase11-game-day-skater-readiness.test.js'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-drafted-prospect-signing.chromium.test.js'
+      - '.github/workflows/mission-1400-game-day-skater-readiness.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-game-day-skater-readiness.test.js
+      - run: node hlm-phase11-signed-prospect-lineup.test.js
+      - run: node hlm-phase11-reviewed-draft-selection.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-drafted-prospect-signing.chromium.test.js
