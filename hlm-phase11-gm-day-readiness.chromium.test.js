@@ -26,6 +26,10 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(saved.extensions.phase11ExperimentalRosterAwareScores,true);
  assert.deepEqual(saved.extensions.phase11GmApprovedSkaters.playerIds,[12,13,14]);
  assert.equal(saved.extensions.phase11GmGoaliePlan.playerId,11);
+ await page.locator('#gm-game-day-review').click();
+ assert.match(await page.locator('#gm-game-day-approval-status').innerText(),/Human GM approval required/);
+ page.once('dialog',d=>d.accept());await page.locator('#gm-game-day-approve').click();
+ await page.waitForFunction(()=>document.querySelector('#gm-game-day-approval-status')?.textContent.includes('GM approved game-day skaters'));
  page.once('dialog',d=>d.dismiss());await page.locator('#approve').click();
  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY)).activity.games[0].status,'scheduled');
  page.once('dialog',d=>d.accept());await page.locator('#approve').click();

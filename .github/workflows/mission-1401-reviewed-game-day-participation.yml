@@ -1,0 +1,31 @@
+name: Mission 1401 Reviewed Game Day Participation
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-single-game.js'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-reviewed-game-day-participation.test.js'
+      - 'hlm-phase11-drafted-prospect-signing.chromium.test.js'
+      - '.github/workflows/mission-1401-reviewed-game-day-participation.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-reviewed-game-day-participation.test.js
+      - run: node hlm-phase11-game-day-skater-readiness.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-drafted-prospect-signing.chromium.test.js
