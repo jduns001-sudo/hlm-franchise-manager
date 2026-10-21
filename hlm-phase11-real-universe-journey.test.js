@@ -100,3 +100,13 @@ console.log('Real universe complete: '+count+' regular-season games, '+playoffGa
  require('node:assert/strict').match(html,/gm-day-command-decline'\)\.addEventListener\('click'/);
  require('node:assert/strict').match(html,/reviewedDay=null;\$\('day-approve'\)\.disabled=true/);
 }
+
+// Mission 1416: mobile game-day decision workspace delegates to guarded GM approval.
+{
+ const assert=require('node:assert/strict'),fs=require('node:fs');
+ const html=fs.readFileSync(require('node:path').join(__dirname,'hlm-phase11-isolated-single-game.html'),'utf8');
+ for(const id of ['gm-game-day-workspace-heading','gm-workspace-preview','gm-workspace-review','gm-workspace-approve','gm-workspace-decline','gm-workspace-status'])assert.ok(html.includes('id="'+id+'"'),'Missing game-day workspace '+id);
+ assert.ok(html.includes("pendingGameDaySkaters=null;$('gm-game-day-approve').disabled=true"),'Decline must clear pending approval');
+ assert.ok(html.includes("$('gm-game-day-approve').click()"),'Workspace must delegate to existing guarded GM approval');
+ assert.ok(html.includes("syncDayCommand();syncGameWorkspace();"),'Refresh must synchronize controls');
+}
