@@ -45,5 +45,17 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),playoffBefore,'declined playoff qualification must not save');
  }
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL','playoff review must isolate production save');
+ // Mission 1431: an explicit human GM approval persists one real-universe regular-season day.
+ await page.locator('#day-review').click();
+ const approvedBefore=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();
+ await page.waitForFunction(({key,before})=>{const after=localStorage.getItem(key);return Boolean(after)&&after!==before},{key:KEY,before:approvedBefore}).catch(async()=>{throw new Error('Approved regular-season day did not persist')});
+ const approved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
+ assert.ok(approved.activity.games.some(g=>g.status==='final'||g.status==='completed'||g.result),'GM-approved day must finalize a game');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ await page.reload();
+ await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true);
+ assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY)>0,true,'approved game must survive reload');
+ console.log('Mission 1431 GM-approved real-universe regular-season day and reload continuity passed');
  console.log('Mission 1429 real-universe mobile new franchise, cancel, reload, lineup review, day review and production isolation passed');
 }finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
