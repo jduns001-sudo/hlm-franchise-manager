@@ -51,6 +51,11 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#game')?.value==='g2');
  assert.equal(await page.locator('#game').inputValue(),'g2','reload must retain explicit next-game navigation selection');
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'refresh must not write isolated save');
+ await page.goto('about:blank');
+ await page.goto(url+'/hlm-phase11-isolated-single-game.html');
+ await page.waitForFunction(()=>document.querySelector('#game')?.value==='g2');
+ assert.equal(await page.locator('#game').inputValue(),'g2','fresh navigation in same tab restores explicitly selected game without relying on native form restoration');
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'session navigation must not write franchise save');
  await page.locator('#gm-game-day-review').click();
  assert.equal(await page.locator('#gm-game-day-approve').isDisabled(),false);
  await page.locator('#game').selectOption('g2');
