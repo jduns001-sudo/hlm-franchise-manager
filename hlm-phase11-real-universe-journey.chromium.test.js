@@ -29,6 +29,18 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await decision.locator('#gm-day-command-review').click();
  page.once('dialog',d=>d.dismiss());await decision.locator('#gm-day-command-confirm').click();
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'cancelled mobile approval must not save');
+ const workspace=page.locator('.gm-game-day-workspace');
+ assert.equal(await workspace.locator('button').count(),4,'mobile GM workspace exposes four game-day actions');
+ await workspace.locator('#gm-workspace-preview').click();
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'matchup preview must not save');
+ await workspace.locator('#gm-workspace-review').click();
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'skater review must not save');
+ await workspace.locator('#gm-workspace-decline').click();
+ assert.equal(await workspace.locator('#gm-workspace-approve').isDisabled(),true,'declined lineup cannot be approved');
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'decline must not save');
+ await workspace.locator('#gm-workspace-review').click();
+ page.once('dialog',d=>d.dismiss());await workspace.locator('#gm-workspace-approve').click();
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'cancelled skater approval must not save');
  const dock=page.locator('.gm-command-dock');
  assert.equal(await dock.locator('a').count(),8,'mobile GM dock exposes eight real franchise destinations');
  assert.equal(await dock.getAttribute('aria-label'),'GM mobile command dock');
