@@ -102,6 +102,9 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.locator('#gm-postgame-review').click();
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),afterRead,'read-only postgame review must not save');
 
+ assert.match(await page.locator('#gm-next-decision-brief').innerText(),/GM NEXT DECISION \\| READ ONLY/);
+ assert.match(await page.locator('#gm-next-decision-brief').innerText(),/No automatic simulation or save/);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  assert.equal(game.experimentalRosterAware,true,'Persisted game must retain experimental provenance');
  assert.equal(game.official,false,'Persisted game must retain nonofficial provenance');
  assert.match(await page.locator('#season-dashboard').innerText(),/EXPERIMENTAL, NONOFFICIAL/,'GM-approved experimental result must be visibly labeled nonofficial');
