@@ -55,6 +55,11 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.goto(url+'/hlm-phase11-isolated-single-game.html');
  await page.waitForFunction(()=>document.querySelector('#game')?.value==='g2');
  assert.equal(await page.locator('#game').inputValue(),'g2','fresh navigation in same tab restores explicitly selected game without relying on native form restoration');
+ await page.locator('#gm-selected-game-preview').click();
+ assert.match(await page.locator('#gm-selected-game-preview-report').innerText(),/READ-ONLY GM GAME PREVIEW/);
+ assert.match(await page.locator('#gm-selected-game-preview-report').innerText(),/CPU vs Owner/);
+ assert.match(await page.locator('#gm-selected-game-preview-report').innerText(),/No simulation, approval or save occurred/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'GM preview must not write isolated save');
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'session navigation must not write franchise save');
  await page.locator('#gm-game-day-review').click();
  assert.equal(await page.locator('#gm-game-day-approve').isDisabled(),false);
