@@ -143,6 +143,35 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    const historyAfterReload=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).history?.seasons||[],KEY);
    assert.deepEqual(historyAfterReload,archived.history,'championship archive must persist unchanged after reload');
    assert.equal(await page.locator('#season-archive').isDisabled(),true,'archived season must remain protected after reload');
+   // Mission 1437: reviewed offseason must be a read-only preview; only human GM approval advances the season.
+   const nextSeasonId=await page.locator('#next-season-id').inputValue();
+   const beforeOffseason=await page.evaluate(key=>localStorage.getItem(key),KEY);
+   assert.equal(await page.locator('#next-season').isDisabled(),true,'next-season approval requires a fresh review');
+   await page.locator('#offseason-review').click();
+   assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeOffseason,'offseason preview must not persist changes');
+   assert.equal(await page.locator('#next-season').isEnabled(),true,'valid offseason review must enable explicit GM approval');
+   assert.match(await page.locator('#offseason-preview').innerText(),/Review only, nothing saved/);
+   page.once('dialog',d=>d.dismiss());await page.locator('#next-season').click();
+   assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeOffseason,'declined next-season approval must not save');
+   page.once('dialog',d=>d.accept());await page.locator('#next-season').click();
+   await page.waitForFunction(({key,before})=>localStorage.getItem(key)!==before,{key:KEY,before:beforeOffseason},{timeout:30000});
+   const nextState=await page.evaluate(key=>{
+     const state=JSON.parse(localStorage.getItem(key));
+     return {history:state.history?.seasons||[],seasons:state.activity?.seasons||[],games:state.activity?.games||[]};
+   },KEY);
+   assert.deepEqual(nextState.history,archived.history,'new season must preserve archived championship history');
+   assert.ok(nextState.games.some(g=>g.status==='scheduled'),'approved next season must schedule games');
+   assert.equal(await page.locator('#next-season').isDisabled(),true,'approval must clear reviewed offseason state');
+   assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+   await page.reload();
+   await page.waitForFunction(()=>document.querySelector('#offseason-review')!=null);
+   const reloadedNext=await page.evaluate(key=>{
+     const state=JSON.parse(localStorage.getItem(key));
+     return {history:state.history?.seasons||[],seasons:state.activity?.seasons||[],games:state.activity?.games||[]};
+   },KEY);
+   assert.deepEqual(reloadedNext,nextState,'approved next-season schedule and championship history must survive reload');
+   assert.equal(await page.locator('#next-season').isDisabled(),true,'reviewed approval must not survive reload');
+   console.log('Mission 1437 GM-approved next season '+nextSeasonId+' with '+nextState.games.filter(g=>g.status==='scheduled').length+' scheduled games');
    console.log('Mission 1436 archived '+archiveSeasonId+' with champion '+champion+' through explicit GM approval and reload');
    console.log('Mission 1435 completed '+playoffApprovals+' individually GM-approved playoff games; champion field: '+champion);
    console.log('Mission 1433 approved playoff bracket and declined playoff game survived reload');
