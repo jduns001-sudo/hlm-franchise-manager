@@ -13,6 +13,10 @@ const upcoming=gm.seasonPostgameContext();
 assert.equal(upcoming.nextGameId,'game1');
 assert.equal(upcoming.needsGameDayReview,true);
 assert.equal(upcoming.nextApproved,false);
+const readOnlyBefore=storage.getItem(key);
+assert.equal(gm.seasonPostgameContext().nextGameId,'game1','repeated next-game lookup is stable');
+assert.equal(storage.getItem(key),readOnlyBefore,'next-game lookup must not write a save');
+
 const before=storage.getItem(key);
 assert.throws(()=>gm.advance('game1',17,true),/game-day skater approval required/);
 const proposed=gm.reviewGameDaySkaters('game1');

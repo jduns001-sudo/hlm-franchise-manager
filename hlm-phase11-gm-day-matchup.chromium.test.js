@@ -47,6 +47,18 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-next-game-jump-status').innerText(),/no save was made/);
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'navigation must not mutate isolated save');
  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY)).activity.games[1].status,'scheduled');
+ await page.reload();
+ await page.waitForFunction(()=>document.querySelector('#game')?.value==='g2');
+ assert.equal(await page.locator('#game').inputValue(),'g2','reload must retain explicit next-game navigation selection');
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'refresh must not write isolated save');
+ await page.locator('#gm-game-day-review').click();
+ assert.equal(await page.locator('#gm-game-day-approve').isDisabled(),false);
+ await page.locator('#game').selectOption('g2');
+ await page.locator('#game').dispatchEvent('change');
+ assert.equal(await page.locator('#gm-game-day-approve').isDisabled(),true,'changing game invalidates pending review even for same game');
+ assert.match(await page.locator('#gm-game-day-approval-status').innerText(),/Review skaters for this game/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'review navigation must not write isolated save');
+
 
 
  assert.deepEqual(saved.extensions.phase11GmPostgameSkaterReviews[0].playerIds,[12,13,14]);
@@ -60,8 +72,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
 
  assert.equal(game.experimentalRosterAware,true,'Persisted game must retain experimental provenance');
  assert.equal(game.official,false,'Persisted game must retain nonofficial provenance');
- assert.match(await page.locator('#output').innerText(),/"experimentalRosterAware":true/,'GM-approved experimental result must be explicitly labeled');
- assert.match(await page.locator('#output').innerText(),/"official":false/,'Experimental result must be nonofficial');
+ assert.match(await page.locator('#season-dashboard').innerText(),/EXPERIMENTAL, NONOFFICIAL/,'GM-approved experimental result must be visibly labeled nonofficial');
  assert.ok(Number.isSafeInteger(game.homeGoals)&&Number.isSafeInteger(game.awayGoals)&&game.homeGoals!==game.awayGoals);
  assert.match(await page.locator('#season-dashboard').innerText(),/Standings:/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
