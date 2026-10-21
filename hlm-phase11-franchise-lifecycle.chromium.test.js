@@ -38,5 +38,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.dismiss());await page.locator('#day-approve').click();
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeCancel,'cancelled simulation must not save');
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ // Mission 1430: validate existing playoff entry guards against unapproved saves.
+ const playoffBefore=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ if(await page.locator('#playoff-start').isEnabled()){
+   page.once('dialog',d=>d.dismiss());await page.locator('#playoff-start').click();
+   assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),playoffBefore,'declined playoff qualification must not save');
+ }
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL','playoff review must isolate production save');
  console.log('Mission 1429 real-universe mobile new franchise, cancel, reload, lineup review, day review and production isolation passed');
 }finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
