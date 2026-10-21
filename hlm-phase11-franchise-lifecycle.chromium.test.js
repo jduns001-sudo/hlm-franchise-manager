@@ -71,6 +71,23 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.reload();
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true);
  assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY),finalsAfter,'both approved days must survive reload');
+ // Mission 1433: qualify real-universe playoffs only after every regular-season game is final.
+ const remaining=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='scheduled').length,KEY);
+ assert.equal(await page.locator('#playoff-start').isEnabled(),remaining===0,'playoff qualification gate must track regular-season completion');
+ if(remaining===0){
+   const playoffBeforeApproval=await page.evaluate(key=>localStorage.getItem(key),KEY);
+   page.once('dialog',d=>d.dismiss());await page.locator('#playoff-start').click();
+   assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),playoffBeforeApproval,'declined playoff qualification must not save');
+   page.once('dialog',d=>d.accept());await page.locator('#playoff-start').click();
+   await page.waitForFunction(({key,before})=>localStorage.getItem(key)!==before,{key:KEY,before:playoffBeforeApproval});
+   assert.equal(await page.locator('#playoff-next').isEnabled(),true,'approved playoff bracket must allow first best-of-seven game');
+   const playoffBeforeGame=await page.evaluate(key=>localStorage.getItem(key),KEY);
+   page.once('dialog',d=>d.dismiss());await page.locator('#playoff-next').click();
+   assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),playoffBeforeGame,'declined playoff game must not save');
+   assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+   await page.reload();await page.waitForFunction(()=>document.querySelector('#playoff-next')?.disabled===false);
+   console.log('Mission 1433 approved playoff bracket and declined playoff game survived reload');
+ }else console.log('Mission 1433 playoff gate confirmed blocked with '+remaining+' regular-season games remaining');
  console.log('Mission 1432 two GM-approved real-universe days, second-day cancel and reload passed');
  console.log('Mission 1431 GM-approved real-universe regular-season day and reload continuity passed');
  console.log('Mission 1429 real-universe mobile new franchise, cancel, reload, lineup review, day review and production isolation passed');
