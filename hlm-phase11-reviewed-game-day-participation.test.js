@@ -9,6 +9,10 @@ const engine={reviewGameDaySkaters:review,applyScheduledGame(state,id){const nex
 const gm=create(engine,storage);
 const state={meta:{controlledTeamId:5,currentDate:'2026-10-20'},universe:{teams:[{id:5},{id:3}],players:[{id:'signed',teamId:5,position:'C',overall:70},{id:'a',teamId:5,position:'LW',overall:80},{id:'b',teamId:5,position:'D',overall:75}]},activity:{games:[{id:'game1',date:'2026-10-20',status:'scheduled',homeTeamId:5,awayTeamId:3}],injuries:[],transactions:[{type:'drafted-prospect-signing',teamId:5,playerId:'signed'}]},assets:{contracts:[{teamId:5,playerId:'signed',status:'active'}]},extensions:{phase11GmApprovedSkaters:{teamId:5,playerIds:['signed','a','b']},phase11ExperimentalRosterAwareScores:false}};
 gm.stage(state,true);
+const upcoming=gm.seasonPostgameContext();
+assert.equal(upcoming.nextGameId,'game1');
+assert.equal(upcoming.needsGameDayReview,true);
+assert.equal(upcoming.nextApproved,false);
 const before=storage.getItem(key);
 assert.throws(()=>gm.advance('game1',17,true),/game-day skater approval required/);
 const proposed=gm.reviewGameDaySkaters('game1');
@@ -16,6 +20,11 @@ assert.equal(storage.getItem(key),before,'review does not save');
 assert.throws(()=>gm.approveReviewedGameDaySkaters(proposed,false),/approval required/);
 assert.equal(storage.getItem(key),before,'decline does not save');
 const approved=gm.approveReviewedGameDaySkaters(proposed,true);
+const approvedContext=gm.seasonPostgameContext();
+assert.equal(approvedContext.nextGameId,'game1');
+assert.equal(approvedContext.nextApproved,true);
+assert.equal(approvedContext.needsGameDayReview,false);
+
 assert.ok(approved.playerIds.includes('signed'));
 assert.equal(gm.load().extensions.phase11ExperimentalRosterAwareScores,false);
 assert.equal(gm.load().activity.transactions.length,1);
