@@ -72,8 +72,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
 
  assert.equal(game.experimentalRosterAware,true,'Persisted game must retain experimental provenance');
  assert.equal(game.official,false,'Persisted game must retain nonofficial provenance');
- assert.match(await page.locator('#output').innerText(),/"experimentalRosterAware":true/,'GM-approved experimental result must be explicitly labeled');
- assert.match(await page.locator('#output').innerText(),/"official":false/,'Experimental result must be nonofficial');
+ assert.match(await page.locator('#season-dashboard').innerText(),/EXPERIMENTAL, NONOFFICIAL/,'GM-approved experimental result must be visibly labeled nonofficial');
  assert.ok(Number.isSafeInteger(game.homeGoals)&&Number.isSafeInteger(game.awayGoals)&&game.homeGoals!==game.awayGoals);
  assert.match(await page.locator('#season-dashboard').innerText(),/Standings:/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
