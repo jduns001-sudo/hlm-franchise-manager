@@ -10,7 +10,11 @@ const {applyScheduledGame}=require('./hlm-phase10-apply-game');
 const {simulateNextDay}=require('./hlm-phase10-simulate-day');
 const {calculateStandings}=require('./hlm-phase10-standings');
 const {create}=require('./hlm-phase11-isolated-single-game');
-const engine={...gameState,...schedule,createBrowserFranchiseSaveStore,applyScheduledGame,simulateNextDay,calculateStandings};
+const {startSeasonPlayoffs}=require('./hlm-phase10-season-playoffs');
+const {simulateNextPlayoffGame}=require('./hlm-phase10-playoff-simulation');
+const {finalizeChampionshipSeason}=require('./hlm-phase10-season-finalization');
+const {completeOffseasonAndStartSeason}=require('./hlm-phase10-complete-offseason');
+const engine={...gameState,...schedule,createBrowserFranchiseSaveStore,applyScheduledGame,simulateNextDay,calculateStandings,startSeasonPlayoffs,simulateNextPlayoffGame,finalizeChampionshipSeason,completeOffseasonAndStartSeason};
 const memory=new Map([['hlm_front_office_v8','PRODUCTION_SENTINEL']]);
 const storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
 const owner=teams(universe).find(t=>t.abbr==='PIT');
@@ -39,4 +43,41 @@ assert.equal(create(engine,storage).load().activity.games.filter(g=>g.status==='
 assert.throws(()=>stale.advanceNextDay(1412,true),/changed/);
 assert.equal(storage.getItem('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
 assert.equal(advanced.state.extensions.phase11ExperimentalRosterAwareScores,false);
-console.log('Real universe: 32 teams, authentic roster and schedule, explicit creation/day approval, decline no-save, stale rejection, reload, production isolation and default-off passed');
+// Finish the authentic full schedule. Each day is separately reviewed and GM-approved.
+let days=1;
+while(manager.load().activity.games.some(g=>g.status==='scheduled')){
+ const reviewed=manager.reviewNextDay();
+ assert.ok(reviewed.games>0);
+ manager.advanceNextDay(1412+days,true);
+ if(++days>count)throw Error('Regular season did not terminate');
+}
+assert.equal(manager.load().activity.games.filter(g=>g.status==='final').length,count);
+assert.throws(()=>manager.startPlayoffs(false),/approval/);
+manager.startPlayoffs(true);
+let playoffGames=0;
+while(manager.load().extensions.phase10Playoffs.status==='active'){
+ assert.throws(()=>manager.advancePlayoff(1412+playoffGames,false),/approval/);
+ manager.advancePlayoff(1412+playoffGames,true);
+ if(++playoffGames>21)throw Error('Best-of-seven playoffs did not terminate');
+}
+assert.ok(playoffGames>=12&&playoffGames<=21,'four-team best-of-seven bracket');
+assert.throws(()=>manager.archiveSeason('2026-27',false),/approval/);
+manager.archiveSeason('2026-27',true);
+const options={contracts:{expiredContractIds:[],signings:[]},draftSelections:[],nextSeason:{completedSeasonId:'2026-27',nextSeasonId:'2027-28',startDate:'2027-10-01',cycles:2}};
+const beforeOffseason=storage.getItem(manager.key);
+const preview=manager.reviewOffseason(options);
+assert.ok(preview.proposedGames>0);
+assert.equal(storage.getItem(manager.key),beforeOffseason,'review is read-only');
+assert.throws(()=>manager.approveReviewedOffseason(false),/approval/);
+assert.equal(storage.getItem(manager.key),beforeOffseason,'decline is no-save');
+manager.approveReviewedOffseason(true);
+const rolled=create(engine,storage).load();
+assert.equal(rolled.meta.controlledTeamId,owner.id);
+assert.equal(rolled.universe.teams.length,32);
+assert.equal(rolled.universe.players.length,original.universe.players.length);
+assert.equal(rolled.history.seasons.length,1);
+assert.equal(rolled.extensions.phase10CurrentSeasonId,'2027-28');
+assert.ok(rolled.activity.games.some(g=>g.status==='scheduled'));
+assert.equal(rolled.extensions.phase11ExperimentalRosterAwareScores,false);
+assert.equal(storage.getItem('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
+console.log('Real universe complete: '+count+' regular-season games, '+playoffGames+' playoff games, GM-approved championship archive, reviewed next season, reload, stale rejection, production isolation and default-off passed');
