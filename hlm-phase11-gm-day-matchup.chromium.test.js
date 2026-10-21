@@ -72,6 +72,13 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-upcoming-game-open-status').innerText(),/No approval, simulation or save occurred/);
  assert.equal(await page.locator('#gm-game-day-approve').isDisabled(),true,'queue navigation must not carry game-day skater approval');
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'game queue navigation must not write isolated save');
+ assert.equal(await page.locator('#gm-upcoming-game-play').isDisabled(),false,'queued controlled-team game is playable only by explicit GM approval');
+ page.once('dialog',d=>d.dismiss());
+ await page.locator('#gm-upcoming-game-play').click();
+ assert.match(await page.locator('#gm-upcoming-game-play-status').innerText(),/GM declined. No game played or saved/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'declined queued game must leave isolated save byte-for-byte unchanged');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL','queued game cannot touch production save');
+
 
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'GM preview must not write isolated save');
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'session navigation must not write franchise save');
