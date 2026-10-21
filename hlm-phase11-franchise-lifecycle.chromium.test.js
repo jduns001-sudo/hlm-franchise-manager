@@ -145,6 +145,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    assert.equal(await page.locator('#season-archive').isDisabled(),true,'archived season must remain protected after reload');
    // Mission 1437: reviewed offseason must be a read-only preview; only human GM approval advances the season.
    const nextSeasonId=await page.locator('#next-season-id').inputValue();
+   const nextSeasonDate=await page.locator('#next-season-date').inputValue();
    const beforeOffseason=await page.evaluate(key=>localStorage.getItem(key),KEY);
    assert.equal(await page.locator('#next-season').isDisabled(),true,'next-season approval requires a fresh review');
    await page.locator('#offseason-review').click();
@@ -157,9 +158,13 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    await page.waitForFunction(({key,before})=>localStorage.getItem(key)!==before,{key:KEY,before:beforeOffseason},{timeout:30000});
    const nextState=await page.evaluate(key=>{
      const state=JSON.parse(localStorage.getItem(key));
-     return {history:state.history?.seasons||[],seasons:state.activity?.seasons||[],games:state.activity?.games||[]};
+     return {history:state.history?.seasons||[],seasons:state.activity?.seasons||[],games:state.activity?.games||[],seasonId:state.extensions?.phase10CurrentSeasonId,currentDate:state.meta?.currentDate};
    },KEY);
    assert.deepEqual(nextState.history,archived.history,'new season must preserve archived championship history');
+   assert.equal(nextState.seasonId,nextSeasonId,'approved next-season ID must match GM-reviewed season');
+   assert.equal(nextState.currentDate,nextSeasonDate,'approved next-season date must match GM-reviewed start');
+   const expectedFirstGameDate=new Date(Date.parse(nextSeasonDate+'T00:00:00Z')+86400000).toISOString().slice(0,10);
+   assert.ok(nextState.games.some(g=>g.status==='scheduled'&&g.date===expectedFirstGameDate),'first scheduled round must occur one day after reviewed season start');
    assert.ok(nextState.games.some(g=>g.status==='scheduled'),'approved next season must schedule games');
    assert.equal(await page.locator('#next-season').isDisabled(),true,'approval must clear reviewed offseason state');
    assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
@@ -167,7 +172,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    await page.waitForFunction(()=>document.querySelector('#offseason-review')!=null);
    const reloadedNext=await page.evaluate(key=>{
      const state=JSON.parse(localStorage.getItem(key));
-     return {history:state.history?.seasons||[],seasons:state.activity?.seasons||[],games:state.activity?.games||[]};
+     return {history:state.history?.seasons||[],seasons:state.activity?.seasons||[],games:state.activity?.games||[],seasonId:state.extensions?.phase10CurrentSeasonId,currentDate:state.meta?.currentDate};
    },KEY);
    assert.deepEqual(reloadedNext,nextState,'approved next-season schedule and championship history must survive reload');
    assert.equal(await page.locator('#next-season').isDisabled(),true,'reviewed approval must not survive reload');
