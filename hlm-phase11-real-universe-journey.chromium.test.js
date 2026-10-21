@@ -29,6 +29,10 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await decision.locator('#gm-day-command-review').click();
  page.once('dialog',d=>d.dismiss());await decision.locator('#gm-day-command-confirm').click();
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'cancelled mobile approval must not save');
+ const gameDayState=JSON.parse(before);
+ const gmGame=gameDayState.activity.games.find(g=>g.status==='scheduled'&&(String(g.homeTeamId)===String(gameDayState.meta.controlledTeamId)||String(g.awayTeamId)===String(gameDayState.meta.controlledTeamId)));
+ assert.ok(gmGame,'real-universe season must contain a controlled-team matchup');
+ await page.locator('#game').selectOption(String(gmGame.id));
  const workspace=page.locator('.gm-game-day-workspace');
  assert.equal(await workspace.locator('button').count(),4,'mobile GM workspace exposes four game-day actions');
  await workspace.locator('#gm-workspace-preview').click();
