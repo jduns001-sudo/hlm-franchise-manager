@@ -120,6 +120,30 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    await page.waitForFunction(()=>document.querySelector('#season-archive')?.disabled===false);
    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).extensions.phase10Playoffs.championTeamId,KEY),champion,'champion must persist unchanged after reload');
    assert.equal(await page.locator('#playoff-next').isDisabled(),true,'completed playoffs must stay complete after reload');
+   // Mission 1436: archive only after explicit GM confirmation, and persist champion history.
+   const archiveSeasonId=await page.locator('#season-id').inputValue();
+   const beforeArchive=await page.evaluate(key=>localStorage.getItem(key),KEY);
+   const previousArchives=JSON.parse(beforeArchive).history?.seasons?.length||0;
+   page.once('dialog',d=>d.dismiss());await page.locator('#season-archive').click();
+   assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeArchive,'declined championship archive must not save');
+   page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
+   await page.waitForFunction(({key,before})=>localStorage.getItem(key)!==before,{key:KEY,before:beforeArchive},{timeout:30000});
+   const archived=await page.evaluate(({key,seasonId})=>{
+     const state=JSON.parse(localStorage.getItem(key));
+     return {history:state.history?.seasons||[],seasonId,champion:state.extensions?.phase10Playoffs?.championTeamId};
+   },{key:KEY,seasonId:archiveSeasonId});
+   assert.equal(archived.history.length,previousArchives+1,'GM-approved archive must add exactly one season');
+   const archivedSeason=archived.history.find(s=>String(s.seasonId)===archiveSeasonId);
+   assert.ok(archivedSeason,'approved season ID must appear in franchise history');
+   assert.equal(archivedSeason.championTeamId,champion,'archived champion must match verified playoff winner');
+   assert.equal(await page.locator('#season-archive').isDisabled(),true,'already archived season must not be archived twice');
+   assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+   await page.reload();
+   await page.waitForFunction(()=>document.querySelector('#offseason-review')?.disabled===false);
+   const historyAfterReload=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).history?.seasons||[],KEY);
+   assert.deepEqual(historyAfterReload,archived.history,'championship archive must persist unchanged after reload');
+   assert.equal(await page.locator('#season-archive').isDisabled(),true,'archived season must remain protected after reload');
+   console.log('Mission 1436 archived '+archiveSeasonId+' with champion '+champion+' through explicit GM approval and reload');
    console.log('Mission 1435 completed '+playoffApprovals+' individually GM-approved playoff games; champion field: '+champion);
    console.log('Mission 1433 approved playoff bracket and declined playoff game survived reload');
  }else console.log('Mission 1433 playoff gate confirmed blocked with '+remaining+' regular-season games remaining');
