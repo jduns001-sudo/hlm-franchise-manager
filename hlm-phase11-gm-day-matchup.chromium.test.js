@@ -72,6 +72,13 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-upcoming-game-open-status').innerText(),/No approval, simulation or save occurred/);
  assert.equal(await page.locator('#gm-game-day-approve').isDisabled(),true,'queue navigation must not carry game-day skater approval');
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'game queue navigation must not write isolated save');
+ assert.equal(await page.locator('#gm-upcoming-game-play').isDisabled(),false,'queued controlled-team game is playable only by explicit GM approval');
+ page.once('dialog',d=>d.dismiss());
+ await page.locator('#gm-upcoming-game-play').click();
+ assert.match(await page.locator('#gm-upcoming-game-play-status').innerText(),/GM declined. No game played or saved/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'declined queued game must leave isolated save byte-for-byte unchanged');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL','queued game cannot touch production save');
+
 
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'GM preview must not write isolated save');
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'session navigation must not write franchise save');
@@ -123,5 +130,24 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.deepEqual(await page.locator('#gm-skater-choice option:checked').evaluateAll(els=>els.map(e=>e.value)),['12','13','14']);
  assert.match(await page.locator('#gm-roster-scores-status').innerText(),/enabled by GM/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ const queuePage=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ await queuePage.goto(url+'/hlm-phase11-isolated-single-game.html');
+ await queuePage.evaluate(()=>localStorage.setItem('hlm_front_office_v8','QUEUE_PRODUCTION_SENTINEL'));
+ await queuePage.locator('#file').setInputFiles({name:'queue-state.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...state,meta:{...state.meta,saveId:'queue-approval'}}))});
+ queuePage.once('dialog',d=>d.accept());
+ await queuePage.locator('#import').click();
+ await queuePage.waitForFunction(()=>document.querySelector('#gm-upcoming-game-play')?.disabled===false);
+ await queuePage.locator('#gm-upcoming-game-select').selectOption('g1');
+ queuePage.once('dialog',d=>d.accept());
+ await queuePage.locator('#gm-upcoming-game-play').click();
+ await queuePage.waitForFunction(()=>document.querySelector('#gm-upcoming-game-play-status')?.textContent.includes('GM-approved isolated game final'));
+ const queuedSaved=await queuePage.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
+ assert.equal(queuedSaved.activity.games.find(g=>g.id==='g1').status,'final','approved queued game must actually complete');
+ assert.equal(queuedSaved.activity.games.find(g=>g.id==='g2').status,'scheduled','queued game commit must not advance unrelated game');
+ assert.equal(await queuePage.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'QUEUE_PRODUCTION_SENTINEL','approved queue must preserve production save');
+ await queuePage.reload();
+ await queuePage.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Completed: 1'));
+ assert.equal(await queuePage.locator('#gm-upcoming-game-select option[value="g1"]').count(),0,'completed game must disappear from upcoming queue on reload');
+ await queuePage.close();
  console.log('Mission 1377: mobile day matchup review, import, GM skaters, goalie, decline/enable, decline/approve game, nonofficial score, standings, reload, production isolation pass');
 }finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
