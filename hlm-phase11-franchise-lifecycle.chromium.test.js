@@ -148,6 +148,30 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    const nextSeasonDate=await page.locator('#next-season-date').inputValue();
    const beforeOffseason=await page.evaluate(key=>localStorage.getItem(key),KEY);
    assert.equal(await page.locator('#next-season').isDisabled(),true,'next-season approval requires a fresh review');
+   // Mission 1439: the real-universe starter currently has no imported contracts or draft assets.
+   // Reject non-existent asset operations atomically rather than inventing contract or pick IDs.
+   const realAssets=await page.evaluate(key=>{
+     const state=JSON.parse(localStorage.getItem(key));
+     return {contracts:state.assets?.contracts?.length||0,picks:state.assets?.draftPicks?.length||0,prospects:state.universe?.prospects?.length||0,players:state.universe?.players?.length||0};
+   },KEY);
+   assert.ok(realAssets.players>0,'real-universe franchise must retain actual players');
+   assert.equal(realAssets.contracts,0,'starter currently has no source-backed contract assets');
+   assert.equal(realAssets.picks,0,'starter currently has no source-backed draft picks');
+   assert.equal(realAssets.prospects,0,'starter currently has no source-backed prospects');
+   const offseasonInput=page.locator('#offseason-operations');
+   const originalOffseasonOperations=await offseasonInput.inputValue();
+   for(const invalid of [
+     {contracts:{expiredContractIds:['nonexistent-contract'],signings:[]},draftSelections:[]},
+     {contracts:{expiredContractIds:[],signings:[]},draftSelections:[{pickId:'nonexistent-pick',prospectId:'nonexistent-prospect',teamId:Number(team)}]}
+   ]){
+     await offseasonInput.fill(JSON.stringify(invalid));
+     await page.locator('#offseason-review').click();
+     assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeOffseason,'invalid real-universe offseason operation must not write');
+     assert.equal(await page.locator('#next-season').isDisabled(),true,'invalid offseason must not enable GM approval');
+     assert.match(await page.locator('#offseason-preview').innerText(),/missing|not found|invalid|error/i,'invalid asset must be rejected with a reason');
+   }
+   await offseasonInput.fill(originalOffseasonOperations);
+
    await page.locator('#offseason-review').click();
    assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeOffseason,'offseason preview must not persist changes');
    assert.equal(await page.locator('#next-season').isEnabled(),true,'valid offseason review must enable explicit GM approval');
