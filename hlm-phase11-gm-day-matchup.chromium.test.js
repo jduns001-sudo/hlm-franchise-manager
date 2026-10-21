@@ -59,6 +59,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-selected-game-preview-report').innerText(),/READ-ONLY GM GAME PREVIEW/);
  assert.match(await page.locator('#gm-selected-game-preview-report').innerText(),/CPU vs Owner/);
  assert.match(await page.locator('#gm-selected-game-preview-report').innerText(),/No simulation, approval or save occurred/);
+ assert.match(await page.locator('#gm-selected-game-preview-report').innerText(),/Your franchise participates \| roster \d+ \| skaters \d+ \| goalies \d+/,'selected game preview exposes controlled-team roster readiness without mutation');
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'GM preview must not write isolated save');
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'session navigation must not write franchise save');
  await page.locator('#gm-game-day-review').click();
