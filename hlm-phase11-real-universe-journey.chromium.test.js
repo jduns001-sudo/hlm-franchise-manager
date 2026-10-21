@@ -95,6 +95,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await second.locator('#day-review').click();
  await page.locator('#day-review').click();
  page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();
+ await page.waitForFunction(({key,previous})=>localStorage.getItem(key)!==previous,{key,previous:JSON.stringify(rolled)},{timeout:30000});
  const authoritative=await page.evaluate(k=>localStorage.getItem(k),key);
  assert.notEqual(authoritative,JSON.stringify(rolled),'first tab must advance the new season');
  second.once('dialog',d=>d.accept());await second.locator('#day-approve').click();
