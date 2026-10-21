@@ -1,0 +1,42 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium}=require('playwright');
+const KEY='hlm-phase11-m1340-isolated-single-game-v1';
+const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.url||'/').split('?')[0].slice(1));if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.json')?'application/json':'text/html');res.end(b)})});
+(async()=>{await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html');
+ await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
+ const startupErrors=[];
+ page.on('pageerror',error=>startupErrors.push('pageerror: '+error.message));
+ page.on('requestfailed',request=>startupErrors.push('requestfailed: '+request.url()+' '+(request.failure()?.errorText||'')));
+ page.on('response',response=>{if(response.status()>=400)startupErrors.push('HTTP '+response.status()+': '+response.url())});
+ try{await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===false,null,{timeout:30000})}
+ catch(error){const diagnostics=await page.evaluate(()=>({status:document.querySelector('#new-status')?.textContent,teamCount:document.querySelector('#new-team')?.options.length,buttonDisabled:document.querySelector('#new-franchise')?.disabled,hasNewFranchise:!!window.HLMNewFranchise,hasLocks:!!navigator.locks,output:document.querySelector('#output')?.textContent?.slice(0,500)}));throw new Error('New franchise startup failed: '+JSON.stringify({diagnostics,startupErrors})+'; '+error.message)}
+ const team=await page.locator('#new-team').inputValue();
+ assert.ok(team,'real universe must offer a team');
+ const before=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ page.once('dialog',d=>d.dismiss());await page.locator('#new-franchise').click();
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),before,'declined franchise creation must not save');
+ page.once('dialog',d=>d.accept());await page.locator('#new-franchise').click();
+ await page.waitForFunction(key=>Boolean(localStorage.getItem(key)),KEY);
+ let state=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
+ assert.equal(String(state.meta.controlledTeamId),team);
+ assert.ok(state.activity.games.length>0,'real franchise must have scheduled games');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ await page.reload();await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true&&document.querySelector('#game')?.options.length>0);
+ assert.equal(await page.locator('#new-franchise').isDisabled(),true,'reload cannot overwrite existing franchise');
+ const first=await page.locator('#game option').first().getAttribute('value');
+ assert.ok(first,'scheduled game must be selectable');
+ await page.locator('#game').selectOption(first);
+ const saveBeforeReview=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ await page.locator('#gm-game-day-review').click();
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),saveBeforeReview,'lineup review must not save');
+ await page.locator('#day-review').click();
+ assert.match(await page.locator('#day-report').innerText(),/Approval required/);
+ const beforeCancel=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ page.once('dialog',d=>d.dismiss());await page.locator('#day-approve').click();
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeCancel,'cancelled simulation must not save');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ console.log('Mission 1429 real-universe mobile new franchise, cancel, reload, lineup review, day review and production isolation passed');
+}finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
