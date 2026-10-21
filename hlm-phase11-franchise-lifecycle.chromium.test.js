@@ -7,7 +7,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
  await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html');
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
- await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===false,{timeout:30000});
+ const startupErrors=[];
+ page.on('pageerror',error=>startupErrors.push('pageerror: '+error.message));
+ page.on('requestfailed',request=>startupErrors.push('requestfailed: '+request.url()+' '+(request.failure()?.errorText||'')));
+ page.on('response',response=>{if(response.status()>=400)startupErrors.push('HTTP '+response.status()+': '+response.url())});
+ try{await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===false,null,{timeout:30000})}
+ catch(error){const diagnostics=await page.evaluate(()=>({status:document.querySelector('#new-status')?.textContent,teamCount:document.querySelector('#new-team')?.options.length,buttonDisabled:document.querySelector('#new-franchise')?.disabled,hasNewFranchise:!!window.HLMNewFranchise,hasLocks:!!navigator.locks,output:document.querySelector('#output')?.textContent?.slice(0,500)}));throw new Error('New franchise startup failed: '+JSON.stringify({diagnostics,startupErrors})+'; '+error.message)}
  const team=await page.locator('#new-team').inputValue();
  assert.ok(team,'real universe must offer a team');
  const before=await page.evaluate(key=>localStorage.getItem(key),KEY);
