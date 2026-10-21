@@ -102,6 +102,25 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),playoffBeforeGame,'declined playoff game must not save');
    assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
    await page.reload();await page.waitForFunction(()=>document.querySelector('#playoff-next')?.disabled===false);
+   // Mission 1435: finish the actual best-of-seven bracket with one explicit GM approval per game.
+   let playoffApprovals=0;
+   while(await page.locator('#playoff-next').isEnabled()){
+     assert.ok(playoffApprovals<45,'best-of-seven playoff bracket exceeded 45 approved games');
+     const beforePlayoff=await page.evaluate(key=>localStorage.getItem(key),KEY);
+     page.once('dialog',d=>d.accept());await page.locator('#playoff-next').click();
+     await page.waitForFunction(({key,before})=>localStorage.getItem(key)!==before,{key:KEY,before:beforePlayoff},{timeout:30000});
+     playoffApprovals++;
+   }
+   const champion=await page.evaluate(key=>{const s=JSON.parse(localStorage.getItem(key));return s.extensions?.phase10Playoffs?.championTeamId??s.extensions?.phase11Playoffs?.championTeamId??null},KEY);
+   assert.ok(champion!=null,'completed best-of-seven bracket must identify a champion');
+   assert.ok(playoffApprovals>=8,'four-team best-of-seven bracket must require multiple playoff games');
+   assert.equal(await page.locator('#season-archive').isEnabled(),true,'completed playoffs must unlock championship archive');
+   assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+   await page.reload();
+   await page.waitForFunction(()=>document.querySelector('#season-archive')?.disabled===false);
+   assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).extensions.phase10Playoffs.championTeamId,KEY),champion,'champion must persist unchanged after reload');
+   assert.equal(await page.locator('#playoff-next').isDisabled(),true,'completed playoffs must stay complete after reload');
+   console.log('Mission 1435 completed '+playoffApprovals+' individually GM-approved playoff games; champion field: '+champion);
    console.log('Mission 1433 approved playoff bracket and declined playoff game survived reload');
  }else console.log('Mission 1433 playoff gate confirmed blocked with '+remaining+' regular-season games remaining');
  console.log('Mission 1432 two GM-approved real-universe days, second-day cancel and reload passed');
