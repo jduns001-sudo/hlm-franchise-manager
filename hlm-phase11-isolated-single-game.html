@@ -4,6 +4,9 @@
 const $=id=>document.getElementById(id),engine={...window.HLMPhase10,reviewGameDaySkaters:window.HLMGameDaySkaterReadiness.review},manager=window.HLMIsolatedSingleGame.create(engine,window.localStorage,{append:window.HLMIsolatedBoxScores.append,build:window.HLMUnifiedBoxScores.buildUnifiedBoxScores});
 let candidate=null,starterUniverse=null,pendingGameDaySkaters=null;
 async function locked(fn){if(!navigator.locks||typeof navigator.locks.request!=='function')throw Error('Safe cross-tab locking unavailable; save blocked');return navigator.locks.request('hlm-phase11-m1340-isolated-single-game-lock',{mode:'exclusive'},fn)}
+const GAME_SELECTION_SESSION_KEY='hlm-phase11-isolated-selected-game-v1';
+function rememberGameSelection(){try{const state=manager.peek();if(!state)return;sessionStorage.setItem(GAME_SELECTION_SESSION_KEY,JSON.stringify({saveId:String(state.meta?.saveId??''),gameId:$('game').value}));}catch(_){/* Navigation remains usable without session storage. */}}
+function recalledGameSelection(state,games){try{const record=JSON.parse(sessionStorage.getItem(GAME_SELECTION_SESSION_KEY)||'null');if(record&&record.saveId===String(state?.meta?.saveId??'')&&games.some(g=>String(g.id)===record.gameId))return record.gameId;}catch(_){/* Invalid session data must not block gameplay. */}return null;}
 function refresh(){refreshPostgameGames();
  const priorGameId=$('game').value;
  const state=manager.peek(),games=state?.activity?.games?.filter(g=>g.status==='scheduled')||[];
@@ -11,7 +14,8 @@ function refresh(){refreshPostgameGames();
  const teamName=id=>teamNames.get(String(id))||String(id);
  $('game').replaceChildren();
  for(const g of games){const o=document.createElement('option');o.value=String(g.id);o.textContent=g.date+' | '+teamName(g.homeTeamId)+' vs '+teamName(g.awayTeamId);$('game').append(o)}
- if(games.some(g=>String(g.id)===priorGameId))$('game').value=priorGameId;
+ const retainedGameId=games.some(g=>String(g.id)===priorGameId)?priorGameId:recalledGameSelection(state,games);
+ if(retainedGameId)$('game').value=retainedGameId;
  if(priorGameId&&$('game').value!==priorGameId){pendingGameDaySkaters=null;$('gm-game-day-approve').disabled=true;$('gm-game-day-approval-status').textContent='Game selection changed after refresh. Review skaters again before approval.';}
  const gmId=state?.meta?.controlledTeamId;
  $('gm-roster-scores').disabled=!state;
@@ -184,7 +188,7 @@ $('offseason-review').addEventListener('click',()=>{invalidateOffseason();try{
 $('next-season').addEventListener('click',async()=>{if(!reviewedOffseason)return;const label=reviewedOffseason.nextSeason.nextSeasonId;if(!confirm('Human GM: approve reviewed contracts, free-agent signings, draft selections and start '+label+'?'))return;try{const result=await locked(()=>manager.approveReviewedOffseason(true));reviewedOffseason=null;refresh();$('career-report').textContent='Started '+label+'; games scheduled: '+result.summary.season.scheduledGames}catch(e){invalidateOffseason();$('offseason-preview').textContent=e.message}});
 
 $('gm-postgame-review').addEventListener('click',()=>{try{const id=$('gm-postgame-game').value;const review=manager.postgameSkaterReview(id);$('gm-postgame-report').textContent=review?'Final game '+review.gameId+' | authoritative score '+(review.homeGoals??'unavailable')+'-'+(review.awayGoals??'unavailable')+' | GM-approved skaters: '+review.approvedPlayerIds.join(', ')+'\\nApproved plan only; actual ice time not verified. '+(review.syntheticBoxScore?'Experimental synthetic box score available; not official.':'No synthetic box score available.'):'No approved game-day participation snapshot for this final.'}catch(e){$('gm-postgame-report').textContent=e.message}});
-$('game').addEventListener('change',()=>{pendingGameDaySkaters=null;$('gm-game-day-approve').disabled=true;$('gm-game-day-approval-status').textContent='Selected game changed. Review skaters for this game before approving; no save was made.';});
+$('game').addEventListener('change',()=>{rememberGameSelection();pendingGameDaySkaters=null;$('gm-game-day-approve').disabled=true;$('gm-game-day-approval-status').textContent='Selected game changed. Review skaters for this game before approving; no save was made.';});
 $('gm-next-game-jump').addEventListener('click',()=>{
  const context=manager.seasonPostgameContext();
  const id=String(context.nextGameId??'');
