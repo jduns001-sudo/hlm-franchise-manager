@@ -66,6 +66,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.ok(playoffGames>=12&&playoffGames<=21);
  page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
  await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion'),null,{timeout:30000});
+ await page.waitForFunction(k=>{const s=JSON.parse(localStorage.getItem(k)||'null');return !!s?.history?.seasons?.length},key,{timeout:30000});
  const archived=await page.evaluate(k=>localStorage.getItem(k),key);
  await page.locator('#offseason-operations').fill(JSON.stringify({contracts:{expiredContractIds:[],signings:[]},draftSelections:[]}));
  await page.locator('#offseason-review').click();
