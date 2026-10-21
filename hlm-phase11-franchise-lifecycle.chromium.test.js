@@ -24,7 +24,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(String(state.meta.controlledTeamId),team);
  assert.ok(state.activity.games.length>0,'real franchise must have scheduled games');
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
- await page.reload();await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled:'));
+ await page.reload();await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true&&document.querySelector('#game')?.options.length>0);
  assert.equal(await page.locator('#new-franchise').isDisabled(),true,'reload cannot overwrite existing franchise');
  const first=await page.locator('#game option').first().getAttribute('value');
  assert.ok(first,'scheduled game must be selectable');
