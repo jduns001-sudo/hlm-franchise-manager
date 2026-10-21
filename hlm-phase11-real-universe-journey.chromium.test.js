@@ -35,5 +35,55 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Completed:'),null,{timeout:30000});
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),JSON.stringify(after),'reload must not write');
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+
+ // Complete the authentic regular season in this same browser save.
+ let approvedDays=1;
+ const totalGames=initial.activity.games.length;
+ while(true){
+  const state=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+  if(!state.activity.games.some(g=>g.status==='scheduled'))break;
+  await page.locator('#day-review').click();
+  page.once('dialog',d=>d.accept());
+  await page.locator('#day-approve').click();
+  const previous=state.activity.games.filter(g=>g.status==='final').length;
+  await page.waitForFunction(({key,previous})=>{const s=JSON.parse(localStorage.getItem(key)||'null');return s&&s.activity.games.filter(g=>g.status==='final').length>previous},{key,previous},{timeout:30000});
+  if(++approvedDays>totalGames)throw Error('Authentic regular season did not terminate');
+ }
+ const regular=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+ assert.equal(regular.activity.games.length,totalGames);
+ assert.equal(regular.activity.games.filter(g=>g.status==='final').length,totalGames);
+ page.once('dialog',d=>d.dismiss());await page.locator('#playoff-start').click();
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),JSON.stringify(regular),'declined playoff start must not save');
+ page.once('dialog',d=>d.accept());await page.locator('#playoff-start').click();
+ await page.waitForFunction(()=>document.querySelector('#playoff-report')?.textContent.includes('bracket initialized'),null,{timeout:30000});
+ let playoffGames=0;
+ while(!(await page.locator('#playoff-next').isDisabled())){
+  const previous=await page.evaluate(k=>localStorage.getItem(k),key);
+  page.once('dialog',d=>d.accept());await page.locator('#playoff-next').click();
+  await page.waitForFunction(({key,previous})=>localStorage.getItem(key)!==previous,{key,previous},{timeout:30000});
+  if(++playoffGames>21)throw Error('Best-of-seven playoffs did not terminate');
+ }
+ assert.ok(playoffGames>=12&&playoffGames<=21);
+ page.once('dialog',d=>d.accept());await page.locator('#season-archive').click();
+ await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Archived champion'),null,{timeout:30000});
+ const archived=await page.evaluate(k=>localStorage.getItem(k),key);
+ await page.locator('#offseason-operations').fill(JSON.stringify({contracts:{expiredContractIds:[],signings:[]},draftSelections:[]}));
+ await page.locator('#offseason-review').click();
+ await page.waitForFunction(()=>document.querySelector('#offseason-preview')?.textContent.includes('Review only'),null,{timeout:30000});
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),archived,'offseason review must not save');
+ page.once('dialog',d=>d.dismiss());await page.locator('#next-season').click();
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),archived,'declined offseason must not save');
+ page.once('dialog',d=>d.accept());await page.locator('#next-season').click();
+ await page.waitForFunction(()=>document.querySelector('#career-report')?.textContent.includes('Started '),null,{timeout:30000});
+ await page.reload();
+ await page.locator('#output').waitFor();
+ const rolled=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+ assert.equal(rolled.universe.teams.length,32);
+ assert.equal(rolled.universe.players.length,initial.universe.players.length);
+ assert.equal(rolled.history.seasons.length,1);
+ assert.ok(rolled.activity.games.some(g=>g.status==='scheduled'));
+ assert.equal(rolled.extensions.phase11ExperimentalRosterAwareScores,false);
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+
  console.log('Mobile real-universe connected creation, day approval, declined no-save, authentic schedule, reload, production isolation and default-off passed');
 }finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
