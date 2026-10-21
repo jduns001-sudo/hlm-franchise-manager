@@ -1,6 +1,15 @@
 'use strict';
 // Connected real-universe acceptance: do not replace the shipped NHL roster or schedule.
 const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const mobileHtml=fs.readFileSync(require('node:path').join(__dirname,'hlm-phase11-isolated-single-game.html'),'utf8');
+assert.match(mobileHtml,/class="gm-command-dock" aria-label="GM mobile command dock"/);
+for(const target of ['gm-next-action-heading','day-review','game','gm-roster','gm-daily-brief','gm-draft-pick','playoff-start','season-dashboard']){
+ assert.ok(mobileHtml.includes('href="#'+target+'"'),'mobile command link missing: '+target);
+ assert.ok(mobileHtml.includes('id="'+target+'"'),'mobile command target missing: '+target);
+}
+assert.match(mobileHtml,/\.gm-command-dock\{position:sticky/);
+
 const universe=require('./hlm-universe.json');
 const {build,teams}=require('./hlm-phase11-new-franchise');
 const gameState=require('./hlm-game-state');
