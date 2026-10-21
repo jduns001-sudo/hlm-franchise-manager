@@ -8,6 +8,13 @@
   const games=(state.activity.games||[]).filter(g=>g.status==='scheduled'&&(String(g.homeTeamId)===owner||String(g.awayTeamId)===owner)).slice().sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.id).localeCompare(String(b.id))).slice(0,Math.max(0,Math.min(10,Number(limit)||5)));
   return games.map(g=>({gameId:String(g.id),date:String(g.date||'Unscheduled'),home:names.get(String(g.homeTeamId))||String(g.homeTeamId),away:names.get(String(g.awayTeamId))||String(g.awayTeamId),homeGame:String(g.homeTeamId)===owner}));
  }
+ function latestFinal(state){
+  if(!state||!state.meta||!state.activity)throw Error('Load an isolated franchise to review completed games');
+  const owner=String(state.meta.controlledTeamId??'');
+  const finals=(state.activity.games||[]).filter(g=>g.status==='final'&&(String(g.homeTeamId)===owner||String(g.awayTeamId)===owner));
+  finals.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.id).localeCompare(String(a.id)));
+  return finals.length?Object.freeze({gameId:String(finals[0].id),date:String(finals[0].date||'')}):null;
+ }
  function render(rows){if(!rows.length)return 'No upcoming controlled-team games. Review season progress or playoffs.';return rows.map((g,i)=>String(i+1)+'. '+g.date+' | '+g.home+' vs '+g.away+' | '+(g.homeGame?'HOME':'AWAY')+' | Game '+g.gameId+' | Select this game to review skaters, injuries and goalie before GM approval.').join('\n');}
- return Object.freeze({build,render});
+ return Object.freeze({build,render,latestFinal});
 });
