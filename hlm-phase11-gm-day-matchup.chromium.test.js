@@ -37,6 +37,10 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  const game=saved.activity.games[0];
  assert.equal(game.status,'final');
+ assert.match(await page.locator('#gm-season-postgame').innerText(),/GM-approved plan: 12, 13, 14/);
+ assert.match(await page.locator('#gm-season-postgame').innerText(),/not verified actual participation or ice time/);
+ assert.match(await page.locator('#gm-season-postgame').innerText(),/Human GM game-day review required/);
+
  assert.deepEqual(saved.extensions.phase11GmPostgameSkaterReviews[0].playerIds,[12,13,14]);
  await page.locator('#gm-postgame-game').selectOption('g1');
  await page.locator('#gm-postgame-review').click();
