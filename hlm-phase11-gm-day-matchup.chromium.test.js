@@ -40,6 +40,14 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-season-postgame').innerText(),/GM-approved plan: 12, 13, 14/);
  assert.match(await page.locator('#gm-season-postgame').innerText(),/not verified actual participation or ice time/);
  assert.match(await page.locator('#gm-season-postgame').innerText(),/Human GM game-day review required/);
+ const preJump=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ assert.equal(await page.locator('#gm-next-game-jump').isDisabled(),false);
+ await page.locator('#gm-next-game-jump').click();
+ assert.equal(await page.locator('#game').inputValue(),'g2','jump selects next controlled-team game, not arbitrary game');
+ assert.match(await page.locator('#gm-next-game-jump-status').innerText(),/no save was made/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'navigation must not mutate isolated save');
+ assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY)).activity.games[1].status,'scheduled');
+
 
  assert.deepEqual(saved.extensions.phase11GmPostgameSkaterReviews[0].playerIds,[12,13,14]);
  await page.locator('#gm-postgame-game').selectOption('g1');
