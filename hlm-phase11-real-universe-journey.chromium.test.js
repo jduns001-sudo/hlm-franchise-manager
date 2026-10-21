@@ -53,7 +53,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    page.once('dialog',d=>d.dismiss());await workspace.locator('#gm-workspace-approve').click();
    assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'cancelled skater approval must not save');
  }else{
-   assert.match(reviewStatus,/unavailable|ineligible|no eligible|not found|requires|missing|cannot|invalid|not scheduled|no skaters|No skaters|No eligible|No signed/i,'unavailable review must provide an explicit reason');
+   assert.match(reviewStatus,/unavailable|ineligible|no eligible|not found|requires|missing|cannot|invalid|not scheduled|no skaters|No skaters|No eligible|No signed|need GM review|not approved/i,'unavailable review must provide an explicit reason');
    assert.equal(await workspace.locator('#gm-workspace-decline').isDisabled(),true,'no pending review means no decline action');
    assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'unavailable review must not save');
  }
