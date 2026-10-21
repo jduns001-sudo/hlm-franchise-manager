@@ -70,7 +70,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.locator('#offseason-operations').fill(JSON.stringify({contracts:{expiredContractIds:[],signings:[]},draftSelections:[]}));
  await page.locator('#offseason-review').click();
  await page.waitForFunction(()=>document.querySelector('#offseason-preview')?.textContent.includes('Review only'),null,{timeout:30000});
- assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),archived,'offseason review must not save');
+ const reviewedSnapshot=await page.evaluate(k=>localStorage.getItem(k),key);
+ if(reviewedSnapshot!==archived){const a=JSON.parse(archived),b=JSON.parse(reviewedSnapshot);const keys=[...new Set([...Object.keys(a),...Object.keys(b)])];throw Error('Offseason review changed persisted fields: '+keys.filter(k=>JSON.stringify(a[k])!==JSON.stringify(b[k])).map(k=>k+': '+JSON.stringify(a[k]).length+' -> '+JSON.stringify(b[k]).length).join(', '));}
  page.once('dialog',d=>d.dismiss());await page.locator('#next-season').click();
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),archived,'declined offseason must not save');
  page.once('dialog',d=>d.accept());await page.locator('#next-season').click();
