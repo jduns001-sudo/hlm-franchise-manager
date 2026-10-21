@@ -1,0 +1,27 @@
+name: Mission 1417 GM Upcoming Readiness Board
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-gm-upcoming-readiness-board*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/hlm-m1417-gm-upcoming-readiness.yml'
+  workflow_dispatch:
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-gm-upcoming-readiness-board.test.js
+  mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-gm-upcoming-readiness-board.chromium.test.js
