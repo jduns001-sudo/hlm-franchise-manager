@@ -144,8 +144,11 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal((saved.extensions?.phase11GmPostgameSkaterReviews||[]).some(r=>String(r.gameId)===String(saved.activity.games[1].id)),false,'Day advance must not fabricate an approved postgame review');
  const beforeMissingReview=await page.evaluate(key=>localStorage.getItem(key),KEY);
  await page.locator('#gm-workspace-postgame-handoff').click();
- assert.equal(await page.locator('#gm-postgame-game').inputValue(),'g1','Handoff must select the latest final with a real approved review, not a later day-simulated final');
- assert.match(await page.locator('#gm-workspace-postgame-handoff-status').innerText(),/Read-only GM postgame review opened for g1/);
+ assert.equal(await page.locator('#gm-postgame-game').inputValue(),'g2','Handoff must select latest controlled-team final even when no GM skater plan was saved');
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/Final game g2/);
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/No saved GM-approved skater plan/);
+ assert.match(await page.locator('#gm-workspace-postgame-handoff-status').innerText(),/Read-only GM postgame review opened for g2/);
+ assert.match(await page.locator('#gm-workspace-postgame-handoff-status').innerText(),/Final only; no GM-approved skater plan/);
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeMissingReview,'Read-only handoff must not modify isolated save');
  assert.equal(saved.activity.games[1].experimentalRosterAware,true);
  assert.equal(saved.activity.games[1].official,false);
