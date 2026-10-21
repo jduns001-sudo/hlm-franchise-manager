@@ -18,6 +18,17 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const key=await page.evaluate(()=>Object.keys(localStorage).find(k=>k.startsWith('hlm-phase11-m1340-isolated-single-game')));
  assert.ok(key);
  const before=await page.evaluate(k=>localStorage.getItem(k),key);
+ const decision=page.locator('.gm-day-command');
+ assert.equal(await decision.locator('button').count(),3,'mobile GM decision center exposes review, approve and decline');
+ await decision.locator('#gm-day-command-review').click();
+ assert.equal(await decision.locator('#gm-day-command-confirm').isEnabled(),true,'review enables explicit GM approval');
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'review must never save');
+ await decision.locator('#gm-day-command-decline').click();
+ assert.equal(await decision.locator('#gm-day-command-confirm').isDisabled(),true,'decline revokes approval');
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'decline must not save');
+ await decision.locator('#gm-day-command-review').click();
+ page.once('dialog',d=>d.dismiss());await decision.locator('#gm-day-command-confirm').click();
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'cancelled mobile approval must not save');
  const dock=page.locator('.gm-command-dock');
  assert.equal(await dock.locator('a').count(),8,'mobile GM dock exposes eight real franchise destinations');
  assert.equal(await dock.getAttribute('aria-label'),'GM mobile command dock');

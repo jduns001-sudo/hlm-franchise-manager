@@ -90,3 +90,13 @@ assert.ok(rolled.activity.games.some(g=>g.status==='scheduled'));
 assert.equal(rolled.extensions.phase11ExperimentalRosterAwareScores,false);
 assert.equal(storage.getItem('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
 console.log('Real universe complete: '+count+' regular-season games, '+playoffGames+' playoff games, GM-approved championship archive, reviewed next season, reload, stale rejection, production isolation and default-off passed');
+
+// Mission 1415: mobile day decision center preserves the existing human-approved day path.
+{
+ const fs=require('node:fs');
+ const html=fs.readFileSync(require('node:path').join(__dirname,'hlm-phase11-isolated-single-game.html'),'utf8');
+ for(const id of ['gm-day-command-heading','gm-day-command-status','gm-day-command-review','gm-day-command-confirm','gm-day-command-decline'])require('node:assert/strict').ok(html.includes('id="'+id+'"'),'Missing mobile day control '+id);
+ require('node:assert/strict').match(html,/gm-day-command-confirm'\)\.addEventListener\('click'/);
+ require('node:assert/strict').match(html,/gm-day-command-decline'\)\.addEventListener\('click'/);
+ require('node:assert/strict').match(html,/reviewedDay=null;\$\('day-approve'\)\.disabled=true/);
+}
