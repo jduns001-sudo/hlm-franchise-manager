@@ -131,7 +131,7 @@ function refresh(){refreshPostgameGames();
  $('career-report').textContent=state?'Archived championships: '+archived.length+'\\nCurrent season: '+(state.extensions.phase10CurrentSeasonId||'Imported')+'\\nControlled team: '+state.meta.controlledTeamId:'No isolated save.';
  $('career-continuity').textContent=state?JSON.stringify(manager.careerSnapshot(),null,2):'No franchise continuity snapshot.';
  $('approve').disabled=!games.length;
- $('day-review').disabled=!games.length;$('day-approve').disabled=true;$('day-report').textContent='No day reviewed.';
+ $('day-review').disabled=!games.length;$('day-approve').disabled=true;$('day-report').textContent='No day reviewed.';syncDayCommand();
  $('output').textContent=state?'Isolated franchise: '+(state.meta.controlledTeamId??'unknown')+'\nScheduled games remaining: '+games.length+'\nCompleted: '+state.activity.games.filter(g=>g.status==='final').length+'\nStandings: '+JSON.stringify(engine.calculateStandings(state.universe.teams,state.activity.games),null,2):'No isolated save loaded.';
 }
 $('gm-signed-skater-add').addEventListener('click',()=>{
