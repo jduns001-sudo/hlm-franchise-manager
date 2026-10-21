@@ -37,6 +37,15 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  const game=saved.activity.games[0];
  assert.equal(game.status,'final');
+ const beforePostgameHandoff=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ assert.equal(await page.locator('#gm-workspace-postgame-latest').isDisabled(),false);
+ await page.locator('#gm-workspace-postgame-latest').click();
+ assert.equal(await page.locator('#gm-postgame-game').inputValue(),'g1');
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/GM-approved skaters: 12, 13, 14/);
+ assert.match(await page.locator('#gm-workspace-postgame-status').innerText(),/not verified ice time/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforePostgameHandoff,'latest postgame handoff must not save');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+
  assert.match(await page.locator('#gm-season-postgame').innerText(),/GM-approved plan: 12, 13, 14/);
  assert.match(await page.locator('#gm-season-postgame').innerText(),/not verified actual participation or ice time/);
  assert.match(await page.locator('#gm-season-postgame').innerText(),/Human GM game-day review required/);
