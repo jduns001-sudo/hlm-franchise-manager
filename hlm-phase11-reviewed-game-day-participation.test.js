@@ -39,6 +39,11 @@ assert.equal(season.recent.length,1);
 assert.deepEqual(season.recent[0].approvedPlayerIds,['signed','a','b']);
 assert.equal(season.recent[0].planAvailable,true);
 assert.equal(season.recent[0].actualParticipationVerified,false);
+assert.equal(season.recent[0].gameId,'game1','latest completed controlled-team final must be available for postgame handoff');
+const handoffBefore=storage.getItem(key);
+assert.equal(gm.postgameSkaterReview(season.recent[0].gameId).actualParticipationVerified,false);
+assert.equal(storage.getItem(key),handoffBefore,'postgame handoff data read must not save');
+
 assert.equal(season.nextGameId,null);
 assert.equal(season.needsGameDayReview,false);
 assert.throws(()=>gm.seasonPostgameContext(0),/limit/);
