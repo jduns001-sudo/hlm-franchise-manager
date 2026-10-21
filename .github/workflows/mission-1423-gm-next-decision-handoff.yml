@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npx --yes playwright --version
-      - run: npx --yes playwright install --with-deps chromium
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
       - run: node hlm-phase11-gm-day-matchup.chromium.test.js
