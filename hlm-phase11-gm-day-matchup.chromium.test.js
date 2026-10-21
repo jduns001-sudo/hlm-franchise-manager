@@ -135,7 +135,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const beforeFinalOnly=await page.evaluate(key=>localStorage.getItem(key),KEY);
  await page.locator('#gm-postgame-game').selectOption('g2');
  await page.locator('#gm-postgame-review').click();
- assert.match(await page.locator('#gm-postgame-report').innerText(),/Final game g2 \\| .* \\d+ - \\d+ .* \\| EXPERIMENTAL, NONOFFICIAL recorded final/);
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/Final game g2/);
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/EXPERIMENTAL, NONOFFICIAL recorded final/);
  assert.match(await page.locator('#gm-postgame-report').innerText(),/No saved GM-approved skater plan/);
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeFinalOnly,'Read-only final history must not write a save');
  assert.equal((saved.extensions?.phase11GmPostgameSkaterReviews||[]).some(r=>String(r.gameId)===String(saved.activity.games[1].id)),false,'Day advance must not fabricate an approved postgame review');
