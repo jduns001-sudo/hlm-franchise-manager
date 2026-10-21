@@ -37,6 +37,15 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  const game=saved.activity.games[0];
  assert.equal(game.status,'final');
+ assert.deepEqual(saved.extensions.phase11GmPostgameSkaterReviews[0].playerIds,[12,13,14]);
+ await page.locator('#gm-postgame-game').selectOption('g1');
+ await page.locator('#gm-postgame-review').click();
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/GM-approved skaters: 12, 13, 14/);
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/actual ice time not verified/);
+ const afterRead=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ await page.locator('#gm-postgame-review').click();
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),afterRead,'read-only postgame review must not save');
+
  assert.equal(game.experimentalRosterAware,true,'Persisted game must retain experimental provenance');
  assert.equal(game.official,false,'Persisted game must retain nonofficial provenance');
  assert.match(await page.locator('#output').innerText(),/"experimentalRosterAware":true/,'GM-approved experimental result must be explicitly labeled');
