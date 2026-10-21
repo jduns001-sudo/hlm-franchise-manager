@@ -58,6 +58,34 @@ function create(engine,storage,boxScores=null){
   baseline=storage.getItem(KEY);
   return {result:result.result,standings,state:next};
  }
+ function reviewGameDaySkaters(gameId){
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  if(typeof engine.reviewGameDaySkaters!=='function')throw Error('Game-day readiness engine unavailable');
+  const result=engine.reviewGameDaySkaters(before,gameId);
+  if(!result.ready)throw Error('Game-day skaters need GM review: '+result.issues.join('; '));
+  return Object.freeze({gameId:result.gameId,teamId:result.teamId,playerIds:Object.freeze(result.players.map(p=>p.id)),baseline});
+ }
+ function approveReviewedGameDaySkaters(reviewed,approved){
+  if(approved!==true)throw Error('Explicit human GM game-day skater approval required');
+  if(!reviewed||storage.getItem(KEY)!==baseline||reviewed.baseline!==baseline)throw Error('Isolated save changed; reload and review again');
+  const current=reviewGameDaySkaters(reviewed.gameId);
+  if(String(current.teamId)!==String(reviewed.teamId)||JSON.stringify(current.playerIds)!==JSON.stringify(reviewed.playerIds))throw Error('Game-day skater review changed');
+  const before=store.load();
+  const next={...before,extensions:{...before.extensions,phase11GmGameDaySkaterApproval:{gameId:current.gameId,teamId:current.teamId,playerIds:[...current.playerIds]}}};
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(next);baseline=storage.getItem(KEY);
+  return Object.freeze({gameId:current.gameId,teamId:current.teamId,playerIds:current.playerIds});
+ }
+ function verifyGameDaySkaters(state,gameId){
+  const plan=state.extensions?.phase11GmApprovedSkaters;
+  if(!plan)return;
+  if(typeof engine.reviewGameDaySkaters!=='function')throw Error('Game-day readiness engine unavailable');
+  const readiness=engine.reviewGameDaySkaters(state,gameId);
+  if(!readiness.ready)throw Error('GM game-day skaters need review: '+readiness.issues.join('; '));
+  const approval=state.extensions?.phase11GmGameDaySkaterApproval;
+  if(!approval||String(approval.gameId)!==String(gameId)||String(approval.teamId)!==String(readiness.teamId)||JSON.stringify(approval.playerIds.map(String))!==JSON.stringify(readiness.players.map(p=>String(p.id))))throw Error('Human GM game-day skater approval required');
+ }
  function reviewGoalieChoice(playerId){
   const state=store.load();if(!state)throw Error('Import an isolated franchise first');
   const teamId=state.meta?.controlledTeamId;
@@ -258,7 +286,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,careerSnapshot,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
+ return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,careerSnapshot,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
 return {KEY,create};
 });
