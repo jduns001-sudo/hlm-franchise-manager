@@ -4,7 +4,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
 const {chromium}=require('playwright');
 const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.url||'/').split('?')[0].slice(1));if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.json')?'application/json':'text/html');res.end(b)})});
 (async()=>{await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await chromium.launch();try{
- const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ const page=await context.newPage();
  await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html',{waitUntil:'domcontentloaded'});
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
  await page.waitForFunction(()=>document.querySelector('#new-franchise')&&!document.querySelector('#new-franchise').disabled,null,{timeout:30000});
@@ -88,7 +89,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
 
  // Two real mobile tabs share the same isolated save. A stale GM approval must never overwrite a newer day.
- const second=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ const second=await context.newPage();
  await second.goto(page.url(),{waitUntil:'domcontentloaded'});
  await second.waitForFunction(()=>document.querySelector('#day-review')&&!document.querySelector('#day-review').disabled,null,{timeout:30000});
  await second.locator('#day-review').click();
