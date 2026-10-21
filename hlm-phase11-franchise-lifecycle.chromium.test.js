@@ -56,6 +56,22 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.reload();
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true);
  assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY)>0,true,'approved game must survive reload');
+ // Mission 1432: advance a second separately reviewed day; cancelled approval remains no-save.
+ const finalsBefore=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY);
+ await page.locator('#day-review').click();
+ const day2Before=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ page.once('dialog',d=>d.dismiss());await page.locator('#day-approve').click();
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),day2Before,'declined second-day approval must not save');
+ await page.locator('#day-review').click();
+ page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();
+ await page.waitForFunction(({key,before})=>localStorage.getItem(key)!==before,{key:KEY,before:day2Before});
+ const finalsAfter=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY);
+ assert.ok(finalsAfter>finalsBefore,'second approved day must finalize additional scheduled games');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+ await page.reload();
+ await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true);
+ assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY),finalsAfter,'both approved days must survive reload');
+ console.log('Mission 1432 two GM-approved real-universe days, second-day cancel and reload passed');
  console.log('Mission 1431 GM-approved real-universe regular-season day and reload continuity passed');
  console.log('Mission 1429 real-universe mobile new franchise, cancel, reload, lineup review, day review and production isolation passed');
 }finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
