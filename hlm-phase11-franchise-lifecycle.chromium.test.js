@@ -71,9 +71,25 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.reload();
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true);
  assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY),finalsAfter,'both approved days must survive reload');
+ // Mission 1434: complete the actual imported-universe schedule via separate human GM day approvals.
+ // Each approval uses the application's guarded UI path, never direct save mutation.
+ let regularSeasonApprovals=0;
+ while(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.some(g=>g.status==='scheduled'),KEY)){
+   assert.ok(regularSeasonApprovals<450,'regular season did not finish within 450 GM-approved days');
+   await page.locator('#day-review').click();
+   assert.equal(await page.locator('#day-approve').isEnabled(),true,'each regular-season day must be reviewed before approval');
+   const prior=await page.evaluate(key=>localStorage.getItem(key),KEY);
+   page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();
+   await page.waitForFunction(({key,before})=>localStorage.getItem(key)!==before,{key:KEY,before:prior},{timeout:30000});
+   regularSeasonApprovals++;
+ }
+ assert.ok(regularSeasonApprovals>0,'must complete remaining regular season through GM-approved actions');
+ assert.equal(await page.locator('#playoff-start').isEnabled(),true,'completed regular season must unlock playoff qualification');
+ console.log('Mission 1434 completed real-universe season in '+regularSeasonApprovals+' additional explicitly GM-approved days');
  // Mission 1433: qualify real-universe playoffs only after every regular-season game is final.
  const remaining=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='scheduled').length,KEY);
  assert.equal(await page.locator('#playoff-start').isEnabled(),remaining===0,'playoff qualification gate must track regular-season completion');
+ assert.equal(remaining,0,'completed-season playoff acceptance must be exercised');
  if(remaining===0){
    const playoffBeforeApproval=await page.evaluate(key=>localStorage.getItem(key),KEY);
    page.once('dialog',d=>d.dismiss());await page.locator('#playoff-start').click();
