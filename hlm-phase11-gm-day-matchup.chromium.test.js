@@ -131,6 +131,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#day-report')?.textContent.includes('Standings updated'));
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  assert.equal(saved.activity.games[1].status,'final');
+ assert.match(await page.locator('#gm-postgame-game option[value="g2"]').innerText(),/CPU \\d+ - \\d+ Owner/);
+ assert.match(await page.locator('#gm-postgame-game option[value="g2"]').innerText(),/EXPERIMENTAL, NONOFFICIAL/);
  assert.match(await page.locator('#gm-postgame-game option[value="g2"]').innerText(),/Final only; no approved plan/);
  const beforeFinalOnly=await page.evaluate(key=>localStorage.getItem(key),KEY);
  await page.locator('#gm-postgame-game').selectOption('g2');
