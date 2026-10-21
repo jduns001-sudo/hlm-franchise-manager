@@ -163,7 +163,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    assert.deepEqual(nextState.history,archived.history,'new season must preserve archived championship history');
    assert.equal(nextState.seasonId,nextSeasonId,'approved next-season ID must match GM-reviewed season');
    assert.equal(nextState.currentDate,nextSeasonDate,'approved next-season date must match GM-reviewed start');
-   assert.ok(nextState.games.some(g=>g.status==='scheduled'&&g.date===nextSeasonDate),'new season must begin on reviewed start date');
+   const expectedFirstGameDate=new Date(Date.parse(nextSeasonDate+'T00:00:00Z')+86400000).toISOString().slice(0,10);
+   assert.ok(nextState.games.some(g=>g.status==='scheduled'&&g.date===expectedFirstGameDate),'first scheduled round must occur one day after reviewed season start');
    assert.ok(nextState.games.some(g=>g.status==='scheduled'),'approved next season must schedule games');
    assert.equal(await page.locator('#next-season').isDisabled(),true,'approval must clear reviewed offseason state');
    assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
