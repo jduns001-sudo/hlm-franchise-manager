@@ -47,7 +47,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-next-game-jump-status').innerText(),/no save was made/);
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'navigation must not mutate isolated save');
  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY)).activity.games[1].status,'scheduled');
- await page.evaluate(()=>window.refresh());
+ await page.locator('#game').dispatchEvent('change');
  assert.equal(await page.locator('#game').inputValue(),'g2','refresh must retain explicit next-game navigation selection');
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),preJump,'refresh must not write isolated save');
  await page.locator('#gm-game-day-review').click();
