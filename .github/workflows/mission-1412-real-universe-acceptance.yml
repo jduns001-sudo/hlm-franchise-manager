@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'hlm-phase11-real-universe-journey.test.js'
+      - 'hlm-phase11-real-universe-journey.chromium.test.js'
       - '.github/workflows/mission-1412-real-universe-acceptance.yml'
       - 'hlm-phase11-new-franchise.js'
       - 'hlm-phase11-isolated-single-game.js'
@@ -17,3 +18,14 @@ jobs:
         with:
           node-version: '22'
       - run: node hlm-phase11-real-universe-journey.test.js
+
+  real-universe-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-real-universe-journey.chromium.test.js
