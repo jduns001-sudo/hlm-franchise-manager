@@ -82,6 +82,24 @@ function create(engine,storage,boxScores=null){
   const synthetic=side&&box?.[side]&&String(box[side].teamId)===String(entry.teamId)?box[side]:null;
   return Object.freeze({gameId:game.id,teamId:entry.teamId,approvedPlayerIds:Object.freeze([...entry.playerIds]),date:game.date,homeGoals:game.homeGoals??null,awayGoals:game.awayGoals??null,actualParticipationVerified:false,syntheticBoxScore:synthetic?JSON.parse(JSON.stringify(synthetic)):null,source:'human-gm-approved-plan',officialResult:true});
  }
+ function seasonPostgameContext(limit=5){
+  if(!Number.isSafeInteger(limit)||limit<1||limit>50)throw Error('Invalid postgame history limit');
+  const state=store.load();if(!state)throw Error('No isolated save');
+  const teamId=state.meta?.controlledTeamId;
+  const games=(state.activity?.games||[]).filter(g=>g.status==='final'&&(String(g.homeTeamId)===String(teamId)||String(g.awayTeamId)===String(teamId)));
+  const entries=state.extensions?.phase11GmPostgameSkaterReviews||[];
+  if(!Array.isArray(entries))throw Error('Invalid postgame history');
+  const seen=new Set();
+  for(const entry of entries){const id=String(entry.gameId);if(seen.has(id))throw Error('Duplicate postgame review');seen.add(id);}
+  const recent=games.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.id).localeCompare(String(a.id))).slice(0,limit).map(g=>{
+   const entry=entries.find(e=>String(e.gameId)===String(g.id)&&String(e.teamId)===String(teamId));
+   return Object.freeze({gameId:g.id,date:g.date,homeTeamId:g.homeTeamId,awayTeamId:g.awayTeamId,homeGoals:g.homeGoals??null,awayGoals:g.awayGoals??null,approvedPlayerIds:Object.freeze(entry?[...entry.playerIds]:[]),planAvailable:!!entry,actualParticipationVerified:false,experimentalResult:g.experimentalRosterAware===true&&g.official===false});
+  });
+  const next=state.activity?.games?.filter(g=>g.status==='scheduled'&&(String(g.homeTeamId)===String(teamId)||String(g.awayTeamId)===String(teamId))).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))[0]||null;
+  const approval=state.extensions?.phase11GmGameDaySkaterApproval;
+  const nextApproved=!!next&&String(approval?.gameId)===String(next.id)&&String(approval?.teamId)===String(teamId);
+  return Object.freeze({teamId,recent:Object.freeze(recent),nextGameId:next?.id??null,nextGameDate:next?.date??null,nextApproved,needsGameDayReview:!!next&&!nextApproved,source:'human-gm-approved-plans',actualParticipationVerified:false});
+ }
  function reviewGameDaySkaters(gameId){
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
   const before=store.load();if(!before)throw Error('No isolated save');
@@ -310,7 +328,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,careerSnapshot,postgameSkaterReview,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
+ return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,careerSnapshot,postgameSkaterReview,seasonPostgameContext,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
 return {KEY,create};
 });
