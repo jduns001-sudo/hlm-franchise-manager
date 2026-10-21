@@ -37,6 +37,14 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  const game=saved.activity.games[0];
  assert.equal(game.status,'final');
+ const beforePostgameHandoff=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ assert.equal(await page.locator('#gm-workspace-postgame-handoff').isDisabled(),false);
+ await page.locator('#gm-workspace-postgame-handoff').click();
+ assert.equal(await page.locator('#gm-postgame-game').inputValue(),'g1');
+ assert.match(await page.locator('#gm-postgame-report').innerText(),/GM-approved skaters: 12, 13, 14/);
+ assert.match(await page.locator('#gm-workspace-postgame-handoff-status').innerText(),/not observed participation or ice time/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforePostgameHandoff,'postgame handoff must not write isolated save');
+
  assert.match(await page.locator('#gm-season-postgame').innerText(),/GM-approved plan: 12, 13, 14/);
  assert.match(await page.locator('#gm-season-postgame').innerText(),/not verified actual participation or ice time/);
  assert.match(await page.locator('#gm-season-postgame').innerText(),/Human GM game-day review required/);
