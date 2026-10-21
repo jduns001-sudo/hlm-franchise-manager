@@ -18,6 +18,15 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const key=await page.evaluate(()=>Object.keys(localStorage).find(k=>k.startsWith('hlm-phase11-m1340-isolated-single-game')));
  assert.ok(key);
  const before=await page.evaluate(k=>localStorage.getItem(k),key);
+ const dock=page.locator('.gm-command-dock');
+ assert.equal(await dock.locator('a').count(),8,'mobile GM dock exposes eight real franchise destinations');
+ assert.equal(await dock.getAttribute('aria-label'),'GM mobile command dock');
+ await dock.getByRole('link',{name:'Roster'}).click();
+ assert.equal(new URL(page.url()).hash,'#gm-roster');
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'navigation must never mutate franchise saves');
+ await dock.getByRole('link',{name:'Advance day'}).click();
+ assert.equal(new URL(page.url()).hash,'#day-review');
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'mobile quick navigation is read-only');
  const initial=JSON.parse(before);
  assert.equal(initial.universe.teams.length,32);
  assert.ok(initial.universe.players.length>100);
