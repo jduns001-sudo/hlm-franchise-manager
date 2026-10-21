@@ -54,10 +54,33 @@ function create(engine,storage,boxScores=null){
   const result=engine.applyScheduledGame(before,gameId,seed,experimentalOptions(before));
   const standings=engine.calculateStandings(result.nextState.universe.teams,result.nextState.activity.games);
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
-  const next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
+  let next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
+  const approval=before.extensions?.phase11GmGameDaySkaterApproval;
+  if(approval&&String(approval.gameId)===String(gameId)){
+   const final=next.activity?.games?.find(g=>String(g.id)===String(gameId));
+   if(final?.status!=='final')throw Error('Authoritative final required for postgame review');
+   const previous=before.extensions?.phase11GmPostgameSkaterReviews||[];
+   if(!Array.isArray(previous)||previous.some(r=>String(r.gameId)===String(gameId)))throw Error('Duplicate postgame review refused');
+   const entry={gameId:final.id,teamId:approval.teamId,playerIds:[...approval.playerIds],date:final.date,homeTeamId:final.homeTeamId,awayTeamId:final.awayTeamId,homeGoals:final.homeGoals??null,awayGoals:final.awayGoals??null,source:'human-gm-approved-plan',actualParticipationVerified:false};
+   next={...next,extensions:{...next.extensions,phase11GmPostgameSkaterReviews:[...previous,entry]}};
+  }
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
   store.save(next);
   baseline=storage.getItem(KEY);
   return {result:result.result,standings,state:next};
+ }
+ function postgameSkaterReview(gameId){
+  const state=store.load();if(!state)throw Error('No isolated save');
+  const entries=state.extensions?.phase11GmPostgameSkaterReviews||[];
+  if(!Array.isArray(entries))throw Error('Invalid postgame review history');
+  const entry=entries.find(r=>String(r.gameId)===String(gameId));
+  if(!entry)return null;
+  const game=state.activity?.games?.find(g=>String(g.id)===String(gameId));
+  if(!game||game.status!=='final')throw Error('Authoritative final unavailable');
+  const box=(state.extensions?.phase11ExperimentalBoxScores||[]).find(b=>String(b.gameId)===String(gameId));
+  const side=String(entry.teamId)===String(game.homeTeamId)?'home':String(entry.teamId)===String(game.awayTeamId)?'away':null;
+  const synthetic=side&&box?.[side]&&String(box[side].teamId)===String(entry.teamId)?box[side]:null;
+  return Object.freeze({gameId:game.id,teamId:entry.teamId,approvedPlayerIds:Object.freeze([...entry.playerIds]),date:game.date,homeGoals:game.homeGoals??null,awayGoals:game.awayGoals??null,actualParticipationVerified:false,syntheticBoxScore:synthetic?JSON.parse(JSON.stringify(synthetic)):null,source:'human-gm-approved-plan',officialResult:true});
  }
  function reviewGameDaySkaters(gameId){
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
@@ -287,7 +310,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,careerSnapshot,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
+ return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,careerSnapshot,postgameSkaterReview,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
 return {KEY,create};
 });
