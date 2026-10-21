@@ -40,6 +40,15 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#gm-season-postgame').innerText(),/GM-approved plan: 12, 13, 14/);
  assert.match(await page.locator('#gm-season-postgame').innerText(),/not verified actual participation or ice time/);
  assert.match(await page.locator('#gm-season-postgame').innerText(),/Human GM game-day review required/);
+ const beforeHandoff=await page.evaluate(key=>localStorage.getItem(key),KEY);
+ assert.equal(await page.locator('#gm-next-game-review').isDisabled(),false);
+ await page.locator('#gm-next-game-review').click();
+ assert.equal(await page.locator('#game').inputValue(),'g2');
+ assert.match(await page.locator('#gm-game-day-approval-status').innerText(),/Human GM approval required/);
+ assert.equal(await page.locator('#gm-game-day-approve').isDisabled(),false,'review can be explicitly approved but is not approved');
+ assert.match(await page.locator('#gm-next-game-jump-status').innerText(),/No save or simulation/);
+ assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),beforeHandoff,'review handoff must not write');
+ assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY)).activity.games[1].status,'scheduled');
  const preJump=await page.evaluate(key=>localStorage.getItem(key),KEY);
  assert.equal(await page.locator('#gm-next-game-jump').isDisabled(),false);
  await page.locator('#gm-next-game-jump').click();
