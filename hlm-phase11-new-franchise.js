@@ -35,7 +35,7 @@ function importSourcePicks(universe,eligible){
  for(const p of source)if(p&&typeof p==='object')occurrences.set(identity(p),(occurrences.get(identity(p))||0)+1);
  const accepted=[],excluded=[];
  for(const p of source){
-  if(!p||typeof p!=='object'||!Number.isSafeInteger(p.league)||!Number.isSafeInteger(p.year)||p.year<2026||!Number.isSafeInteger(p.round)||p.round<1||p.round>7||
+  if(!p||typeof p!=='object'||!Number.isSafeInteger(p.league)||!Number.isSafeInteger(p.year)||p.year<2026||p.year>2045||!Number.isSafeInteger(p.round)||p.round<1||p.round>7||
    !Number.isSafeInteger(p.originalTeamId)||!Number.isSafeInteger(p.teamId)||!teamIds.has(String(p.originalTeamId))||!teamIds.has(String(p.teamId))||occurrences.get(identity(p))!==1){
    excluded.push({reason:'ambiguous-or-out-of-scope-source-pick'});continue;
   }
