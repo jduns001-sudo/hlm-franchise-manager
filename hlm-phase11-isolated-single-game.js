@@ -10,8 +10,9 @@ function create(engine,storage,boxScores=null){
  let pendingProspectSigning=null;
  let pendingDraftSelection=null;
  let pendingPickTransfer=null;
+ let pendingReciprocalPickExchange=null;
  function peek(){return store.load()}
- function load(){const state=store.load();baseline=storage.getItem(KEY);pendingOffseason=null;pendingProspectSigning=null;pendingDraftSelection=null;pendingPickTransfer=null;return state}
+ function load(){const state=store.load();baseline=storage.getItem(KEY);pendingOffseason=null;pendingProspectSigning=null;pendingDraftSelection=null;pendingPickTransfer=null;pendingReciprocalPickExchange=null;return state}
  function stage(state,approved){
   if(approved!==true)throw Error('Human GM import approval required');
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
@@ -277,6 +278,31 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
+ function reviewReciprocalPickExchange(input){
+  pendingReciprocalPickExchange=null;
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  if(String(input?.controlledTeamId)!==String(before.meta.controlledTeamId))throw Error('Only controlled franchise may propose exchange');
+  if(typeof engine.reviewReciprocalPickExchange!=='function')throw Error('Verified reciprocal exchange engine required');
+  const options=JSON.parse(JSON.stringify(input));
+  const result=engine.reviewReciprocalPickExchange(before,options);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  pendingReciprocalPickExchange={baseline,options};
+  return Object.freeze({review:JSON.parse(JSON.stringify(result.review))});
+ }
+ function approveReviewedReciprocalPickExchange(approved){
+  if(approved!==true)throw Error('Human GM reciprocal exchange approval required');
+  if(!pendingReciprocalPickExchange)throw Error('Review reciprocal exchange first');
+  if(storage.getItem(KEY)!==baseline||storage.getItem(KEY)!==pendingReciprocalPickExchange.baseline){pendingReciprocalPickExchange=null;throw Error('Isolated save changed; reload and review again')}
+  const options=pendingReciprocalPickExchange.options;pendingReciprocalPickExchange=null;
+  const before=store.load();if(!before)throw Error('No isolated save');
+  if(String(options.controlledTeamId)!==String(before.meta.controlledTeamId))throw Error('Controlled franchise changed');
+  const result=engine.reviewReciprocalPickExchange(before,options);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(result.nextState);baseline=storage.getItem(KEY);
+  return result;
+ }
+ function declineReciprocalPickExchange(){pendingReciprocalPickExchange=null;return true}
  function reviewPickTransfer(input){
   pendingPickTransfer=null;
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
@@ -353,7 +379,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,reviewPickTransfer,approveReviewedPickTransfer,careerSnapshot,postgameSkaterReview,seasonPostgameContext,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
+ return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,reviewPickTransfer,approveReviewedPickTransfer,reviewReciprocalPickExchange,approveReviewedReciprocalPickExchange,declineReciprocalPickExchange,careerSnapshot,postgameSkaterReview,seasonPostgameContext,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
 return {KEY,create};
 });
