@@ -1,0 +1,24 @@
+name: Mission 1445 Guarded Player Trade
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-guarded-player-trade.js'
+      - 'hlm-phase11-guarded-player-trade.test.js'
+      - 'hlm-phase11-trade-financial-eligibility.js'
+      - 'hlm-phase11-trade-financial-eligibility.test.js'
+      - 'hlm-phase11-trade-restrictions.js'
+      - 'hlm-phase11-trade-restrictions.test.js'
+      - '.github/workflows/mission-1445-guarded-player-trade.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  trade-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --test hlm-phase11-guarded-player-trade.test.js hlm-phase11-trade-financial-eligibility.test.js hlm-phase11-trade-restrictions.test.js
