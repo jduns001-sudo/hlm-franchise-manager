@@ -14,11 +14,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const team=await page.evaluate(()=>{const universe=window.HLMPhase10;return document.querySelector('#new-team').options.length});
  assert.equal(team,32);
  const options=await page.locator('#new-team option').evaluateAll(nodes=>nodes.map(n=>n.value));
- let chosen=null;for(const value of options){if(!value)continue;await page.selectOption('#new-team',value);chosen=value;break}
- assert.ok(chosen,'select real franchise');
+ assert.ok(options.includes('26'),'source-audited Los Angeles franchise available');
+ await page.selectOption('#new-team','26'); // Mission 1441 verified eligible source-backed picks for this franchise.
  page.once('dialog',d=>d.accept());
  await page.click('#new-franchise');
  await page.waitForFunction(()=>!!localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'),null,{timeout:30000});
+ await page.waitForFunction(()=>document.querySelector('#gm-exchange-own')?.options.length>0,null,{timeout:30000});
  const available=await page.locator('#gm-exchange-own option').count();
  assert.ok(available>0,'controlled franchise has source-backed picks');
  const otherTeams=await page.locator('#gm-exchange-team option').all();
