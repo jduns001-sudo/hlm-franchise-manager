@@ -4,6 +4,7 @@ on:
     paths:
       - 'hlm-phase11-franchise-lifecycle.chromium.test.js'
       - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-source-asset-audit.test.js'
       - '.github/workflows/mission-1429-franchise-lifecycle.yml'
   workflow_dispatch:
 jobs:
@@ -14,6 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: node hlm-phase11-source-asset-audit.test.js
       - run: node hlm-phase11-playable-loop-acceptance.test.js
       - run: node hlm-phase11-reviewed-game-day-participation.test.js
   mobile-chromium:
