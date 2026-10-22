@@ -12,7 +12,7 @@ function fixture(){
  s.finances.teamCapLimits={1:10,2:10};
  s.extensions.tradeRosterLimits={1:23,2:23};
  s.extensions.tradeDecisionConsents=[{receivingTeamId:2,outgoingPlayerId:'a',incomingPlayerId:'b',decision:'accepted',source:'receiving-team-authority'}];
- s.history={seasons:[{year:2034,champion:1}]};
+ s.history.seasons=[{year:2034,champion:1}];
  return s;
 }
 function storage(s=fixture()){
