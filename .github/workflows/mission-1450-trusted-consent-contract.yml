@@ -21,5 +21,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: npm install --no-save playwright
       - run: npx playwright install --with-deps chromium
       - run: node hlm-phase11-trusted-consent-contract.chromium.test.js
