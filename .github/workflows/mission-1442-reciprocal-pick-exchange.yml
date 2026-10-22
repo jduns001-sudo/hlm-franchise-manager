@@ -1,0 +1,17 @@
+name: Mission 1442 Reciprocal Pick Exchange
+on:
+  push:
+    branches: [mission-1442-reciprocal-pick-exchange]
+  pull_request:
+    paths:
+      - 'hlm-phase11-reciprocal-pick-exchange*'
+      - '.github/workflows/mission-1442-reciprocal-pick-exchange.yml'
+jobs:
+  reciprocal-pick-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-reciprocal-pick-exchange.test.js
