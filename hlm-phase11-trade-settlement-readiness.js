@@ -37,10 +37,11 @@ function createReadinessSession(storage,key){
  function decide(action){
   if(storage.getItem(key)!==baseline){pending=null;throw Error('Stale isolated review; reload')}
   if(!pending)throw Error('Review required');
+  const reviewedInput=pending.input;
   const result=gm.decide(action);
   pending=null;
   if(action==='approve-review'){
-   const current=inspect(JSON.parse(baseline),{...result,input:pending?.input});
+   const current=inspect(JSON.parse(baseline),reviewedInput);
    return Object.freeze({...result,readiness:current});
   }
   return result;
