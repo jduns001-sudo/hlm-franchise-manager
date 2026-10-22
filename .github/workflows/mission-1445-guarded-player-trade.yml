@@ -4,6 +4,8 @@ on:
     paths:
       - 'hlm-phase11-guarded-player-trade.js'
       - 'hlm-phase11-guarded-player-trade.test.js'
+      - 'hlm-phase11-trade-financial-eligibility.js'
+      - 'hlm-phase11-trade-financial-eligibility.test.js'
       - '.github/workflows/mission-1445-guarded-player-trade.yml'
   workflow_dispatch:
 permissions:
@@ -17,4 +19,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: node --test hlm-phase11-guarded-player-trade.test.js
+      - run: node --test hlm-phase11-guarded-player-trade.test.js hlm-phase11-trade-financial-eligibility.test.js
