@@ -1,0 +1,16 @@
+name: Mission 1452 Trade Decision Readiness Gate
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-trade-decision-readiness-gate*'
+      - '.github/workflows/mission-1452-trade-decision-readiness-gate.yml'
+  workflow_dispatch:
+jobs:
+  trade-decision-readiness-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-trade-decision-readiness-gate.test.js
