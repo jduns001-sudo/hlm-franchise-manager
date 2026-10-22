@@ -36,6 +36,8 @@ function createSession(storage,key){
   const p=pending;pending=null;
   if(storage.getItem(key)!==baseline||p.baseline!==baseline)throw Error('Stale isolated save; reload');
   const result=review(JSON.parse(baseline),p.input);
+  // Trade settlement must remain disabled until contracts, cap, restrictions, and receiving-team consent are source-validated.
+  throw Error('Trade settlement disabled: contract, cap, restrictions and receiving-team consent not validated');
   if(storage.getItem(key)!==baseline)throw Error('Concurrent isolated save; reload');
   const encoded=JSON.stringify(result.nextState);
   storage.setItem(key,encoded);baseline=encoded;return result.summary;
