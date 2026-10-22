@@ -11,8 +11,7 @@ const sources=Object.fromEntries(files.map(f=>[f,fs.readFileSync(f,'utf8')]));
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   const page=await context.newPage();
-  await page.goto('http://localhost:0').catch(()=>{}); // no external app dependency
-  await page.goto('about:blank');
+  await page.setContent('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isolated trade decision acceptance</title>');
   const result=await page.evaluate(({sources})=>{
    const modules={};
    function load(path){
