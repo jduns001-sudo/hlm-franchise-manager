@@ -19,6 +19,7 @@ jobs:
       - run: node --test hlm-phase11-source-pick-transfer.test.js
   source-pick-ownership-mobile:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
