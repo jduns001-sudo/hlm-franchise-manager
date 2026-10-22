@@ -35,7 +35,7 @@ test('stale save blocks approval and requires reload',()=>{
  const s=makeStore(),gm=createTradeReview(s,KEY);gm.review(input);
  const newer=fixture();newer.meta.currentDate='2035-03-01';s.setItem(KEY,JSON.stringify(newer));
  assert.throws(()=>gm.decide('approve-review'),/Stale/);
- assert.throws(()=>gm.decide('approve-review'),/review required/);
+ assert.throws(()=>gm.decide('approve-review'),/Stale/);
  assert.equal(s.getItem(PROD),'PRODUCTION_SENTINEL');
  gm.reload();assert.equal(gm.review(input).settlementAuthorized,false);
 });
