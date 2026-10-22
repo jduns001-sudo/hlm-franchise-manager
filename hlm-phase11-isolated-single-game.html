@@ -30,7 +30,7 @@ $('gm-pick-transfer-review').addEventListener('click',()=>{
  $('gm-pick-transfer-approve').disabled=false;$('gm-pick-transfer-cancel').disabled=false;
  }catch(error){clearPickTransferReview('Review blocked: '+error.message)}
 });
-$('gm-pick-transfer-cancel').addEventListener('click',()=>{clearPickTransferReview('Declined. No save.');manager.load();refresh()});
+$('gm-pick-transfer-cancel').addEventListener('click',()=>{clearPickTransferReview('Declined. No save.');refresh()});
 $('gm-pick-transfer-approve').addEventListener('click',async()=>{
  if(!pendingPickTransferUi)return;
  if(!confirm('Human GM: approve transferring this verified draft pick? This changes ownership in the isolated save.'))return;
