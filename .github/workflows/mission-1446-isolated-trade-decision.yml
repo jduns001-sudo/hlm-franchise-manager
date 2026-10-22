@@ -18,3 +18,15 @@ jobs:
         with:
           node-version: '22'
       - run: node --test hlm-phase11-isolated-trade-decision.test.js hlm-phase11-guarded-player-trade.test.js hlm-phase11-trade-financial-eligibility.test.js hlm-phase11-trade-restrictions.test.js
+  trade-decision-mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-season-ledger.chromium.test.js
+      - run: node hlm-phase11-isolated-tab-guard.chromium.test.js
