@@ -5,7 +5,8 @@ const {chromium}=require('playwright');
  const browser=await chromium.launch({headless:true});
  try{
   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
-  await page.goto('about:blank');
+  await page.route('https://mission1454.test/**', route => route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>Isolated Mission 1454 Test</title>'}));
+  await page.goto('https://mission1454.test/');
   await page.evaluate(()=>{
    localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL');
    localStorage.setItem('hlm_m1454_isolated','ISOLATED_SENTINEL');
