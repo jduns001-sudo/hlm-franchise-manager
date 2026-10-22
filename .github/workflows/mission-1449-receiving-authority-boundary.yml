@@ -1,0 +1,32 @@
+name: Mission 1449 Receiving Authority Boundary
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-receiving-authority-boundary.js'
+      - 'hlm-phase11-receiving-authority-boundary.test.js'
+      - 'hlm-phase11-receiving-authority-boundary.chromium.test.js'
+      - '.github/workflows/mission-1449-receiving-authority-boundary.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  receiving-authority-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-receiving-authority-boundary.test.js hlm-phase11-trade-settlement-readiness.test.js
+  receiving-authority-mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-receiving-authority-boundary.chromium.test.js
