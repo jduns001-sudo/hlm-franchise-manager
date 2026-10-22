@@ -27,18 +27,20 @@ test('decline and unreviewed approval never save',()=>{
  assert.equal(s.getItem(KEY),before);
  assert.equal(s.getItem('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
 });
-test('approved trade commits once and reload retains both ownership changes',()=>{
- const s=store(),session=createSession(s,KEY);
- session.propose(swap);session.approve(true);
- const restored=createSession(s,KEY).reload();
- assert.equal(restored.universe.players[0].teamId,2);
- assert.equal(restored.universe.players[1].teamId,1);
+test('approved proposal remains blocked until financial and receiving-team consent checks exist',()=>{
+ const s=store(),session=createSession(s,KEY),before=s.getItem(KEY);
+ session.propose(swap);
+ assert.throws(()=>session.approve(true),/Trade settlement disabled/);
+ assert.equal(s.getItem(KEY),before);
  assert.equal(s.getItem('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
 });
-test('stale two-tab review cannot overwrite authoritative save',()=>{
+test('stale two-tab review cannot overwrite a newer isolated save',()=>{
  const s=store(),first=createSession(s,KEY),second=createSession(s,KEY);
- first.propose(swap);second.propose(swap);first.approve(true);
+ first.propose(swap);second.propose(swap);
+ const changed=initial();changed.meta.currentDate='2026-10-22';
+ s.setItem(KEY,JSON.stringify(changed));
  const authoritative=s.getItem(KEY);
+ assert.throws(()=>first.approve(true),/Stale/);
  assert.throws(()=>second.approve(true),/Stale/);
  assert.equal(s.getItem(KEY),authoritative);
 });
