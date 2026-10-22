@@ -9,8 +9,9 @@ function create(engine,storage,boxScores=null){
  let pendingOffseason=null;
  let pendingProspectSigning=null;
  let pendingDraftSelection=null;
+ let pendingPickTransfer=null;
  function peek(){return store.load()}
- function load(){const state=store.load();baseline=storage.getItem(KEY);pendingOffseason=null;pendingProspectSigning=null;pendingDraftSelection=null;return state}
+ function load(){const state=store.load();baseline=storage.getItem(KEY);pendingOffseason=null;pendingProspectSigning=null;pendingDraftSelection=null;pendingPickTransfer=null;return state}
  function stage(state,approved){
   if(approved!==true)throw Error('Human GM import approval required');
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
@@ -276,6 +277,30 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
+ function reviewPickTransfer(input){
+  pendingPickTransfer=null;
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const before=store.load();if(!before)throw Error('No isolated save');
+  if(String(input?.fromTeamId)!==String(before.meta.controlledTeamId))throw Error('Only controlled-team picks may be transferred');
+  if(typeof engine.reviewPickTransfer!=='function')throw Error('Verified pick transfer engine required');
+  const options=JSON.parse(JSON.stringify(input));
+  const result=engine.reviewPickTransfer(before,options);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  pendingPickTransfer={baseline,options};
+  return Object.freeze({review:JSON.parse(JSON.stringify(result.review))});
+ }
+ function approveReviewedPickTransfer(approved){
+  if(approved!==true)throw Error('Human GM pick transfer approval required');
+  if(!pendingPickTransfer)throw Error('Review pick transfer before approval');
+  if(storage.getItem(KEY)!==baseline||storage.getItem(KEY)!==pendingPickTransfer.baseline){pendingPickTransfer=null;throw Error('Isolated save changed; reload and review again')}
+  const options=pendingPickTransfer.options;pendingPickTransfer=null;
+  const before=store.load();if(!before)throw Error('No isolated save');
+  if(String(options.fromTeamId)!==String(before.meta.controlledTeamId))throw Error('Controlled team changed');
+  const result=engine.reviewPickTransfer(before,options);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(result.nextState);baseline=storage.getItem(KEY);
+  return result;
+ }
  function reviewProspectSigning(input){
   pendingProspectSigning=null;
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
@@ -328,7 +353,7 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,careerSnapshot,postgameSkaterReview,seasonPostgameContext,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
+ return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,reviewPickTransfer,approveReviewedPickTransfer,careerSnapshot,postgameSkaterReview,seasonPostgameContext,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
 return {KEY,create};
 });
