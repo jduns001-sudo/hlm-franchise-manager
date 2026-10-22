@@ -34,7 +34,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.ok(gmGame,'real-universe season must contain a controlled-team matchup');
  await page.locator('#game').selectOption(String(gmGame.id));
  const workspace=page.locator('.gm-game-day-workspace');
- assert.equal(await workspace.locator('button').count(),4,'mobile GM workspace exposes four game-day actions');
+ for(const action of ['preview','review','approve','decline'])assert.equal(await workspace.locator('#gm-workspace-'+action).count(),1,'mobile GM workspace exposes '+action+' action');
  await workspace.locator('#gm-workspace-preview').click();
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'matchup preview must not save');
  await workspace.locator('#gm-workspace-review').click();
