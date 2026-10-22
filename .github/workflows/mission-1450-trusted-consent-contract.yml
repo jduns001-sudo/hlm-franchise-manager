@@ -1,0 +1,25 @@
+name: Mission 1450 Trusted Consent Contract
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-trusted-consent-contract*'
+      - '.github/workflows/mission-1450-trusted-consent-contract.yml'
+  workflow_dispatch:
+jobs:
+  consent-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-trusted-consent-contract.test.js
+  consent-mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-trusted-consent-contract.chromium.test.js
