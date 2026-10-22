@@ -44,3 +44,50 @@ test('stale two-tab review cannot overwrite a newer isolated save',()=>{
  assert.throws(()=>second.approve(true),/Stale/);
  assert.equal(s.getItem(KEY),authoritative);
 });
+
+test('hypothetical player swap never changes authoritative contracts or saves',()=>{
+ const s=store(),before=s.snapshot(),state=initial();
+ state.assets={contracts:[{playerId:'a',teamId:1,status:'active'},{playerId:'b',teamId:2,status:'active'}]};
+ const result=review(state,swap);
+ assert.equal(result.nextState.universe.players[0].teamId,2);
+ assert.equal(result.nextState.assets.contracts[0].teamId,1);
+ assert.equal(result.nextState.assets.contracts[1].teamId,2);
+ assert.deepEqual(s.snapshot(),before);
+ const session=createSession(s,KEY);session.propose(swap);
+ assert.throws(()=>session.approve(true),/settlement disabled/);
+ assert.deepEqual(s.snapshot(),before);
+});
+test('production key is rejected and never read or written',()=>{
+ let reads=0,writes=0;
+ const storage={getItem(){reads++;return '{}'},setItem(){writes++}};
+ assert.throws(()=>createSession(storage,'hlm_front_office_v8'),/isolated storage/);
+ assert.equal(reads,0);assert.equal(writes,0);
+});
+test('reload invalidates pending review; repeat approval and decline never save',()=>{
+ const s=store(),session=createSession(s,KEY),before=s.snapshot();
+ session.propose(swap);session.reload();
+ assert.throws(()=>session.approve(true),/Review trade first/);
+ session.propose(swap);assert.throws(()=>session.approve(false),/approval required/);
+ assert.throws(()=>session.approve(true),/Review trade first|settlement disabled/);
+ assert.throws(()=>session.approve(true),/Review trade first/);
+ assert.deepEqual(s.snapshot(),before);
+});
+test('receiving team consent cannot be inferred or authorize settlement',()=>{
+ const s=store(),session=createSession(s,KEY),before=s.snapshot();
+ for(const consent of [undefined,false,true,'approved']){
+  session.reload();session.propose({...swap,receivingTeamConsent:consent});
+  assert.throws(()=>session.approve(true),/settlement disabled/);
+  assert.deepEqual(s.snapshot(),before);
+ }
+});
+test('multi-season isolated save remains unchanged across blocked approval and reload',()=>{
+ const s=store(),state=initial();
+ state.meta.season=2034;
+ state.history={seasons:[{year:2032,champion:1},{year:2033,champion:2}]};
+ state.assets={contracts:[{playerId:'a',teamId:1,expires:2036},{playerId:'b',teamId:2,expires:2035}]};
+ s.setItem(KEY,JSON.stringify(state));
+ const before=s.snapshot(),session=createSession(s,KEY);
+ session.propose(swap);assert.throws(()=>session.approve(true),/settlement disabled/);
+ assert.deepEqual(session.reload(),state);
+ assert.deepEqual(s.snapshot(),before);
+});
