@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
 const {chromium}=require('playwright');
 const KEY='hlm-phase11-m1340-isolated-single-game-v1';
 const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.url||'/').split('?')[0].slice(1));if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.json')?'application/json':'text/html');res.end(b)})});
-(async()=>{let browser=null;try{await new Promise(ok=>server.listen(0,'127.0.0.1'));console.log('Mission 1441: HTTP fixture ready');browser=await chromium.launch({timeout:20000});console.log('Mission 1441: Chromium launched');
+(async()=>{let browser=null;const watchdog=setTimeout(()=>{console.error('Mission 1441: mobile acceptance exceeded 180-second test deadline');process.exit(1)},180000);watchdog.unref();try{await new Promise(ok=>server.listen(0,'127.0.0.1'));console.log('Mission 1441: HTTP fixture ready');browser=await chromium.launch({timeout:20000});console.log('Mission 1441: Chromium launched');
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});page.setDefaultTimeout(10000);console.log('Mission 1441: mobile page created');
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  console.log('Mission 1441: navigating to isolated game');await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html',{timeout:20000,waitUntil:'domcontentloaded'});console.log('Mission 1441: game DOM loaded');
@@ -35,4 +35,4 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).assets.draftPicks.length,KEY),old.assets.draftPicks.length,'pick count survives reload');
  assert.deepEqual(errors,[]);
  console.log('Mission 1441 real-universe mobile pick transfer review/cancel/approve/reload passed');
-}finally{if(browser)await browser.close().catch(e=>console.error('Mission 1441: browser cleanup:',e.message));server.close()}})().catch(e=>{console.error('Mission 1441 mobile acceptance failed:',e);process.exitCode=1;server.close()});
+}finally{clearTimeout(watchdog);if(browser)await Promise.race([browser.close().catch(e=>console.error('Mission 1441: browser cleanup:',e.message)),new Promise(resolve=>setTimeout(resolve,5000))]);server.close()}})().catch(e=>{console.error('Mission 1441 mobile acceptance failed:',e);process.exitCode=1;server.close()});
