@@ -148,15 +148,15 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    const nextSeasonDate=await page.locator('#next-season-date').inputValue();
    const beforeOffseason=await page.evaluate(key=>localStorage.getItem(key),KEY);
    assert.equal(await page.locator('#next-season').isDisabled(),true,'next-season approval requires a fresh review');
-   // Mission 1439: the real-universe starter currently has no imported contracts or draft assets.
-   // Reject non-existent asset operations atomically rather than inventing contract or pick IDs.
+   // Mission 1440: real-universe starter imports validated draft picks, but not unsupported contracts or prospect rights.
+   // Reject non-existent asset operations atomically rather than inventing contract or prospect IDs.
    const realAssets=await page.evaluate(key=>{
      const state=JSON.parse(localStorage.getItem(key));
      return {contracts:state.assets?.contracts?.length||0,picks:state.assets?.draftPicks?.length||0,prospects:state.universe?.prospects?.length||0,players:state.universe?.players?.length||0};
    },KEY);
    assert.ok(realAssets.players>0,'real-universe franchise must retain actual players');
    assert.equal(realAssets.contracts,0,'starter currently has no source-backed contract assets');
-   assert.equal(realAssets.picks,0,'starter currently has no source-backed draft picks');
+   assert.ok(realAssets.picks>0,'starter imports unambiguous source-backed draft picks');
    assert.equal(realAssets.prospects,0,'starter currently has no source-backed prospects');
    const offseasonInput=page.locator('#offseason-operations');
    const originalOffseasonOperations=await offseasonInput.inputValue();
