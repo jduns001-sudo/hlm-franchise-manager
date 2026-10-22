@@ -1,0 +1,32 @@
+name: Mission 1448 Trade Settlement Readiness
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-trade-settlement-readiness.js'
+      - 'hlm-phase11-trade-settlement-readiness.test.js'
+      - 'hlm-phase11-trade-settlement-readiness.chromium.test.js'
+      - '.github/workflows/mission-1448-trade-settlement-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  trade-readiness-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-trade-settlement-readiness.test.js hlm-phase11-gm-trade-review.test.js
+  trade-readiness-mobile-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-trade-settlement-readiness.chromium.test.js
