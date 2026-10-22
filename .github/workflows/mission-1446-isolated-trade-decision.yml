@@ -4,6 +4,7 @@ on:
     paths:
       - 'hlm-phase11-isolated-trade-decision.js'
       - 'hlm-phase11-isolated-trade-decision.test.js'
+      - 'hlm-phase11-isolated-trade-decision.chromium.test.js'
       - '.github/workflows/mission-1446-isolated-trade-decision.yml'
   workflow_dispatch:
 permissions:
@@ -30,3 +31,4 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node hlm-phase11-season-ledger.chromium.test.js
       - run: node hlm-phase11-isolated-tab-guard.chromium.test.js
+      - run: node hlm-phase11-isolated-trade-decision.chromium.test.js
