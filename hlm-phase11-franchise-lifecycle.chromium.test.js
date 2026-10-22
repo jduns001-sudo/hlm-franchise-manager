@@ -156,7 +156,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    },KEY);
    assert.ok(realAssets.players>0,'real-universe franchise must retain actual players');
    assert.equal(realAssets.contracts,0,'starter currently has no source-backed contract assets');
-   assert.ok(realAssets.picks>0,'starter imports unambiguous source-backed draft picks');
+   assert.equal(realAssets.picks,60,'real-universe starter imports exactly 60 unique canonical-owner picks dated 2026-2045');
    assert.equal(realAssets.prospects,0,'starter currently has no source-backed prospects');
    const offseasonInput=page.locator('#offseason-operations');
    const originalOffseasonOperations=await offseasonInput.inputValue();
