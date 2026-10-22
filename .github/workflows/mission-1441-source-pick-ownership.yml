@@ -1,0 +1,17 @@
+name: Mission 1441 Source Pick Ownership
+on:
+  push:
+    branches: [mission-1441-source-backed-pick-ownership]
+  pull_request:
+    paths:
+      - 'hlm-phase11-source-pick-transfer*'
+      - '.github/workflows/mission-1441-source-pick-ownership.yml'
+jobs:
+  source-pick-ownership-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-source-pick-transfer.test.js
