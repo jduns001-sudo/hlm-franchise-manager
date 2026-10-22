@@ -1,5 +1,6 @@
 'use strict';
-const {validateGameStateEnvelope}=require('./hlm-game-state');
+(function(root,factory){const api=factory(typeof module==='object'&&module.exports?require('./hlm-game-state'):root.HLMPhase10);if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMSourcePickTransfer=api;})(typeof globalThis!=='undefined'?globalThis:this,function(engine){
+const {validateGameStateEnvelope}=engine;
 /** Pure draft-pick transfer proposal. Never writes saves; the human GM must approve persistence separately. */
 function reviewPickTransfer(state,{pickId,fromTeamId,toTeamId}={}){
  if(!validateGameStateEnvelope(state).valid)throw Error('Invalid franchise game state');
@@ -16,4 +17,5 @@ function reviewPickTransfer(state,{pickId,fromTeamId,toTeamId}={}){
  target.currentOwnerId=toTeamId;
  return {nextState,review:{pickId,fromTeamId,toTeamId,originalTeamId:pick.originalTeamId,year:pick.year,round:pick.round,source:pick.source,requiresGmApproval:true}};
 }
-module.exports={reviewPickTransfer};
+return {reviewPickTransfer};
+});
