@@ -1,0 +1,20 @@
+name: Mission 1446 Isolated Trade Decision
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-trade-decision.js'
+      - 'hlm-phase11-isolated-trade-decision.test.js'
+      - '.github/workflows/mission-1446-isolated-trade-decision.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  trade-decision-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-isolated-trade-decision.test.js hlm-phase11-guarded-player-trade.test.js hlm-phase11-trade-financial-eligibility.test.js hlm-phase11-trade-restrictions.test.js
