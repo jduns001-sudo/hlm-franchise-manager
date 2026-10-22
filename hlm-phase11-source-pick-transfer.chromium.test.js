@@ -8,7 +8,9 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  console.log('Mission 1441: navigating to isolated game');await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html',{timeout:20000,waitUntil:'domcontentloaded'});console.log('Mission 1441: game DOM loaded');
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
+ console.log('Mission 1441: waiting for new franchise readiness');
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===false,null,{timeout:30000});
+ console.log('Mission 1441: new franchise ready');
  await page.locator('#new-team').selectOption('26'); // Source audit: Los Angeles owns eligible unique picks.
  console.log('Mission 1441: initiating GM-confirmed franchise creation');page.once('dialog',d=>d.accept());await page.locator('#new-franchise').click({timeout:15000}); console.log('Mission 1441: franchise creation click completed');
  await page.waitForFunction(key=>!!localStorage.getItem(key),KEY,{timeout:30000});
