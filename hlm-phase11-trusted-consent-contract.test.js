@@ -1,0 +1,13 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {contract,check}=require('./hlm-phase11-trusted-consent-contract');
+const {canonicalRequest}=require('./hlm-phase11-receiving-authority-boundary');
+const fs=require('node:fs');
+const source=fs.readFileSync(require.resolve('./hlm-phase11-trusted-consent-contract'),'utf8');
+assert(!/writeFileSync|localStorage|setItem\s*\(/.test(source));
+assert.equal(typeof contract,'function');assert.equal(typeof check,'function');
+const blocked=check(null,null,'revision',{},null,null);
+assert.equal(blocked.saved,false);assert.equal(blocked.settlementAuthorized,false);
+assert.equal(blocked.independentlyAuthenticated,false);
+assert.throws(()=>canonicalRequest(null,null));
+console.log('Mission 1450 contract smoke and fail-closed tests passed');
