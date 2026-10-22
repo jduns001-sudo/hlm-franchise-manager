@@ -13,7 +13,9 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===false,null,{timeout:30000});
  const team=await page.evaluate(()=>{const universe=window.HLMPhase10;return document.querySelector('#new-team').options.length});
  assert.equal(team,32);
- await page.selectOption('#new-team',{index:1});
+ const options=await page.locator('#new-team option').evaluateAll(nodes=>nodes.map(n=>n.value));
+ let chosen=null;for(const value of options){if(!value)continue;await page.selectOption('#new-team',value);chosen=value;break}
+ assert.ok(chosen,'select real franchise');
  page.once('dialog',d=>d.accept());
  await page.click('#new-franchise');
  await page.waitForFunction(()=>!!localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'),null,{timeout:30000});
