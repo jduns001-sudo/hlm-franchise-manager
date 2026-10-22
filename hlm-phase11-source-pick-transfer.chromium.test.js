@@ -9,7 +9,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html');
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===false,null,{timeout:30000});
- await page.locator('#new-team').selectOption('26'); // Source audit: Los Angeles owns eligible unique picks.\n page.once('dialog',d=>d.accept());await page.locator('#new-franchise').click();
+ await page.locator('#new-team').selectOption('26'); // Source audit: Los Angeles owns eligible unique picks.
+ page.once('dialog',d=>d.accept());await page.locator('#new-franchise').click();
  await page.waitForFunction(key=>!!localStorage.getItem(key),KEY);
  await page.waitForFunction(()=>document.querySelector('#gm-pick-transfer-review')?.disabled===false);
  assert.equal(await page.locator('#gm-pick-transfer-pick option').count()>0,true,'real universe must offer source-backed owned picks');
