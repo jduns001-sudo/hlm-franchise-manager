@@ -7,9 +7,15 @@ const {chromium}=require('playwright');
  try{
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
   const page=await context.newPage();
-  for(const file of ['hlm-phase11-isolated-single-game.html','hlm-phase10-browser.bundle.js','hlm-phase11-isolated-single-game.js','hlm-phase11-source-pick-transfer.js','hlm-phase11-game-day-skater-readiness.js']){
-   await page.route('**/'+file+'*',route=>route.fulfill({status:200,contentType:file.endsWith('.html')?'text/html':'application/javascript',body:fs.readFileSync(file,'utf8')}));
-  }
+  // Serve the exact checked-out PR assets, not potentially older deployed Pages files.
+  // Keep all real browser assertions and the isolated-save safety checks intact.
+  await page.route('https://jduns001-sudo.github.io/hlm-franchise-manager/**',route=>{
+   const url=new URL(route.request().url());
+   const file=decodeURIComponent(url.pathname.split('/').pop()||'');
+   if(!file||file.includes('/')||file.includes('\\\\')||!fs.existsSync(file))return route.abort('failed');
+   const contentType=file.endsWith('.html')?'text/html':file.endsWith('.json')?'application/json':'application/javascript';
+   return route.fulfill({status:200,contentType,body:fs.readFileSync(file)});
+  });
   await page.goto('https://jduns001-sudo.github.io/hlm-franchise-manager/hlm-phase11-isolated-single-game.html?mission1396='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
   await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','MISSION1396_PRODUCTION_SENTINEL'));
   await page.waitForFunction(()=>document.querySelector('#new-team')?.options.length===32&&!document.querySelector('#new-franchise')?.disabled,{timeout:60000});
