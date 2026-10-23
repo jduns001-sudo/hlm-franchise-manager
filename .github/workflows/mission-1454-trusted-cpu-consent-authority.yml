@@ -1,0 +1,29 @@
+name: Mission 1454 Trusted CPU Consent Authority
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-trusted-cpu-consent-authority*'
+      - '.github/workflows/mission-1454-trusted-cpu-consent-authority.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  authority-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-trusted-cpu-consent-authority.test.js
+  authority-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-trusted-cpu-consent-authority.chromium.test.js
