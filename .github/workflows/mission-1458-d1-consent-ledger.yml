@@ -1,0 +1,16 @@
+name: Mission 1458 D1 Consent Ledger
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-d1-consent-ledger*'
+      - '.github/workflows/mission-1458-d1-consent-ledger.yml'
+  workflow_dispatch:
+jobs:
+  ledger-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-d1-consent-ledger.test.js
