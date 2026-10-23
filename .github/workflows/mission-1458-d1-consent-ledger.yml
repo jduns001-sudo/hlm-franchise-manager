@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'hlm-phase11-d1-consent-ledger*'
+      - 'hlm-phase11-d1-local.integration.test.js'
       - '.github/workflows/mission-1458-d1-consent-ledger.yml'
   workflow_dispatch:
 jobs:
@@ -14,3 +15,12 @@ jobs:
         with:
           node-version: '22'
       - run: node --test hlm-phase11-d1-consent-ledger.test.js
+  local-d1-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --ignore-scripts miniflare@3
+      - run: node --test hlm-phase11-d1-local.integration.test.js
