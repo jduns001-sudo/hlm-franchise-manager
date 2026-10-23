@@ -1,0 +1,31 @@
+name: Mission 1463 Isolated GM Trade Workspace
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-integrated-trade-workspace.js'
+      - 'hlm-phase11-integrated-trade-workspace.html'
+      - 'hlm-phase11-integrated-trade-workspace.test.js'
+      - 'hlm-phase11-integrated-trade-workspace.chromium.test.js'
+      - '.github/workflows/mission-1463-isolated-gm-trade-workspace.yml'
+  workflow_dispatch:
+jobs:
+  isolated-gm-workspace-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-integrated-trade-workspace.test.js
+  isolated-gm-workspace-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-integrated-trade-workspace.chromium.test.js
