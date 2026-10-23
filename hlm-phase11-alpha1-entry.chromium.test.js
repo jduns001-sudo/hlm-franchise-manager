@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('n
 const {chromium}=require('playwright');
 const server=http.createServer((req,res)=>{
  const name=decodeURIComponent((req.url||'/').split('?')[0].slice(1));
- if(!/^[\\w.-]+$/.test(name))return res.writeHead(404).end();
+ if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();
  fs.readFile(path.join(__dirname,name),(err,data)=>{
   if(err)return res.writeHead(404).end();
   res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.json')?'application/json':'text/html');
