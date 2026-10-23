@@ -11,28 +11,31 @@ const ids=['approve','decline','cancel'],status=document.getElementById('status'
 function controls(enabled){for(const id of ids)document.getElementById(id).disabled=!enabled}
 function safeText(node,text){node.textContent=String(text)}
 function addLine(parent,label,value){const p=document.createElement('p');p.textContent=label+': '+value;parent.append(p)}
-document.getElementById('review').onclick=()=>{
+let busy=false;function setBusy(value){busy=value;document.getElementById('review').disabled=value;document.getElementById('reload').disabled=value;if(value)controls(false)}
+document.getElementById('review').onclick=async()=>{
+ if(busy)return;setBusy(true);
  controls(false);summary.replaceChildren();
- if(!bridge||typeof bridge.review!=='function'){safeText(status,'Isolated review bridge unavailable. No action taken.');return}
+ if(!bridge||typeof bridge.review!=='function'){safeText(status,'Isolated review bridge unavailable. No action taken.');setBusy(false);return}
  try{
-  const r=bridge.review();
-  if(r.status!=='review-only'||r.saved!==false||r.settlementAuthorized!==false){safeText(status,'Review unavailable; no action taken');return}
+  const r=await bridge.review();
+  if(!r||r.status!=='review-only'||r.saved!==false||r.settlementAuthorized!==false||r.independentlyAuthenticated!==false||r.financialReviewed!==true||r.restrictionsReviewed!==true||!Array.isArray(r.picks)){safeText(status,'Review unavailable; no action taken');return}
   for(const [label,p] of [['Outgoing player',r.outgoing],['Incoming player',r.incoming]]){
    addLine(summary,label,(p.name||'ID '+p.id)+' | team '+p.teamId+' | AAV '+p.aav+' | permission '+p.tradePermission);
   }
   for(const p of r.picks)addLine(summary,'Draft right',p.year+' round '+p.round+' original team '+p.originalTeamId+' current '+p.currentOwner+' proposed '+p.proposedOwner);
   addLine(summary,'Checks','Cap/contracts: '+r.financialReviewed+'; roster/restrictions: '+r.restrictionsReviewed+'; CPU independently authenticated: false');
   controls(true);safeText(status,'Review ready. GM decision required; settlement disabled.');
- }catch(e){safeText(status,'Review blocked; source verification failed.')}
+ }catch(e){safeText(status,'Review blocked; source verification failed.')}finally{setBusy(false)}
 };
-for(const action of ids)document.getElementById(action).onclick=()=>{
+for(const action of ids)document.getElementById(action).onclick=async()=>{
+ if(busy||document.getElementById(action).disabled)return;setBusy(true);
  controls(false);
  if(!bridge||typeof bridge.decide!=='function'){safeText(status,'Decision unavailable');return}
- try{const r=bridge.decide(action);safeText(status,'Decision '+action+': '+r.code+'. No save or settlement.')}catch{safeText(status,'Decision blocked. No save.')}
+ try{const r=await bridge.decide(action);if(!r||r.saved!==false||r.settlementAuthorized!==false)throw Error('Invalid response');safeText(status,'Decision '+action+': '+r.code+'. No save or settlement.')}catch{safeText(status,'Decision blocked. No save.')}finally{setBusy(false)}
 };
-document.getElementById('reload').onclick=()=>{
+document.getElementById('reload').onclick=async()=>{
+ if(busy)return;setBusy(true);
  controls(false);summary.replaceChildren();
- if(bridge&&typeof bridge.reload==='function')bridge.reload();
- safeText(status,'Review cleared. No save.');
+ try{if(bridge&&typeof bridge.reload==='function')await bridge.reload();safeText(status,'Review cleared. No save.')}catch{safeText(status,'Clear blocked. No save.')}finally{setBusy(false)}
 };
 </script></body></html>
