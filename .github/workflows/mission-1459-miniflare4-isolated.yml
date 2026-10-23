@@ -1,0 +1,55 @@
+name: Mission 1459 Isolated Miniflare 4 Trial
+on:
+  push:
+    branches:
+      - experiment/mission-1459-miniflare4-isolated
+    paths:
+      - '.github/workflows/mission-1459-miniflare4-isolated.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-local-d1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare disposable package environment
+        run: |
+          mkdir -p "$RUNNER_TEMP/hlm-mf4"
+          printf '{"name":"hlm-mf4-trial","version":"0.0.0","private":true}' > "$RUNNER_TEMP/hlm-mf4/package.json"
+      - name: Install pinned Miniflare 4 only in disposable directory
+        working-directory: ${{ runner.temp }}/hlm-mf4
+        run: npm install --ignore-scripts --no-audit --save-exact miniflare@4.20260730.0
+      - name: Verify installed version
+        working-directory: ${{ runner.temp }}/hlm-mf4
+        run: node -e "const p=require('./node_modules/miniflare/package.json');console.log('miniflare version:',p.version);if(p.version!=='4.20260730.0')process.exit(1)"
+      - name: Execute real local D1 acceptance against isolated Miniflare 4
+        env:
+          NODE_PATH: ${{ runner.temp }}/hlm-mf4/node_modules
+        run: node --test hlm-phase11-d1-local.integration.test.js
+      - name: Sanitized dependency security audit
+        if: always()
+        working-directory: ${{ runner.temp }}/hlm-mf4
+        shell: bash
+        run: |
+          set +e
+          npm audit --json > "$RUNNER_TEMP/hlm-mf4-audit.json" 2>/dev/null
+          status=$?
+          set -e
+          HLM_AUDIT_EXIT="$status" node - <<'NODE'
+          const fs=require('fs');
+          const p=process.env.RUNNER_TEMP+'/hlm-mf4-audit.json';
+          try {
+            const a=JSON.parse(fs.readFileSync(p,'utf8'));
+            const v=a.vulnerabilities||{};
+            console.log(JSON.stringify({auditExitCode:Number(process.env.HLM_AUDIT_EXIT),metadata:a.metadata?.vulnerabilities||null,error:a.error?{code:a.error.code}:null,packages:Object.entries(v).map(([name,x])=>({name,severity:x.severity,range:x.range,fixAvailable:x.fixAvailable}))},null,2));
+          } catch(e) { console.log(JSON.stringify({auditParseError:e.message})); process.exitCode=1; }
+          NODE
