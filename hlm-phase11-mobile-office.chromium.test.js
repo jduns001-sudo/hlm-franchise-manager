@@ -4,6 +4,8 @@ const { chromium } = require('playwright');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
+const {createGameStateEnvelope} = require('./hlm-game-state');
+const {KEY} = require('./hlm-phase11-isolated-single-game');
 
 (async () => {
   const server = http.createServer((req, res) => {
@@ -25,6 +27,23 @@ const path = require('node:path');
     await page.locator('#office-summary').waitFor({ state: 'visible' });
     await page.waitForFunction(() => !document.querySelector('#office-summary').textContent.includes('Loading isolated'));
     assert.match(await page.locator('#office-summary').innerText(), /No isolated franchise loaded|summary unavailable/);
+    const source = createGameStateEnvelope({
+      meta: {controlledTeamId: 1, currentDate: '2026-10-20'},
+      teams: [{id: 1, name: 'Pittsburgh'}, {id: 2, name: 'Edmonton'}],
+      games: [
+        {id: 'played', date: '2026-10-20', homeTeamId: 1, awayTeamId: 2, status: 'final', homeGoals: 3, awayGoals: 1},
+        {id: 'upcoming', date: '2026-10-21', homeTeamId: 2, awayTeamId: 1, status: 'scheduled'}
+      ]
+    });
+    await page.evaluate(({key, value}) => localStorage.setItem(key, value), {key: KEY, value: JSON.stringify(source)});
+    const savedBefore = await page.evaluate(key => localStorage.getItem(key), KEY);
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('#office-summary').textContent.includes('Pittsburgh'));
+    const summary = await page.locator('#office-summary').innerText();
+    assert.match(summary, /Pittsburgh.*1W-0L-0T/);
+    assert.match(summary, /at Edmonton on 2026-10-21/);
+    assert.match(summary, /GM review still required/);
+    assert.equal(await page.evaluate(key => localStorage.getItem(key), KEY), savedBefore, 'summary cannot rewrite isolated save');
     const tabs = ['office', 'team', 'calendar', 'assistant', 'menu'];
     for (const id of tabs) {
       await page.locator('nav [data-panel="' + id + '"]').click();
