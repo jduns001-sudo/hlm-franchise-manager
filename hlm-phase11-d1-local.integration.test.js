@@ -19,7 +19,7 @@ test('real local D1 unique replay, revision guard, rollback and persisted restar
   t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   let instance=await open(dir);
   try {
-    await instance.db.exec(schema.split('\\n').filter(line => !line.trimStart().startsWith('--')).join('\\n'));
+    await instance.db.exec(schema.split('\n').filter(line => !line.trimStart().startsWith('--')).join('\n'));
     await instance.db.prepare('INSERT INTO consent_state_revisions(team_id,state_revision) VALUES (?,?)').bind('cpu','r1').run();
     const ledger=createD1ConsentLedger(instance.db);
     const attempts=await Promise.all(Array.from({length:8},()=>ledger.consumeOnce('concurrent',binding)));
