@@ -1,0 +1,17 @@
+name: Mission 1456 Protected CPU Consent Contract
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-protected-cpu-consent-contract.js'
+      - 'hlm-phase11-protected-cpu-consent-contract.test.js'
+      - '.github/workflows/mission-1456-protected-cpu-consent-contract.yml'
+  workflow_dispatch:
+jobs:
+  consent-contract-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-protected-cpu-consent-contract.test.js
