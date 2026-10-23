@@ -14,7 +14,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),{chromium}=requ
   const before=await page.evaluate(()=>{localStorage.setItem('hlm-phase11-isolated-1463','immutable');return localStorage.getItem('hlm-phase11-isolated-1463')});
   await page.addInitScript(()=>{
    window.HLMTradeWorkspace={
-    review:()=>({status:'review-only',outgoing:{id:'a',name:'Alpha',teamId:'1',aav:4,tradePermission:'allowed'},incoming:{id:'b',name:'Bravo',teamId:'2',aav:5,tradePermission:'allowed'},picks:[{year:2028,round:1,originalTeamId:'1',currentOwner:'1',proposedOwner:'2'}],financialReviewed:true,restrictionsReviewed:true,saved:false,settlementAuthorized:false}),
+    review:()=>({status:'review-only',outgoing:{id:'a',name:'Alpha',teamId:'1',aav:4,tradePermission:'allowed'},incoming:{id:'b',name:'Bravo',teamId:'2',aav:5,tradePermission:'allowed'},picks:[{year:2028,round:1,originalTeamId:'1',currentOwner:'1',proposedOwner:'2'}],financialReviewed:true,restrictionsReviewed:true,independentlyAuthenticated:false,saved:false,settlementAuthorized:false}),
     decide:action=>({code:action==='approve'?'settlement-disabled':action,saved:false,settlementAuthorized:false}),
     reload:()=>null
    };
