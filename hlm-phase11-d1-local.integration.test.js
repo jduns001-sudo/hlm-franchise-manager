@@ -11,7 +11,7 @@ const {createD1ConsentLedger}=require('./hlm-phase11-d1-consent-ledger.js');
 const schema=fs.readFileSync(path.join(__dirname,'hlm-phase11-d1-consent-ledger.sql'),'utf8');
 const binding={proposalDigest:'digest',teamId:'cpu',stateRevision:'r1'};
 async function open(persistPath) {
-  const mf=new Miniflare({modules:true,script:'export default {fetch() {return new Response("ok")}}',d1Databases:{DB:'test-db'},persistPath});
+  const mf=new Miniflare({modules:true,script:'export default {fetch() {return new Response("ok")}}',d1Databases:{DB:'test-db'},d1Persist:path.join(persistPath,'d1')});
   return {mf,db:await mf.getD1Database('DB')};
 }
 test('real local D1 unique replay, revision guard, rollback and persisted restart',async t=>{
