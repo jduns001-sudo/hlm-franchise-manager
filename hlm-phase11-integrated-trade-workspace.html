@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Experimental GM Trade Review</title>
+<style>body{font:16px system-ui,sans-serif;max-width:720px;margin:0 auto;padding:16px;line-height:1.5}button{min-height:44px;padding:10px;margin:5px}button:disabled{opacity:.5}section{border:1px solid #888;border-radius:8px;padding:12px;margin:12px 0}#status{font-weight:700}small{display:block}h1{font-size:1.5rem}</style></head><body>
+<h1>Isolated GM Trade Review</h1><p>Experimental review only. No CPU authorization or settlement. Production saves are not accessed.</p>
+<section><button id="review">Review sourced proposal</button><div id="summary" aria-live="polite"></div></section>
+<section><h2>GM decision</h2><button id="approve" disabled>Approve review only</button><button id="decline" disabled>Decline</button><button id="cancel" disabled>Cancel</button><button id="reload">Clear / reload</button><p id="status" role="status">No reviewed proposal</p></section>
+<script>
+'use strict';
+const bridge=window.HLMTradeWorkspace;
+const ids=['approve','decline','cancel'],status=document.getElementById('status'),summary=document.getElementById('summary');
+function controls(enabled){for(const id of ids)document.getElementById(id).disabled=!enabled}
+function safeText(node,text){node.textContent=String(text)}
+function addLine(parent,label,value){const p=document.createElement('p');p.textContent=label+': '+value;parent.append(p)}
+let busy=false;function setBusy(value){busy=value;document.getElementById('review').disabled=value;document.getElementById('reload').disabled=value;if(value)controls(false)}
+document.getElementById('review').onclick=async()=>{
+ if(busy)return;setBusy(true);
+ controls(false);summary.replaceChildren();
+ if(!bridge||typeof bridge.review!=='function'){safeText(status,'Isolated review bridge unavailable. No action taken.');setBusy(false);return}
+ try{
+  const r=await bridge.review();
+  if(!r||r.status!=='review-only'||r.saved!==false||r.settlementAuthorized!==false||r.independentlyAuthenticated!==false||r.financialReviewed!==true||r.restrictionsReviewed!==true||!Array.isArray(r.picks)){safeText(status,'Review unavailable; no action taken');return}
+  for(const [label,p] of [['Outgoing player',r.outgoing],['Incoming player',r.incoming]]){
+   addLine(summary,label,(p.name||'ID '+p.id)+' | team '+p.teamId+' | AAV '+p.aav+' | permission '+p.tradePermission);
+  }
+  for(const p of r.picks)addLine(summary,'Draft right',p.year+' round '+p.round+' original team '+p.originalTeamId+' current '+p.currentOwner+' proposed '+p.proposedOwner);
+  addLine(summary,'Checks','Cap/contracts: '+r.financialReviewed+'; roster/restrictions: '+r.restrictionsReviewed+'; CPU independently authenticated: false');
+  controls(true);safeText(status,'Review ready. GM decision required; settlement disabled.');
+ }catch(e){safeText(status,'Review blocked; source verification failed.')}finally{setBusy(false)}
+};
+for(const action of ids)document.getElementById(action).onclick=async()=>{
+ if(busy||document.getElementById(action).disabled)return;setBusy(true);
+ controls(false);
+ if(!bridge||typeof bridge.decide!=='function'){safeText(status,'Decision unavailable');return}
+ try{const r=await bridge.decide(action);if(!r||r.saved!==false||r.settlementAuthorized!==false)throw Error('Invalid response');safeText(status,'Decision '+action+': '+r.code+'. No save or settlement.')}catch{safeText(status,'Decision blocked. No save.')}finally{setBusy(false)}
+};
+document.getElementById('reload').onclick=async()=>{
+ if(busy)return;setBusy(true);
+ controls(false);summary.replaceChildren();
+ try{if(bridge&&typeof bridge.reload==='function')await bridge.reload();safeText(status,'Review cleared. No save.')}catch{safeText(status,'Clear blocked. No save.')}finally{setBusy(false)}
+};
+</script></body></html>
