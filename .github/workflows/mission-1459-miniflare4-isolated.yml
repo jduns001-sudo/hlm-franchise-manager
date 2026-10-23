@@ -5,6 +5,9 @@ on:
       - experiment/mission-1459-miniflare4-isolated
     paths:
       - '.github/workflows/mission-1459-miniflare4-isolated.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/mission-1459-miniflare4-isolated.yml'
   workflow_dispatch:
 permissions:
   contents: read
