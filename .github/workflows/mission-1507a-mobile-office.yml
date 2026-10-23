@@ -1,0 +1,17 @@
+name: Mission 1507A Mobile Office
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-mobile-office.html'
+      - 'hlm-phase11-mobile-office.test.js'
+      - '.github/workflows/mission-1507a-mobile-office.yml'
+  workflow_dispatch:
+jobs:
+  mobile-office-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-mobile-office.test.js
