@@ -1,0 +1,14 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {contract}=require('./hlm-phase11-trusted-consent-contract');
+const {assess,REQUIRED}=require('./hlm-phase11-cpu-consent-provenance');
+const input={outgoingPlayerId:'a',incomingPlayerId:'b',receivingTeamConsent:true};
+function fixture(){const s=createGameStateEnvelope({meta:{controlledTeamId:1},teams:[{id:1},{id:2}],players:[{id:'a',teamId:1},{id:'b',teamId:2}],contracts:[{playerId:'a',teamId:1,status:'active',aav:4,tradePermission:'allowed'},{playerId:'b',teamId:2,status:'active',aav:5,tradePermission:'allowed'}]});s.finances.teamCapLimits={1:10,2:10};s.extensions.tradeRosterLimits={1:23,2:23};s.extensions.tradeDecisionConsents=[{receivingTeamId:2,outgoingPlayerId:'a',incomingPlayerId:'b',decision:'accepted',source:'receiving-team-authority'}];s.history.seasons=[{year:2034,champion:1}];return s}
+function declaration(s){const c=contract(s,input,'rev1');return {schema:'hlm-cpu-decision-v1',decisionId:'decision-1',receivingTeamId:c.proposal.receivingTeamId,proposalDigest:c.digest,stateRevision:c.revision,decision:'accepted',issuedBy:'cpu-team-2',issuedAt:'2034-01-01T00:00:00Z',authorityProof:{signed:true}}}
+function blocked(r){assert.equal(r.independentlyAuthenticated,false);assert.equal(r.gmApproved,false);assert.equal(r.saved,false);assert.equal(r.settlementAuthorized,false);assert.equal(r.atomicSettlementVerified,false)}
+test('complete self-declared CPU acceptance never authenticates or saves',()=>{const s=fixture(),before=JSON.stringify(s);blocked(assess(s,input,'rev1',declaration(s),{trustedIntegration:true,gmApproved:true}));assert.equal(JSON.stringify(s),before)});
+test('all required fields fail closed when absent',()=>{const s=fixture(),d=declaration(s);for(const field of REQUIRED){const v={...d};delete v[field];blocked(assess(s,input,'rev1',v));assert.match(assess(s,input,'rev1',v).reason,/Missing provenance field/)}});
+test('stale, forged, rejected and wrong-team claims fail closed',()=>{const s=fixture(),d=declaration(s);for(const patch of [{stateRevision:'old'},{proposalDigest:'forged'},{receivingTeamId:'other'},{decision:'rejected'},{schema:'invalid'},{issuedBy:''}])blocked(assess(s,input,'rev1',{...d,...patch}))});
+test('cancel and decline never save, callbacks are never trusted',()=>{const s=fixture(),d=declaration(s);let calls=0;const options={trustedIntegration:true,verify:()=>{calls++;return true},gmApproved:true};blocked(assess(s,input,'rev1',d,{...options,cancelled:true}));blocked(assess(s,input,'rev1',d,{...options,declined:true}));blocked(assess(s,input,'rev1',d,options));assert.equal(calls,0)});
+test('invalid state and malformed declarations fail closed',()=>{const s=fixture();blocked(assess(null,input,'rev1',null));for(const x of [null,[],true,'accepted',Object.create(null)])blocked(assess(s,input,'rev1',x))});

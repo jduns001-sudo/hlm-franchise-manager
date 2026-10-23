@@ -1,0 +1,40 @@
+name: Mission 1458 D1 Consent Ledger
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-d1-consent-ledger*'
+      - 'hlm-phase11-d1-local.integration.test.js'
+      - '.github/workflows/mission-1458-d1-consent-ledger.yml'
+  workflow_dispatch:
+jobs:
+  ledger-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-d1-consent-ledger.test.js
+  local-d1-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --ignore-scripts miniflare@3
+      - run: node --test hlm-phase11-d1-local.integration.test.js
+      - name: Audit isolated Miniflare dependencies (nonblocking, no secrets)
+        shell: bash
+        run: |
+          set +e
+          npm install --package-lock-only --ignore-scripts miniflare@3 >/dev/null 2>&1
+          lock_status=$?
+          if [ "$lock_status" -eq 0 ]; then
+            npm audit --json > "$RUNNER_TEMP/hlm-miniflare-audit.json" 2>/dev/null
+          else
+            printf '{"error":{"code":"LOCK_GENERATION_FAILED","summary":"Temporary isolated lockfile generation failed"}}' > "$RUNNER_TEMP/hlm-miniflare-audit.json"
+          fi
+          audit_status=$?
+          set -e
+          HLM_AUDIT_EXIT="$audit_status" node -e 'const fs=require("fs");const p=process.env.RUNNER_TEMP+"/hlm-miniflare-audit.json";const exit=Number(process.env.HLM_AUDIT_EXIT);try{const a=JSON.parse(fs.readFileSync(p,"utf8"));const v=a.vulnerabilities||{};console.log(JSON.stringify({auditExitCode:exit,auditError:a.error?{code:a.error.code,summary:a.error.summary}:null,metadata:a.metadata?.vulnerabilities||null,advisories:Object.entries(v).map(([name,x])=>({name,severity:x.severity,isDirect:x.isDirect,range:x.range,via:x.via?.map(y=>typeof y==="string"?y:{name:y.name,title:y.title,url:y.url,range:y.range}),fixAvailable:x.fixAvailable}))},null,2));}catch(e){console.log(JSON.stringify({auditExitCode:exit,auditParseError:e.message}))}'
