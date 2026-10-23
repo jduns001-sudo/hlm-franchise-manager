@@ -1,0 +1,16 @@
+name: Mission 1451 CPU Consent Provenance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-cpu-consent-provenance*'
+      - '.github/workflows/mission-1451-cpu-consent-provenance.yml'
+  workflow_dispatch:
+jobs:
+  cpu-consent-provenance-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-cpu-consent-provenance.test.js
