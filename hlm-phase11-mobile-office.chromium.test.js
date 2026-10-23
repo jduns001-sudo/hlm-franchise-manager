@@ -43,6 +43,8 @@ const {KEY} = require('./hlm-phase11-isolated-single-game');
     assert.match(summary, /Pittsburgh.*1W-0L-0T/);
     assert.match(summary, /at Edmonton on 2026-10-21/);
     assert.match(summary, /GM review still required/);
+    const decision = await page.locator('#gm-decision-summary').innerText();
+    assert.match(decision, /GM review needed: goalie plan and skater review/);
     assert.equal(await page.evaluate(key => localStorage.getItem(key), KEY), savedBefore, 'summary cannot rewrite isolated save');
     const tabs = ['office', 'team', 'calendar', 'assistant', 'menu'];
     for (const id of tabs) {
