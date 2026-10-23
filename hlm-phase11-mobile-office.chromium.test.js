@@ -22,6 +22,9 @@ const path = require('node:path');
     const page = await context.newPage();
     const url = 'http://127.0.0.1:' + server.address().port + '/hlm-phase11-mobile-office.html';
     await page.goto(url);
+    await page.locator('#office-summary').waitFor({ state: 'visible' });
+    await page.waitForFunction(() => !document.querySelector('#office-summary').textContent.includes('Loading isolated'));
+    assert.match(await page.locator('#office-summary').innerText(), /No isolated franchise loaded|summary unavailable/);
     const tabs = ['office', 'team', 'calendar', 'assistant', 'menu'];
     for (const id of tabs) {
       await page.locator('nav [data-panel="' + id + '"]').click();
