@@ -1,0 +1,28 @@
+name: Mission 1507B Office Summary
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-office-summary.js'
+      - 'hlm-phase11-office-summary.test.js'
+      - 'hlm-phase11-mobile-office.html'
+      - '.github/workflows/mission-1507b-office-summary.yml'
+  workflow_dispatch:
+jobs:
+  office-summary-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-office-summary.test.js
+  office-summary-mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-mobile-office.chromium.test.js
