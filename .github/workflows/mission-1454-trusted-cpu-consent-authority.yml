@@ -18,12 +18,14 @@ jobs:
       - run: node --test hlm-phase11-trusted-cpu-consent-authority.test.js
   authority-mobile:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-save playwright
-      - run: npx playwright install --with-deps chromium
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node -e "const {chromium}=require('playwright');const fs=require('fs');if(!fs.existsSync(chromium.executablePath()))process.exit(1)"
       - run: node hlm-phase11-trusted-cpu-consent-authority.chromium.test.js
