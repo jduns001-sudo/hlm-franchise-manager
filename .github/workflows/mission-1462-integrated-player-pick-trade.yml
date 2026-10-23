@@ -1,0 +1,31 @@
+name: Mission 1462 Integrated Player Pick Trade
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-integrated-player-pick-trade.js'
+      - 'hlm-phase11-integrated-player-pick-trade.test.js'
+      - '.github/workflows/mission-1462-integrated-player-pick-trade.yml'
+  workflow_dispatch:
+jobs:
+  integrated-trade-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-integrated-player-pick-trade.test.js
+  trade-boundary-mobile:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node -e "const {chromium}=require('playwright');const fs=require('fs');if(!fs.existsSync(chromium.executablePath()))process.exit(1)"
+      - run: node hlm-phase11-trade-execution-boundary.chromium.test.js

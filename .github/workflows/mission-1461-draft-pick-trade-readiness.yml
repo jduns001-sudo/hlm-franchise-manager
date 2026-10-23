@@ -1,0 +1,36 @@
+name: Mission 1461 Draft Pick Trade Readiness
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-draft-pick-trade-readiness*'
+      - '.github/workflows/mission-1461-draft-pick-trade-readiness.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  draft-rights-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-draft-pick-trade-readiness.test.js
+  guarded-trade-mobile:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node -e "const {chromium}=require('playwright');const fs=require('fs');if(!fs.existsSync(chromium.executablePath()))process.exit(1)"
+      - run: node hlm-phase11-trade-execution-boundary.chromium.test.js

@@ -10,6 +10,7 @@ const {chromium}=require('playwright');
   const html=fs.readFileSync('hlm-phase11-isolated-single-game.html','utf8');
   await page.route('**/hlm-phase11-isolated-single-game.html*',route=>route.fulfill({status:200,contentType:'text/html',body:html}));
   await page.route('**/hlm-phase11-source-pick-transfer.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:fs.readFileSync('hlm-phase11-source-pick-transfer.js','utf8')}));
+  await page.route('**/hlm-phase11-guarded-mobile-lifecycle.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:fs.readFileSync('hlm-phase11-guarded-mobile-lifecycle.js','utf8')}));
   await page.goto('https://jduns001-sudo.github.io/hlm-franchise-manager/hlm-phase11-isolated-single-game.html?mission1395='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
   await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','MISSION1395_PRODUCTION_SENTINEL'));
   await page.waitForFunction(()=>document.querySelector('#new-team')?.options.length===32&&!document.querySelector('#new-franchise')?.disabled,{timeout:60000});

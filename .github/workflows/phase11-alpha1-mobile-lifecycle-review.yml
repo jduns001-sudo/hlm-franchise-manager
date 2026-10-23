@@ -1,0 +1,32 @@
+name: Phase 11 Alpha 1 Mobile Lifecycle Review
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-guarded-mobile-lifecycle*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/phase11-alpha1-mobile-lifecycle-review.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile-lifecycle-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-guarded-mobile-lifecycle.test.js
+  mobile-lifecycle-chromium:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node hlm-phase11-guarded-mobile-lifecycle.chromium.test.js
+      - run: node hlm-phase11-franchise-lifecycle.chromium.test.js

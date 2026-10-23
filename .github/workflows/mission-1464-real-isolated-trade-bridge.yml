@@ -1,0 +1,30 @@
+name: Mission 1464 Real Isolated GM Trade Bridge
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-real-isolated-trade-bridge*'
+      - 'hlm-phase11-integrated-trade-workspace.html'
+      - '.github/workflows/mission-1464-real-isolated-trade-bridge.yml'
+  workflow_dispatch:
+jobs:
+  source-backed-bridge-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-real-isolated-trade-bridge.test.js hlm-phase11-integrated-trade-workspace.test.js
+  source-backed-bridge-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-real-isolated-trade-bridge.chromium.test.js
+      - run: node hlm-phase11-integrated-trade-workspace.chromium.test.js

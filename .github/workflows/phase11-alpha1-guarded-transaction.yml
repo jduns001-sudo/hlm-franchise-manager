@@ -1,0 +1,37 @@
+name: Phase 11 Alpha 1 Guarded Transaction Integration
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-alpha1-guarded-transaction*'
+      - '.github/workflows/phase11-alpha1-guarded-transaction.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guarded-transaction-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-alpha1-guarded-transaction.test.js hlm-phase11-integrated-trade-workspace.test.js
+  guarded-transaction-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node -e "const {chromium}=require('playwright');const fs=require('fs');if(!fs.existsSync(chromium.executablePath()))process.exit(1)"
+      - run: node hlm-phase11-alpha1-guarded-transaction.chromium.test.js
+      - run: node hlm-phase11-real-isolated-trade-bridge.chromium.test.js

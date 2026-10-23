@@ -1,0 +1,17 @@
+name: Mission 1455 Protected CPU Trust Foundation
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-protected-cpu-trust-foundation.js'
+      - 'hlm-phase11-protected-cpu-trust-foundation.test.js'
+      - '.github/workflows/mission-1455-protected-cpu-trust-foundation.yml'
+  workflow_dispatch:
+jobs:
+  trust-negative-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-protected-cpu-trust-foundation.test.js
