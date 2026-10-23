@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hockey Franchise Manager | Mobile Office</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui,sans-serif;background:#101d2c;color:#f2f7ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;padding-bottom:88px}
+header{background:#172d43;padding:20px 18px;border-bottom:1px solid #45617d}
+h1{font-size:1.55rem;margin:0 0 4px}h2{font-size:1.15rem;margin:0 0 12px}
+small,.muted{color:#c0cfdf}main{max-width:720px;margin:auto;padding:18px}
+.card{background:#1c354f;border:1px solid #587898;border-radius:16px;padding:18px;margin:0 0 16px}
+a.action{display:block;text-align:center;background:#dceeff;color:#10243a;text-decoration:none;border-radius:10px;padding:15px 12px;font-weight:750;min-height:48px}
+a.secondary{display:block;text-align:center;color:#f2f7ff;border:1px solid #88a8c7;border-radius:10px;padding:12px;margin-top:10px;text-decoration:none;min-height:48px}
+nav{position:fixed;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));background:#142a40;border-top:1px solid #6b8baa;padding:6px 2px max(6px,env(safe-area-inset-bottom))}
+nav a{font-size:.78rem;min-height:54px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-decoration:none;color:#c7d7e8;border-radius:8px;gap:3px}
+nav a[aria-current=page]{background:#2a4a68;color:white;font-weight:700}
+nav span{font-size:1.3rem}a:focus-visible{outline:3px solid #ffcf70;outline-offset:2px}
+.panel[hidden]{display:none}
+@media(min-width:760px){nav{left:calc(50% - 360px);right:calc(50% - 360px);border:1px solid #6b8baa;border-radius:12px 12px 0 0}}
+</style></head><body>
+<header><h1>🏒 Franchise Office</h1><small>Isolated Alpha 1 · Mobile navigation preview · No automatic saves</small></header>
+<main>
+<section id="office" class="panel" aria-labelledby="office-title"><div class="card"><h2 id="office-title">Office</h2><p>Resume your existing isolated franchise to see the authoritative controlled team, schedule and next opponent. This navigation preview does not read, create, or change any save.</p><a class="action" href="./hlm-phase11-isolated-single-game.html#gm-next-action-heading">▶ Resume franchise</a><a class="secondary" href="./hlm-phase11-isolated-single-game.html#gm-game-day-workspace-heading">Prepare next game</a><p class="muted">Game preparation opens the existing guarded review. Simulation still requires explicit human GM approval.</p></div><div class="card"><h2>Game-day safety</h2><p>Review and decline do not save. The isolated season keeps its own save separate from the production Front Office.</p></div></section>
+<section id="team" class="panel" hidden aria-labelledby="team-title"><div class="card"><h2 id="team-title">Team</h2><a class="action" href="./hlm-phase11-isolated-single-game.html#gm-roster">View controlled-team roster</a><a class="secondary" href="./hlm-phase11-isolated-single-game.html#gm-game-day-workspace-heading">Lineup and goalie decisions</a></div></section>
+<section id="calendar" class="panel" hidden aria-labelledby="calendar-title"><div class="card"><h2 id="calendar-title">Calendar</h2><a class="action" href="./hlm-phase11-isolated-single-game.html#game">Scheduled games</a><a class="secondary" href="./hlm-phase11-isolated-single-game.html#day-review">Review next day (no save)</a><a class="secondary" href="./hlm-phase11-isolated-single-game.html#season-dashboard">Results and standings</a></div></section>
+<section id="assistant" class="panel" hidden aria-labelledby="assistant-title"><div class="card"><h2 id="assistant-title">AI GM</h2><p>Assistant integration is not yet part of this isolated mobile navigation preview. No automated roster or simulation decisions are enabled.</p><a class="secondary" href="./app.html">Existing Front Office</a></div></section>
+<section id="menu" class="panel" hidden aria-labelledby="menu-title"><div class="card"><h2 id="menu-title">Menu</h2><a class="action" href="./hlm-phase11-isolated-single-game.html#gm-draft-pick">Draft center</a><a class="secondary" href="./hlm-phase11-isolated-single-game.html#playoff-start">Playoffs</a><a class="secondary" href="./index.html?tools=1">Development workspaces</a><a class="secondary" href="./app.html">Production Front Office (separate save)</a></div></section>
+</main>
+<nav aria-label="Mobile franchise navigation"><a href="#office" data-panel="office" aria-current="page"><span>⌂</span>Office</a><a href="#team" data-panel="team"><span>♟</span>Team</a><a href="#calendar" data-panel="calendar"><span>▦</span>Calendar</a><a href="#assistant" data-panel="assistant"><span>✦</span>AI GM</a><a href="#menu" data-panel="menu"><span>☰</span>Menu</a></nav>
+<script>
+(function(){'use strict';const allowed=new Set(['office','team','calendar','assistant','menu']);function select(){const id=location.hash.slice(1);const active=allowed.has(id)?id:'office';document.querySelectorAll('.panel').forEach(el=>{el.hidden=el.id!==active});document.querySelectorAll('nav [data-panel]').forEach(a=>{if(a.dataset.panel===active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')})}window.addEventListener('hashchange',select);select()})();
+</script></body></html>
