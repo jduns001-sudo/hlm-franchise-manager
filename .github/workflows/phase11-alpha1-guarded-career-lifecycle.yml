@@ -1,0 +1,32 @@
+name: Phase 11 Alpha 1 Guarded Career Lifecycle
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-alpha1-guarded-career-lifecycle*'
+      - '.github/workflows/phase11-alpha1-guarded-career-lifecycle.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guarded-career-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-alpha1-guarded-career-lifecycle.test.js
+      - run: node hlm-phase10-next-season.test.js
+      - run: node hlm-phase10-season-playoffs.test.js
+  real-career-mobile:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node hlm-phase11-franchise-lifecycle.chromium.test.js

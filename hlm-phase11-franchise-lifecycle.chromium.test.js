@@ -1,6 +1,18 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
 const {chromium}=require('playwright');
+const {standings}=require('./hlm-phase11-season-ledger');
+function assertUniqueFinals(games,label){
+ assert.ok(Array.isArray(games)&&games.length>0,label+' must contain games');
+ const ids=games.map(g=>String(g.id));
+ assert.ok(games.every(g=>g.id!==undefined&&g.id!==null),label+' game IDs required');
+ assert.equal(new Set(ids).size,ids.length,label+' game IDs must be unique');
+ for(const g of games.filter(g=>g.status==='final')){
+  assert.ok(Number.isSafeInteger(g.homeGoals)&&Number.isSafeInteger(g.awayGoals)&&g.homeGoals>=0&&g.awayGoals>=0&&g.homeGoals!==g.awayGoals,label+' final scores must be valid');
+ }
+}
+function pickOwnership(state){return (state.assets?.draftPicks||[]).map(p=>({pickId:String(p.pickId),currentOwnerId:String(p.currentOwnerId),year:p.year,round:p.round,source:p.source})).sort((a,b)=>a.pickId.localeCompare(b.pickId))}
+
 const KEY='hlm-phase11-m1340-isolated-single-game-v1';
 const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.url||'/').split('?')[0].slice(1));if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.json')?'application/json':'text/html');res.end(b)})});
 (async()=>{await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await chromium.launch();try{
@@ -57,6 +69,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true);
  assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY)>0,true,'approved game must survive reload');
  // Mission 1432: advance a second separately reviewed day; cancelled approval remains no-save.
+ const standingsBeforeSecondDay=standings(JSON.parse(await page.evaluate(key=>localStorage.getItem(key),KEY)));
  const finalsBefore=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY);
  await page.locator('#day-review').click();
  const day2Before=await page.evaluate(key=>localStorage.getItem(key),KEY);
@@ -71,6 +84,9 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.reload();
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true);
  assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY),finalsAfter,'both approved days must survive reload');
+ const reloadedSecondDay=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),KEY));
+ assert.notDeepEqual(standings(reloadedSecondDay),standingsBeforeSecondDay,'approved second day must update standings');
+ assert.deepEqual(standings(reloadedSecondDay),standings(JSON.parse(await page.evaluate(key=>localStorage.getItem(key),KEY))),'standings must remain identical after reload');
  // Mission 1434: complete the actual imported-universe schedule via separate human GM day approvals.
  // Each approval uses the application's guarded UI path, never direct save mutation.
  let regularSeasonApprovals=0;
@@ -84,6 +100,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    regularSeasonApprovals++;
  }
  assert.ok(regularSeasonApprovals>0,'must complete remaining regular season through GM-approved actions');
+ const completedRegular=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),KEY));
+ assertUniqueFinals(completedRegular.activity.games,'completed regular season');
+ assert.ok(completedRegular.activity.games.every(g=>g.status==='final'),'regular season must have exactly one final per scheduled game');
+ const completedStandings=standings(completedRegular);
+ await page.reload();await page.waitForFunction(()=>document.querySelector('#playoff-start')?.disabled===false);
+ assert.deepEqual(standings(JSON.parse(await page.evaluate(key=>localStorage.getItem(key),KEY))),completedStandings,'completed regular-season standings must survive reload');
  assert.equal(await page.locator('#playoff-start').isEnabled(),true,'completed regular season must unlock playoff qualification');
  console.log('Mission 1434 completed real-universe season in '+regularSeasonApprovals+' additional explicitly GM-approved days');
  // Mission 1433: qualify real-universe playoffs only after every regular-season game is final.
@@ -114,6 +136,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    const champion=await page.evaluate(key=>{const s=JSON.parse(localStorage.getItem(key));return s.extensions?.phase10Playoffs?.championTeamId??s.extensions?.phase11Playoffs?.championTeamId??null},KEY);
    assert.ok(champion!=null,'completed best-of-seven bracket must identify a champion');
    assert.ok(playoffApprovals>=8,'four-team best-of-seven bracket must require multiple playoff games');
+   const completedBracket=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),KEY)).extensions.phase10Playoffs;
+   const playoffGames=completedBracket.rounds.flatMap(round=>round.flatMap(series=>series.games));
+   assert.equal(playoffGames.length,playoffApprovals,'each GM approval must create exactly one playoff final');
+   assert.ok(playoffGames.every(g=>g.status==='final'&&g.gameId!=null),'all playoff results must be final and identified');
+   assert.equal(new Set(playoffGames.map(g=>String(g.gameId))).size,playoffGames.length,'playoff game IDs must be unique across rounds and series');
+   assertUniqueFinals(completedRegular.activity.games,'regular-season final identity remains distinct');
    assert.equal(await page.locator('#season-archive').isEnabled(),true,'completed playoffs must unlock championship archive');
    assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
    await page.reload();
@@ -147,6 +175,10 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    const nextSeasonId=await page.locator('#next-season-id').inputValue();
    const nextSeasonDate=await page.locator('#next-season-date').inputValue();
    const beforeOffseason=await page.evaluate(key=>localStorage.getItem(key),KEY);
+   const beforeRolloverState=JSON.parse(beforeOffseason);
+   const beforeRolloverPicks=pickOwnership(beforeRolloverState);
+   assert.equal(new Set(beforeRolloverPicks.map(p=>p.pickId)).size,beforeRolloverPicks.length,'source-backed pick IDs must be unique');
+   assert.ok(beforeRolloverPicks.every(p=>p.pickId&&p.currentOwnerId!=='undefined'&&p.source==='hlm-universe.json'),'draft rights must be source-backed with owners');
    assert.equal(await page.locator('#next-season').isDisabled(),true,'next-season approval requires a fresh review');
    // Mission 1440: real-universe starter imports validated draft picks, but not unsupported contracts or prospect rights.
    // Reject non-existent asset operations atomically rather than inventing contract or prospect IDs.
@@ -199,6 +231,11 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
      return {history:state.history?.seasons||[],seasons:state.activity?.seasons||[],games:state.activity?.games||[],seasonId:state.extensions?.phase10CurrentSeasonId,currentDate:state.meta?.currentDate};
    },KEY);
    assert.deepEqual(reloadedNext,nextState,'approved next-season schedule and championship history must survive reload');
+   const afterRolloverState=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),KEY));
+   assert.equal(String(afterRolloverState.meta.controlledTeamId),String(beforeRolloverState.meta.controlledTeamId),'GM-controlled team must survive rollover');
+   assert.deepEqual(pickOwnership(afterRolloverState),beforeRolloverPicks,'source-backed draft-pick IDs and owners must survive rollover without approved transfers');
+   assertUniqueFinals(afterRolloverState.activity.games,'new-season schedule');
+   assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL','final reload must preserve production save');
    assert.equal(await page.locator('#next-season').isDisabled(),true,'reviewed approval must not survive reload');
    console.log('Mission 1437 GM-approved next season '+nextSeasonId+' with '+nextState.games.filter(g=>g.status==='scheduled').length+' scheduled games');
    console.log('Mission 1436 archived '+archiveSeasonId+' with champion '+champion+' through explicit GM approval and reload');
