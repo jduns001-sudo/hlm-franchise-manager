@@ -1,0 +1,17 @@
+name: Mission 1505 Roster Render Contract
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-roster-render-contract.test.js'
+      - '.github/workflows/mission-1505-roster-render-contract.yml'
+  workflow_dispatch:
+jobs:
+  roster-render-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-roster-render-contract.test.js
