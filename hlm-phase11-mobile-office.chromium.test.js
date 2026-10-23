@@ -25,6 +25,7 @@ const path = require('node:path');
     const tabs = ['office', 'team', 'calendar', 'assistant', 'menu'];
     for (const id of tabs) {
       await page.locator('nav [data-panel="' + id + '"]').click();
+      await page.locator('#' + id).waitFor({ state: 'visible' });
       assert.equal(await page.locator('#' + id).isVisible(), true, id + ' visible');
       assert.equal(await page.locator('.panel:visible').count(), 1, 'exactly one panel visible');
       assert.equal(await page.locator('nav [aria-current="page"]').getAttribute('data-panel'), id, id + ' active');
