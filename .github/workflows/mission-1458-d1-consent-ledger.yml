@@ -27,5 +27,8 @@ jobs:
       - name: Audit isolated Miniflare dependencies (nonblocking, no secrets)
         shell: bash
         run: |
-          npm audit --json --omit=dev > "$RUNNER_TEMP/hlm-miniflare-audit.json" 2>/dev/null || true
-          node -e 'const fs=require("fs");const p=process.env.RUNNER_TEMP+"/hlm-miniflare-audit.json";try{const a=JSON.parse(fs.readFileSync(p,"utf8"));const v=a.vulnerabilities||{};console.log(JSON.stringify({metadata:a.metadata?.vulnerabilities||null,advisories:Object.entries(v).map(([name,x])=>({name,severity:x.severity,isDirect:x.isDirect,via:x.via?.map(y=>typeof y==="string"?y:{name:y.name,title:y.title,url:y.url,range:y.range}),fixAvailable:x.fixAvailable}))},null,2));}catch(e){console.log("Audit JSON unavailable: "+e.message)}'
+          set +e
+          npm audit --json > "$RUNNER_TEMP/hlm-miniflare-audit.json" 2>/dev/null
+          audit_status=$?
+          set -e
+          HLM_AUDIT_EXIT="$audit_status" node -e 'const fs=require("fs");const p=process.env.RUNNER_TEMP+"/hlm-miniflare-audit.json";const exit=Number(process.env.HLM_AUDIT_EXIT);try{const a=JSON.parse(fs.readFileSync(p,"utf8"));const v=a.vulnerabilities||{};console.log(JSON.stringify({auditExitCode:exit,auditError:a.error?{code:a.error.code,summary:a.error.summary}:null,metadata:a.metadata?.vulnerabilities||null,advisories:Object.entries(v).map(([name,x])=>({name,severity:x.severity,isDirect:x.isDirect,range:x.range,via:x.via?.map(y=>typeof y==="string"?y:{name:y.name,title:y.title,url:y.url,range:y.range}),fixAvailable:x.fixAvailable}))},null,2));}catch(e){console.log(JSON.stringify({auditExitCode:exit,auditParseError:e.message}))}'
