@@ -19,7 +19,7 @@ function project(manager){
   if(own>other)wins++;else if(own<other)losses++;else ties++;
  }
  const scheduled=owned.filter(g=>g.status==='scheduled').sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.id).localeCompare(String(b.id)));
- const next=scheduled[0]||null,opponent=next?teams.find(t=>String(t.id)===String(next.homeTeamId===id?next.awayTeamId:next.homeTeamId)):null;
+ const next=scheduled[0]||null,opponent=next?teams.find(t=>String(t.id)===String(String(next.homeTeamId)===String(id)?next.awayTeamId:next.homeTeamId)):null;
  if(next&&!opponent)throw Error('Scheduled opponent missing from source universe');
  const goalie=state.extensions?.phase11GmGoaliePlan,skaters=state.extensions?.phase11GmGameDaySkaterApproval;
  const goalieApproved=!!goalie&&String(goalie.teamId)===String(id);
