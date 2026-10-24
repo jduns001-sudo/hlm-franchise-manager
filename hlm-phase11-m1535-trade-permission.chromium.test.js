@@ -34,11 +34,9 @@ const {chromium}=require('playwright');
   await page.locator('#summary').getByText(/source-restrictions-or-roster-limits-unverified/).waitFor();
 
 
-  assert.equal(await page.locator('#approve').isDisabled(),false);
-  await page.locator('#approve').check();
-  await page.locator('#submit').click();
-  await page.locator('#status').getByText(/Settlement blocked/).waitFor();
+  assert.equal(await page.locator('#approve').isDisabled(),true);
   assert.equal(await page.locator('#submit').isDisabled(),true);
+  await page.locator('#status').getByText(/Trade ineligible. Approval blocked/).waitFor();
   await page.locator('#review').click();await page.locator('#decline').click();
   assert.equal(await page.locator('#submit').isDisabled(),true);
   await page.locator('#outgoing').fill('unknown');await page.locator('#review').click();
