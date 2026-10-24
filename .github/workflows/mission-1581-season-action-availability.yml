@@ -1,0 +1,29 @@
+name: Mission 1581 GM Season Action Availability
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1579-unified-gm-next-action.js'
+      - 'hlm-phase11-m1579-unified-gm-next-action.test.js'
+      - '.github/workflows/mission-1581-season-action-availability.yml'
+  workflow_dispatch:
+jobs:
+  gm-season-action-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1579-unified-gm-next-action.js
+      - run: node hlm-phase11-m1579-unified-gm-next-action.test.js
+      - run: node hlm-phase11-real-universe-journey.test.js
+  gm-season-action-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1573-active-season-trade-planning.chromium.test.js
