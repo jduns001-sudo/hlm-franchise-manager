@@ -5,6 +5,7 @@ on:
       - 'hlm-phase11-m1522-isolated-atomic-trade-settlement.js'
       - 'hlm-phase11-m1522-isolated-atomic-trade-settlement.test.js'
       - 'hlm-phase11-m1522-isolated-atomic-trade-settlement.chromium.test.js'
+      - 'hlm-phase11-m1522-isolated-atomic-trade-settlement.integration.test.js'
       - '.github/workflows/mission-1522-isolated-atomic-trade-settlement.yml'
   workflow_dispatch:
 jobs:
@@ -16,6 +17,15 @@ jobs:
         with:
           node-version: '22'
       - run: node --test hlm-phase11-m1522-isolated-atomic-trade-settlement.test.js
+  isolated-trade-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save fake-indexeddb
+      - run: node hlm-phase11-m1522-isolated-atomic-trade-settlement.integration.test.js
   isolated-trade-chromium:
     runs-on: ubuntu-latest
     steps:
