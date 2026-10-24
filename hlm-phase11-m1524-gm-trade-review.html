@@ -50,11 +50,13 @@ button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:b
     by('summary').textContent='Review unavailable: '+String(result?.code||'invalid-host-response');
     status('No changes saved.');return;
    }
-   current={request,revision:result.revision};
+   const eligible=result.financial?.eligible===true&&result.restrictions?.eligible===true;
+   current=eligible?{request,revision:result.revision}:null;
    by('summary').textContent=JSON.stringify({revision:result.revision,cpuPolicyDecision:result.cpuDecision,
     financialEligibility:result.financial,tradeRestrictions:result.restrictions,
     cpuConsentAuthenticated:false,productionSettlementAuthorized:false},null,2);
-   by('approve').disabled=false;status('Review only. No changes saved.');
+   by('approve').disabled=!eligible;
+   status(eligible?'Review only. No changes saved.':'Trade ineligible. Approval blocked. No changes saved.');
   }catch{status('Review failed. No changes saved.')}
   finally{busy=false;by('review').disabled=false}
  });
