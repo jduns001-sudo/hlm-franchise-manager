@@ -1,0 +1,15 @@
+name: Mission 1507I Trade Invariant Gate
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507i-trade-invariant-gate*'
+      - '.github/workflows/mission-1507i-trade-invariant-gate.yml'
+jobs:
+  trade-invariant-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507i-trade-invariant-gate.test.js
