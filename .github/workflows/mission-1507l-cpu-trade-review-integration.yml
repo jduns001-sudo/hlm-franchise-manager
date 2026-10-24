@@ -1,0 +1,16 @@
+name: Mission 1507L CPU Trade Review Integration
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507j-guarded-trade-workflow.js'
+      - 'hlm-phase11-m1507l-cpu-trade-review-integration.test.js'
+      - '.github/workflows/mission-1507l-cpu-trade-review-integration.yml'
+jobs:
+  cpu-trade-review-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507j-guarded-trade-workflow.test.js hlm-phase11-m1507l-cpu-trade-review-integration.test.js
