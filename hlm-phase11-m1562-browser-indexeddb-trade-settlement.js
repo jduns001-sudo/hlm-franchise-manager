@@ -3,7 +3,10 @@
  * settlement. No authenticated CPU consent and no production authorization.
  */
 const {verify}=require('./hlm-phase11-m1561-browser-trade-provenance');
-const {settleSyntheticTradeWithIndexedDb}=require('./hlm-phase11-m1560-indexeddb-trade-integration');
+const {decideCpuTrade}=require('./hlm-phase11-m1555-engine-owned-cpu-decision');
+const {prepareIsolatedAtomicTrade}=require('./hlm-phase11-m1557-isolated-atomic-trade');
+const store=require('./hlm-phase11-m1516-atomic-isolated-state-persistence');
+const {validateGameStateEnvelope}=require('./hlm-game-state');
 const deny=code=>Object.freeze({ok:false,code,saved:false,settlementAuthorized:false,cpuConsentAuthenticated:false});
 async function settleBrowserVerifiedSyntheticTrade(state,input={},record,options={}){
  if(options.experimentalEnabled!==true)return deny('experiment-disabled');
@@ -22,8 +25,27 @@ async function settleBrowserVerifiedSyntheticTrade(state,input={},record,options
  if(checked.valid!==true)return deny(checked.code);
  if(record.payload?.decision!=='recommend-accept'&&record.payload?.decision!=='accept')
   return deny('cpu-policy-declined');
- const result=await settleSyntheticTradeWithIndexedDb(state,input,options);
- return Object.freeze({...result,settlementAuthorized:false,cpuConsentAuthenticated:false,
-  browserProvenanceVerified:true});
+ if(typeof options.experimentalDatabaseName!=='string'||!/^hlm-phase11-[a-zA-Z0-9_-]*experimental[a-zA-Z0-9_-]*$/.test(options.experimentalDatabaseName))return deny('isolated-experimental-database-required');
+ const decision=decideCpuTrade(state,input);
+ if(decision.ok!==true)return deny(decision.code);
+ if(decision.decision!=='accept')return deny('cpu-policy-declined');
+ const prepared=prepareIsolatedAtomicTrade(state,input);
+ if(prepared.ok!==true)return deny(prepared.code);
+ const candidate=JSON.parse(JSON.stringify(state));
+ const controlled=String(state.meta.controlledTeamId),other=String(decision.receivingTeamId);
+ for(const [id,from,to] of [[input.outgoingPlayerId,controlled,other],[input.incomingPlayerId,other,controlled]]){
+  const players=candidate.universe.players.filter(p=>String(p.id)===String(id));
+  const contracts=candidate.assets.contracts.filter(c=>String(c.playerId)===String(id)&&c.status==='active');
+  if(players.length!==1||contracts.length!==1||String(players[0].teamId)!==from||String(contracts[0].teamId)!==from)return deny('stale-transfer-source');
+  players[0].teamId=to;contracts[0].teamId=to;
+ }
+ candidate.meta.revision++;
+ if(validateGameStateEnvelope(candidate).valid!==true||candidate.meta.revision!==prepared.proposedRevision)return deny('invalid-candidate');
+ try{
+  const previous=await store.read(options.experimentalDatabaseName);
+  if(previous.game===null||previous.game.meta?.revision!==state.meta.revision||JSON.stringify(previous.game)!==JSON.stringify(state))return deny('uninitialized-or-stale-experimental-store');
+  const result=await store.commit({experimentalEnabled:true,gmApproved:true,syntheticTestAuthorization:true,expectedRevision:state.meta.revision,candidateState:candidate,eventId:options.eventId,realTradeSettlement:false},options.experimentalDatabaseName);
+  return Object.freeze({ok:result.committed===true,code:result.code,saved:result.saved===true,experimentalSyntheticSave:result.saved===true,settlementAuthorized:false,cpuConsentAuthenticated:false,browserProvenanceVerified:true});
+ }catch{return deny('isolated-storage-error')}
 }
 module.exports={settleBrowserVerifiedSyntheticTrade};
