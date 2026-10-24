@@ -4,9 +4,9 @@ const {chromium}=require('playwright');
 (async()=>{
  const game=fs.readFileSync(path.join(__dirname,'hlm-game-state.js'),'utf8');
  const atomic=fs.readFileSync(path.join(__dirname,'hlm-phase11-m1516-atomic-isolated-state-persistence.js'),'utf8');
- const html='<script>var module={exports:{}};'+game+
- ';window.HLMGameState=module.exports;module={exports:{}};var require=function(name){if(name==="./hlm-game-state")return window.HLMGameState;throw Error("unknown dependency")};'+atomic+
- ';window.HLMAtomic=module.exports;</script>';
+ const html='<script>(function(){var module={exports:{}};'+game+
+ ';window.HLMGameState=module.exports;})();(function(){var module={exports:{}};var require=function(name){if(name==="./hlm-game-state")return window.HLMGameState;throw Error("unknown dependency")};'+atomic+
+ ';window.HLMAtomic=module.exports;})();</script>';
  const server=http.createServer((req,res)=>{res.writeHead(200,{'content-type':'text/html'});res.end(html)});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({headless:true});
