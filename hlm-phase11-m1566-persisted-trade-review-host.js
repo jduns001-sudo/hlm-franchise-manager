@@ -49,7 +49,7 @@ function createHost(config={}){
      return Object.freeze({teamId,name:player.teamName,beforePayroll,afterPayroll,capLimit,remainingCap:capLimit-afterPayroll});
     });
     const terms=Object.freeze({revision,players:Object.freeze(players),teams:Object.freeze(teams)});
-    pending={state,request,proof,revision};
+    pending={state,ledger:persisted.ledger,request,proof,revision};
     return Object.freeze({ok:true,code:'persisted-synthetic-review-only',revision,
      terms,cpuDecision:proof.payload.decision,financial:{eligible:true,sourceValidated:true},
      restrictions:{eligible:true,sourceValidated:true},saved:false,
@@ -68,7 +68,7 @@ function createHost(config={}){
    try{
     if(typeof globalThis.crypto?.randomUUID!=='function')return deny('browser-crypto-unavailable');
     return await settleBrowserVerifiedSyntheticTrade(reviewed.state,{...reviewed.request,gmApproved:true,expectedGameRevision:reviewed.revision},reviewed.proof,{
-     experimentalEnabled:true,syntheticTestAuthorization:true,gmApproved:true,
+     experimentalEnabled:true,syntheticTestAuthorization:true,gmApproved:true,expectedLedger:reviewed.ledger,
      realTradeSettlement:false,experimentalDatabaseName:database,eventId:'m1566_'+globalThis.crypto.randomUUID()
     });
    }catch{return deny('isolated-settlement-error')}

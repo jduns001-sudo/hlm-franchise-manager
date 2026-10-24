@@ -41,6 +41,7 @@ async function commit(input={},name=DEFAULT_DB){
   typeof eventId!=='string'||! /^[a-zA-Z0-9_-]{1,80}$/.test(eventId))
   return deny('invalid-input');
  if(candidateState.meta?.revision!==expectedRevision+1)return deny('candidate-revision-mismatch');
+ const expectedLedger=input.expectedLedger===undefined?undefined:clone(input.expectedLedger);
  const db=await open(name);
  try{return await new Promise((resolve,reject)=>{
   const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);
@@ -49,7 +50,10 @@ async function commit(input={},name=DEFAULT_DB){
    if(++seen!==2)return;
    const oldRev=game?.meta?.revision??0;
    const events=ledger?.events??[];
-   if(!Number.isSafeInteger(oldRev)||oldRev!==expectedRevision||
+   if((game===null)!==(ledger===null)||
+    (ledger!==null&&ledger.revision!==oldRev)||
+    (expectedLedger!==undefined&&JSON.stringify(ledger)!==JSON.stringify(expectedLedger))||
+    !Number.isSafeInteger(oldRev)||oldRev!==expectedRevision||
     !Array.isArray(events)||events.some(e=>e.id===eventId)||
     (game!==null&&validateGameStateEnvelope(game).valid!==true)){
     code='stale-or-replayed';return;

@@ -56,7 +56,9 @@ async function settleBrowserVerifiedSyntheticTrade(state,input={},record,options
  try{
   const previous=await store.read(options.experimentalDatabaseName);
   if(previous.game===null||previous.game.meta?.revision!==state.meta.revision||JSON.stringify(previous.game)!==JSON.stringify(state))return deny('uninitialized-or-stale-experimental-store');
-  const result=await store.commit({experimentalEnabled:true,gmApproved:true,syntheticTestAuthorization:true,expectedRevision:state.meta.revision,candidateState:candidate,eventId:options.eventId,realTradeSettlement:false},options.experimentalDatabaseName);
+  if(!previous.ledger||previous.ledger.revision!==state.meta.revision||
+     (options.expectedLedger!==undefined&&JSON.stringify(previous.ledger)!==JSON.stringify(options.expectedLedger)))return deny('stale-experimental-ledger');
+  const result=await store.commit({experimentalEnabled:true,gmApproved:true,syntheticTestAuthorization:true,expectedRevision:state.meta.revision,candidateState:candidate,eventId:options.eventId,expectedLedger:previous.ledger,realTradeSettlement:false},options.experimentalDatabaseName);
   return Object.freeze({ok:result.committed===true,code:result.code,saved:result.saved===true,experimentalSyntheticSave:result.saved===true,settlementAuthorized:false,cpuConsentAuthenticated:false,browserProvenanceVerified:true});
  }catch{return deny('isolated-storage-error')}
 }

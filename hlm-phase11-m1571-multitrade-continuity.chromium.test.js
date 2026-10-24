@@ -46,7 +46,25 @@ async function submit(page,frame,revision){
    try{await new Promise((resolve,reject)=>{const tx=db.transaction('records','readwrite');tx.objectStore('records').put(state,'game');tx.objectStore('records').put({revision:1,events:[{id:'seed',experimental:true}]},'ledger');tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error)})}finally{db.close()}
   },{state:source(),name:database});
   await page.reload();await connect(page);
-  const seed=await snapshot(page),firstFrame=await review(page,'pA','pB',1);
+  const seed=await snapshot(page);
+  // Exercise the actual connected review/settlement host against an independent
+  // ledger writer, both with an invalid revision and unchanged revision/events.
+  async function replaceLedger(ledger){await page.evaluate(async ({name,ledger})=>{
+   const db=await new Promise((resolve,reject)=>{const req=indexedDB.open(name,1);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+   try{await new Promise((resolve,reject)=>{const tx=db.transaction('records','readwrite');tx.objectStore('records').put(ledger,'ledger');tx.oncomplete=resolve;tx.onabort=()=>reject(tx.error)})}finally{db.close()}
+  },{name:database,ledger})}
+  for(const ledger of [{...seed.ledger,revision:999},{...seed.ledger,events:[...seed.ledger.events,{id:'concurrent',experimental:true}]}]){
+   const reviewed=await review(page,'pA','pB',1);await replaceLedger(ledger);
+   const changed=await snapshot(page);await reviewed.locator('#submit').click();
+   await page.waitForFunction(()=>document.getElementById('trade-frame').contentDocument.getElementById('status').textContent.startsWith('Settlement blocked'));
+   assert.match(await reviewed.locator('#status').innerText(),/stale-experimental-ledger/);
+   assert.deepEqual(await snapshot(page),changed,'ledger-only conflict must not save ownership, history or a replacement ledger');
+   // Test harness restores its seed so the unchanged consecutive-trade journey
+   // below can independently prove the valid settlement path still works.
+   await replaceLedger(seed.ledger);await page.locator('#refresh-players').click();
+   await page.waitForFunction(()=>document.getElementById('roster-status').textContent.startsWith('Saved roster revision 1'));
+  }
+  const firstFrame=await review(page,'pA','pB',1);
   assert.deepEqual(await snapshot(page),seed,'first review never saves');
   assert.match(await firstFrame.locator('#terms').innerText(),/Alpha: payroll 4 → 7/);
   await submit(page,firstFrame,2);const first=await snapshot(page);
