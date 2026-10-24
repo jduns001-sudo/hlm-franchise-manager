@@ -23,8 +23,8 @@ function source(){return {schemaVersion:1,meta:{revision:4,controlledTeamId:'A'}
  // Successful trade paths require Node crypto; browser coverage here is pre-authorization denial.
 
  results.store=await HLM1516.read(db);
- results.production=localStorage.getItem('hlm_front_office_v8');results.sourceUnchanged=JSON.stringify(state)===before;return results;},{state:source(),db});
+ results.productionSave=localStorage.getItem('hlm_front_office_v8');results.sourceUnchanged=JSON.stringify(state)===before;return results;},{state:source(),db});
  for(const key of ['disabled','cancel','decline','production','untrusted']){assert.equal(result[key].saved,false,key);assert.equal(result[key].settlementAuthorized,false,key)}
- assert.equal(result.store.game,null);assert.equal(result.store.ledger,null);assert.equal(result.production,'production-untouched');assert.equal(result.sourceUnchanged,true);
+ assert.equal(result.store.game,null);assert.equal(result.store.ledger,null);assert.equal(result.productionSave,'production-untouched');assert.equal(result.sourceUnchanged,true);
  console.log('M1560 direct mobile facade: cancel, decline, production, no-save passed');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}})().catch(e=>{console.error(e);process.exitCode=1});
