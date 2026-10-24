@@ -1,0 +1,19 @@
+name: Mission 1507O CPU Decision Foundation
+on:
+  push:
+    branches:
+      - experiment/phase11-m1507o-cpu-trade-decision-foundation
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507o-cpu-decision-foundation.js'
+      - 'hlm-phase11-m1507o-cpu-decision-foundation.test.js'
+      - '.github/workflows/mission-1507o-cpu-decision-foundation.yml'
+jobs:
+  cpu-decision-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507o-cpu-decision-foundation.test.js
