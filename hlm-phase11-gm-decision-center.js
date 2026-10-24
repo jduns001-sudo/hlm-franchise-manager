@@ -13,7 +13,7 @@ function project(summary){
  if(!readiness.goalieApproved)missing.push('goalie plan');
  if(!readiness.gameDaySkatersApproved)missing.push('skater review');
  const message=missing.length?'GM review needed: '+missing.join(' and ')+'.':'Recorded plans exist. Human GM must still approve simulation.';
- return Object.freeze({status:'review-required',gameId:game.gameId,message,action:Object.freeze({label:'Open guarded game-day review',href:DESTINATION}),readOnly:true,requiresHumanApproval:true});
+ return Object.freeze({status:missing.length?'review-required':'approval-required',gameId:game.gameId,message,action:Object.freeze({label:missing.length?'Review game-day plans':'Review and approve simulation',href:DESTINATION}),readOnly:true,requiresHumanApproval:true});
 }
 return {project};
 });

@@ -45,6 +45,9 @@ const {KEY} = require('./hlm-phase11-isolated-single-game');
     assert.match(summary, /GM review still required/);
     const decision = await page.locator('#gm-decision-summary').innerText();
     assert.match(decision, /GM review needed: goalie plan and skater review/);
+    assert.equal(await page.locator('#gm-decision-action').isVisible(), true);
+    assert.match(await page.locator('#gm-decision-action').innerText(), /Review game-day plans/);
+    assert.match(await page.locator('#gm-decision-action').getAttribute('href'), /#gm-game-day-workspace-heading$/);
     assert.equal(await page.evaluate(key => localStorage.getItem(key), KEY), savedBefore, 'summary cannot rewrite isolated save');
     const tabs = ['office', 'team', 'calendar', 'assistant', 'menu'];
     for (const id of tabs) {
