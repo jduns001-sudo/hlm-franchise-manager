@@ -40,6 +40,7 @@ $('review').addEventListener('click',()=>{
   const cpu=result.cpuEvaluation;
   message('Source-backed player/contract trade preview verified.\nProjected payroll: '+JSON.stringify(result.review.projectedPayroll)+
   '\nCPU rating advice: '+(cpu.status==='cpu-trade-evaluation-preview'?cpu.recommendation+' ('+cpu.receivingTeamRatingDelta+' OVR delta)':'Unavailable: '+cpu.code)+
+  '\nMobile CPU decision indication (valuation-derived, not authenticated): '+(cpu.status==='cpu-trade-evaluation-preview'?(cpu.receivingTeamRatingDelta>0?'accept preview':cpu.receivingTeamRatingDelta<0?'decline preview':'decline preview (even value)'):'blocked')+
   '\nCPU consent: NOT authenticated. Settlement: DISABLED.\nNo save has occurred.');
   for(const id of ['approve','decline','cancel'])$(id).disabled=false;
  }catch(e){message('Review blocked: '+e.message+'. No save.')}
