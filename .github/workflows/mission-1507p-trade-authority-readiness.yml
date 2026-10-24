@@ -1,0 +1,19 @@
+name: Mission 1507P Trade Authority Readiness
+on:
+  push:
+    branches:
+      - experiment/phase11-m1507p-trade-authority-readiness
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507p-trade-authority-readiness.js'
+      - 'hlm-phase11-m1507p-trade-authority-readiness.test.js'
+      - '.github/workflows/mission-1507p-trade-authority-readiness.yml'
+jobs:
+  trade-authority-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507p-trade-authority-readiness.test.js
