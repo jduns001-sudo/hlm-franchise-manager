@@ -1,0 +1,17 @@
+name: Mission 1519 CPU Authority Boundary
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1519-cpu-authority-boundary.js'
+      - 'hlm-phase11-m1519-cpu-authority-boundary.test.js'
+      - '.github/workflows/mission-1519-cpu-authority-boundary.yml'
+  workflow_dispatch:
+jobs:
+  cpu-authority-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1519-cpu-authority-boundary.test.js
