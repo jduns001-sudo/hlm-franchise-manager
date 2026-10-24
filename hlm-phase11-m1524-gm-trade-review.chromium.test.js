@@ -56,6 +56,8 @@ const {chromium}=require('playwright');
   assert.equal(await page.locator('#approve').isDisabled(),true,'late review cannot override changed proposal');
   assert.equal(await page.locator('#submit').isDisabled(),true);
   // Once an approved request is dispatched, do not offer a misleading cancel/no-save action.
+  // The invalidation scenario above leaves both IDs as pC; restore a valid proposal.
+  await page.locator('#incoming').fill('pB');
   await page.evaluate(()=>{window.__settleCalls=0;window.HLMTradeReviewHost={
    review:async()=>({ok:true,revision:7,cpuDecision:'accept',financial:{eligible:true},restrictions:{eligible:true},cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false}),
    settle:()=>{window.__settleCalls++;return new Promise(resolve=>{window.__resolvePendingSettlement=resolve})}
