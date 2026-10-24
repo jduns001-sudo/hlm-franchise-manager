@@ -50,9 +50,25 @@
      if(String(selected[0].player.teamId)!==String(game.meta.controlledTeamId)||
         String(selected[0].player.teamId)===String(selected[1].player.teamId))
       return deny('invalid-trade-teams');
+     // Source-backed financial review mirrors the strict read-only eligibility
+     // requirements. It does not replace the authoritative Node evaluator.
+     const cap=game.finances?.teamCapLimits,teamA=String(selected[0].player.teamId),
+      teamB=String(selected[1].player.teamId);
+     const active=contracts.filter(x=>x.status==='active');
+     const validMoney=x=>typeof x.aav==='number'&&Number.isFinite(x.aav)&&x.aav>=0;
+     let financial={eligible:false,reason:'source-financial-evidence-unavailable'};
+     if(cap&&Number.isFinite(cap[teamA])&&Number.isFinite(cap[teamB])&&
+        active.every(validMoney)&&selected.every(x=>validMoney(x.contract))){
+      const payroll=id=>active.filter(x=>String(x.teamId)===id).reduce((sum,x)=>sum+x.aav,0);
+      const afterA=payroll(teamA)-selected[0].contract.aav+selected[1].contract.aav;
+      const afterB=payroll(teamB)-selected[1].contract.aav+selected[0].contract.aav;
+      financial=afterA<=cap[teamA]&&afterB<=cap[teamB]
+       ?{eligible:true,reason:'source-cap-check-passed-review-only',projectedPayroll:{[teamA]:afterA,[teamB]:afterB}}
+       :{eligible:false,reason:'verified-salary-cap-exceeded'};
+     }
      // No browser CPU policy authority: do not manufacture eligibility.
      return {ok:true,revision,cpuDecision:'not-authenticated-review-only',
-      financial:{eligible:false,reason:'cpu-and-financial-policy-not-connected'},
+      financial,
       restrictions:{eligible:false,reason:'guarded-policy-not-connected'},
       cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false};
     }catch{return deny('isolated-storage-error')}
