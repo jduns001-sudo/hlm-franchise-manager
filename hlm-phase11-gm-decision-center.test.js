@@ -5,12 +5,15 @@ const source={status:'ready',source:'isolated-franchise-state',readOnly:true,nex
 const before=JSON.stringify(source);
 const review=project(source);
 assert.equal(review.status,'review-required');
+assert.equal(review.action.label,'Review game-day plans');
 assert.match(review.message,/goalie plan and skater review/);
 assert.equal(review.requiresHumanApproval,true);
 assert.match(review.action.href,/hlm-phase11-isolated-single-game\.html#gm-game-day-workspace-heading$/);
 assert.equal(JSON.stringify(source),before,'read-only projection does not mutate source');
 const approved=project({...source,readiness:{goalieApproved:true,gameDaySkatersApproved:true}});
 assert.match(approved.message,/Human GM must still approve simulation/);
+assert.equal(approved.status,'approval-required');
+assert.equal(approved.action.label,'Review and approve simulation');
 assert.equal(approved.requiresHumanApproval,true);
 assert.equal(project({...source,nextGame:null}).action,null);
 assert.equal(project({status:'no-franchise'}).action,null);
