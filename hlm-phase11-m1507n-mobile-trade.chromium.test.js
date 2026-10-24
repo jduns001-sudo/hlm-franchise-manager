@@ -47,7 +47,8 @@ const {create:cpuEngine}=require('./hlm-phase11-m1507q-cpu-decision-engine');
   await page.locator('#incoming').selectOption('b');
   for(const decision of ['approve','decline','cancel']){
    await page.locator('#review').click();
-   await page.waitForFunction(()=>document.querySelector('#report').textContent.includes('Proposal digest: '));
+   await page.waitForFunction(()=>/Proposal digest: |Review blocked: /.test(document.querySelector('#report').textContent));
+   assert.match(await page.locator('#report').innerText(),/Proposal digest: [a-f0-9]{64}/);
    assert.match(await page.locator('#report').innerText(),/favorable-for-receiving-team/);
    assert.match(await page.locator('#report').innerText(),/Deterministic CPU engine decision \(not authenticated\): (accept|blocked)/);
    assert.match(await page.locator('#report').innerText(),new RegExp('Proposal digest: '+expected.digest));
