@@ -1,0 +1,33 @@
+name: Mission 1575 Verified Contract Source Intake
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1575-*'
+      - 'hlm-phase11-m1573-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1575-contract-source-intake.yml'
+  workflow_dispatch:
+jobs:
+  contract-intake-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1575-contract-source-intake.js
+      - run: node --check hlm-phase11-m1575-contract-source-panel.js
+      - run: node --check hlm-phase11-m1573-active-season-trade-planning.chromium.test.js
+      - run: node hlm-phase11-m1575-contract-source-intake.test.js
+      - run: node hlm-phase11-m1574-season-trade-preflight.test.js
+      - run: node hlm-phase11-real-universe-journey.test.js
+  contract-intake-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1573-active-season-trade-planning.chromium.test.js
