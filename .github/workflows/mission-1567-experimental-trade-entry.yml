@@ -1,0 +1,31 @@
+name: Mission 1567 Experimental Trade Entry
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1567-*'
+      - 'hlm-phase11-m1566-*'
+      - 'hlm-phase11-m1524-gm-trade-review*'
+      - '.github/workflows/mission-1567-experimental-trade-entry.yml'
+  workflow_dispatch:
+jobs:
+  browser-bundle-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1567-build-trade-browser.js --check
+      - run: node hlm-phase11-m1567-trade-browser.test.js
+  experimental-entry-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1567-trade-entry.chromium.test.js
+      - run: node hlm-phase11-m1566-persisted-trade-review-host.chromium.test.js
+      - run: node hlm-phase11-m1524-gm-trade-review.chromium.test.js
