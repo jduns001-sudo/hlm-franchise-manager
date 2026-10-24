@@ -49,6 +49,8 @@ const {KEY} = require('./hlm-phase11-isolated-single-game');
     assert.match(await page.locator('#team-roster-context').innerText(), /Manage Pittsburgh roster using the existing guarded franchise workspace/);
     assert.match(await page.locator('#team a.action').getAttribute('href'), /#gm-roster$/);
     await page.locator('nav [data-panel="office"]').click();
+    await page.locator('#office').waitFor({ state: 'visible' });
+    await page.locator('#gm-decision-action').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#gm-decision-action').isVisible(), true);
     assert.match(await page.locator('#gm-decision-action').innerText(), /Review game-day plans/);
     assert.match(await page.locator('#gm-decision-action').getAttribute('href'), /#gm-game-day-workspace-heading$/);
