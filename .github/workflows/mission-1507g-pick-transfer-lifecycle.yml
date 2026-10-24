@@ -1,0 +1,17 @@
+name: Mission 1507G Pick Transfer Lifecycle
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507g-pick-transfer-lifecycle.test.js'
+      - '.github/workflows/mission-1507g-pick-transfer-lifecycle.yml'
+      - 'hlm-phase11-source-pick-transfer.js'
+      - 'hlm-phase11-isolated-single-game.js'
+jobs:
+  pick-transfer-lifecycle-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507g-pick-transfer-lifecycle.test.js
