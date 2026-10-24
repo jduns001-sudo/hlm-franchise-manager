@@ -4,7 +4,15 @@
  * It does NOT authenticate a CPU or GM, establish a trusted replay ledger,
  * or authorize settlement. No user-provided verifier is accepted.
  */
-const {contract}=require('./hlm-phase11-trusted-consent-contract');
+const crypto=require('node:crypto');
+function makeIdentity(state,input,revision){
+ if(typeof revision!=='string'||!revision||revision.length>256)throw Error('Revision required');
+ if(!state||!input||!state.meta||!state.universe)throw Error('Source required');
+ const proposal=Object.freeze({controlledTeamId:String(state.meta.controlledTeamId),
+  outgoingPlayerId:String(input.outgoingPlayerId),incomingPlayerId:String(input.incomingPlayerId)});
+ const digest=crypto.createHash('sha256').update(JSON.stringify({schema:'hlm-m1507p-preview-v1',revision,proposal,source:state})).digest('hex');
+ return Object.freeze({revision,digest,proposal});
+}
 const {review}=require('./hlm-phase11-m1507o-cpu-decision-foundation');
 function assess(state,input,revision,receipt,options){
  const deny=(code,identity=null,cpu=null)=>Object.freeze({
@@ -17,7 +25,7 @@ function assess(state,input,revision,receipt,options){
  });
  if(options?.cancelled===true||options?.declined===true)return deny('gm-declined-or-cancelled');
  let identity;
- try{identity=contract(state,input,revision)}catch{return deny('invalid-source-or-revision')}
+ try{identity=makeIdentity(state,input,revision)}catch{return deny('invalid-source-or-revision')}
  const cpu=review(state,input);
  if(cpu.status==='cpu-review-blocked')return deny('cpu-source-review-blocked',identity,cpu);
  if(cpu.receivingTeamRecommendation!=='accept')return deny('cpu-recommends-decline',identity,cpu);
@@ -29,4 +37,4 @@ function assess(state,input,revision,receipt,options){
  // Neither caller-supplied "trusted" flags nor consent declarations grant authority.
  return deny('trusted-cpu-authority-and-replay-ledger-unavailable',identity,cpu);
 }
-module.exports={assess};
+module.exports={assess,identity:makeIdentity};
