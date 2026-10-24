@@ -1,0 +1,15 @@
+name: Mission 1549 CPU Trade Evidence Bridge
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  cpu-evidence-bridge-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1549-cpu-trade-evidence-bridge.test.js
+      - run: node hlm-phase11-m1544-cpu-decision-authority.test.js
+      - run: node hlm-phase11-m1543-cpu-decision-evidence.test.js
