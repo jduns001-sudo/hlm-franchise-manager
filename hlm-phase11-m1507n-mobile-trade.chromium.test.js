@@ -33,7 +33,7 @@ const {KEY}=require('./hlm-phase11-isolated-single-game');
   await page.reload();
   await page.locator('nav [data-panel="team"]').click();
   const link=page.locator('#team a[href$="hlm-phase11-m1507m-mobile-trade-review.html"]');
-  assert.equal(await link.isVisible(),true);
+  await link.waitFor({state:'visible'});
   await link.click();
   await page.locator('#review').waitFor({state:'visible'});
   assert.equal(await page.locator('#review').isEnabled(),true);
