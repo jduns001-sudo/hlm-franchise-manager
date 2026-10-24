@@ -23,7 +23,7 @@ const {chromium}=require('playwright');
    await new Promise((resolve,reject)=>{
     const tx=db.transaction('records','readwrite'),s=tx.objectStore('records');
     s.put({meta:{revision:2,controlledTeamId:'A'},universe:{teams:[{id:'A'},{id:'B'}],players:[{id:'pA',teamId:'A'},{id:'pB',teamId:'B'}]},
-      assets:{contracts:[{playerId:'pA',teamId:'A',status:'active',aav:2,tradePermission:'allowed'},{playerId:'pB',teamId:'A',status:'active',aav:3,tradePermission:'allowed']},finances:{teamCapLimits:{A:5,B:5}},extensions:{tradeRosterLimits:{A:2,B:2}}},'game');
+      assets:{contracts:[{playerId:'pA',teamId:'A',status:'active',aav:2,tradePermission:'allowed'},{playerId:'pB',teamId:'A',status:'active',aav:3,tradePermission:'allowed'}]},finances:{teamCapLimits:{A:5,B:5}},extensions:{tradeRosterLimits:{A:2,B:2}}},'game');
     s.put({revision:2,events:[]},'ledger');
     tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
    });db.close();
