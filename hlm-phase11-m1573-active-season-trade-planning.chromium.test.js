@@ -32,6 +32,40 @@ const {chromium}=require('playwright');
   const choices=await page.locator('#season-trade-incoming option').evaluateAll(options=>options.map(o=>o.value).filter(Boolean));
   assert.ok(choices.length>100);assert.ok(choices.every(id=>state.universe.players.some(p=>String(p.id)===id&&String(p.teamId)!==owner)));
   const outgoing=String(own[0].id),incoming=choices[0];
+
+  // M1575: local document never enters GameState. Even a claimed verified
+  // publisher is displayed as untrusted and incomplete for the real roster.
+  const otherPlayer=state.universe.players.find(p=>String(p.id)===incoming);
+  const external={
+   schemaVersion:1,source:{publisher:'Unverified upload',reference:'synthetic-identity-test',asOfDate:'2026-10-24'},
+   scope:{teamIds:[own[0].teamId,otherPlayer.teamId]},
+   contracts:[
+    {contractId:'test-own',playerId:own[0].id,teamId:own[0].teamId,status:'active',aav:1000000,tradePermission:'unknown'},
+    {contractId:'test-other',playerId:otherPlayer.id,teamId:otherPlayer.teamId,status:'active',aav:2000000,tradePermission:'unknown'}
+   ],sourcePublisherAuthenticated:true,settlementAuthorized:true
+  };
+  const upload=async data=>page.locator('#season-contract-file').setInputFiles({
+   name:'untrusted-contract-reference.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(data))});
+  assert.equal(await page.locator('#season-contract-file').isEnabled(),true);
+  await upload(external);await page.locator('#season-contract-review').click();
+  await page.waitForFunction(()=>document.getElementById('season-contract-report').textContent.includes('Publisher authenticated: NO'));
+  assert.match(await page.locator('#season-contract-report').innerText(),/SHA-256 file fingerprint \(integrity only\): [a-f0-9]{64}/);
+  assert.match(await page.locator('#season-contract-report').innerText(),/incomplete or conflicting/);
+  assert.match(await page.locator('#season-contract-report').innerText(),/Contracts imported: NO \| Trades authorized: NO/);
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'external file never changes real season');
+  await page.locator('#season-contract-decline').click();
+  assert.match(await page.locator('#season-contract-report').innerText(),/evidence discarded/);
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'discard never saves');
+  await page.locator('#season-trade-refresh').click();
+  const bad={...external,contracts:[{...external.contracts[0],playerId:'forged-nonexistent-id'}]};
+  await upload(bad);await page.locator('#season-contract-review').click();
+  await page.waitForFunction(()=>document.getElementById('season-contract-report').textContent.includes('inspection blocked'));
+  assert.match(await page.locator('#season-contract-report').innerText(),/player absent/);
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'invalid evidence never saved');
+  await page.locator('#season-trade-refresh').click();
+  await upload(external);await page.locator('#season-contract-review').click();
+  await page.waitForFunction(()=>document.getElementById('season-contract-report').textContent.includes('Publisher authenticated: NO'));
+
   async function choose(){await page.locator('#season-trade-outgoing').selectOption(outgoing);await page.locator('#season-trade-incoming').selectOption(incoming);await page.locator('#season-trade-review').click()}
   await choose();
   assert.match(await page.locator('#season-trade-report').innerText(),new RegExp(outgoing));
@@ -50,6 +84,11 @@ const {chromium}=require('playwright');
   await other.locator('#day-review').click();other.once('dialog',d=>d.accept());await other.locator('#day-approve').click();
   await other.waitForFunction(()=>document.getElementById('day-report').textContent.startsWith('Persisted isolated day'));
   await page.waitForFunction(()=>document.getElementById('season-trade-report').textContent.includes('another tab'));
+
+  await page.waitForFunction(()=>document.getElementById('season-contract-report').textContent.includes('another tab'));
+  assert.equal(await page.locator('#season-contract-file').isDisabled(),true,'stale tab invalidates external inspection');
+  assert.equal(await page.locator('#season-contract-review').isDisabled(),true);
+
   assert.equal(await page.locator('#season-trade-review').isDisabled(),true,'actual game-day save invalidates previous trade review');
   const advanced=await page.evaluate(k=>localStorage.getItem(k),key);assert.notEqual(advanced,before);
   await page.locator('#season-trade-refresh').click();await choose();
