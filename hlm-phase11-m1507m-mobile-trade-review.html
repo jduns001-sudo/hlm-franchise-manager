@@ -11,16 +11,17 @@ button:disabled{opacity:.45}a{color:#a9d6ff}pre{white-space:pre-wrap;overflow-wr
 <section><h2>GM decision</h2><pre id="report" role="status" aria-live="polite">Loading isolated franchise…</pre>
 <button id="approve" type="button" disabled>Approve review (settlement blocked)</button><button id="decline" type="button" disabled>Decline (no save)</button><button id="cancel" type="button" disabled>Cancel (no save)</button></section>
 <script src="./hlm-phase11-m1507m-mobile-trade-bundle.js"></script>
+<script src="./hlm-phase11-m1507t-browser-cpu-engine.js"></script>
 <script>
 (function(){'use strict';
 const KEY='hlm-phase11-m1340-isolated-single-game-v1';
 const $=id=>document.getElementById(id),out=$('report');
-let workflow=null;
+let workflow=null,cpuSequence=0;
 function clear(){for(const id of ['approve','decline','cancel'])$(id).disabled=true}
 function message(s){out.textContent=s}
 function option(select,player){const o=document.createElement('option');o.value=String(player.id);o.textContent=String(player.name||player.firstName+' '+player.lastName||player.id)+' ('+String(player.overall??'unrated')+' OVR)';select.append(o)}
 function reload(){
- clear();$('review').disabled=true;$('outgoing').replaceChildren();$('incoming').replaceChildren();
+ cpuSequence++;clear();$('review').disabled=true;$('outgoing').replaceChildren();$('incoming').replaceChildren();
  try{
   workflow=window.HLMPhase11MobileTradeReview.create(window.localStorage,KEY);
   const state=workflow.reload();if(!state)throw Error('No isolated franchise save. Create one in the season workspace.');
@@ -32,24 +33,34 @@ function reload(){
   message('Select players and review. Contract, cap and roster restrictions are checked from the saved franchise. Missing source records block review. No trade will be saved.');
  }catch(e){message('Review unavailable: '+e.message)}
 }
-$('review').addEventListener('click',()=>{
- clear();if(!workflow)return;
+$('review').addEventListener('click',async()=>{
+ const sequence=++cpuSequence;clear();if(!workflow)return;
  try{
   const result=workflow.review({outgoingPlayerId:$('outgoing').value,incomingPlayerId:$('incoming').value});
   if(result.status!=='awaiting-human-GM-decision'){message('Review blocked: '+result.code+'. No save.');return}
   const cpu=result.cpuEvaluation;
+  const raw=window.localStorage.getItem(KEY);
+  if(!raw)throw Error('missing-isolated-save');
+  const revision=raw;
+  const source=JSON.parse(raw);
+  const input={outgoingPlayerId:$('outgoing').value,incomingPlayerId:$('incoming').value};
+  const cpuDecision=await window.HLMPhase11BrowserCpuDecision.decide(source,input,revision);
+  if(sequence!==cpuSequence)return;
+  if(window.localStorage.getItem(KEY)!==revision){clear();message('Review blocked: stale-save. No save.');return;}
+
   message('Source-backed player/contract trade preview verified.\nProjected payroll: '+JSON.stringify(result.review.projectedPayroll)+
   '\nCPU rating advice: '+(cpu.status==='cpu-trade-evaluation-preview'?cpu.recommendation+' ('+cpu.receivingTeamRatingDelta+' OVR delta)':'Unavailable: '+cpu.code)+
-  '\nMobile CPU decision indication (valuation-derived, not authenticated): '+(cpu.status==='cpu-trade-evaluation-preview'?(cpu.receivingTeamRatingDelta>0?'accept preview':cpu.receivingTeamRatingDelta<0?'decline preview':'decline preview (even value)'):'blocked')+
+  '\nDeterministic CPU engine decision (not authenticated): '+cpuDecision.decision+' ('+(cpuDecision.code||cpuDecision.status)+')'+
+  '\nProposal digest: '+(cpuDecision.proposalDigest||'unavailable')+
   '\nCPU consent: NOT authenticated. Settlement: DISABLED.\nNo save has occurred.');
   for(const id of ['approve','decline','cancel'])$(id).disabled=false;
  }catch(e){message('Review blocked: '+e.message+'. No save.')}
 });
 for(const action of ['approve','decline','cancel'])$(action).addEventListener('click',()=>{
  if($(action).disabled||!workflow)return;
- const result=workflow.decide(action);clear();
+ cpuSequence++;const result=workflow.decide(action);clear();
  message('GM '+action+': '+result.code+'. Settlement: BLOCKED. Saved: NO. Reload the franchise before reviewing another proposal if another tab changed its save.');
 });
-$('reload').addEventListener('click',reload);$('outgoing').addEventListener('change',clear);$('incoming').addEventListener('change',clear);reload();
+$('reload').addEventListener('click',reload);$('outgoing').addEventListener('change',()=>{cpuSequence++;clear()});$('incoming').addEventListener('change',()=>{cpuSequence++;clear()});reload();
 })();
 </script></body></html>
