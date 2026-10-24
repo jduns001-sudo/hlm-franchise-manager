@@ -1,0 +1,17 @@
+name: Mission 1507W CPU Receipt Crypto
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507w-cpu-receipt-crypto.js'
+      - 'hlm-phase11-m1507w-cpu-receipt-crypto.test.js'
+      - '.github/workflows/mission-1507w-cpu-receipt-crypto.yml'
+  workflow_dispatch:
+jobs:
+  cpu-receipt-crypto-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507w-cpu-receipt-crypto.test.js
