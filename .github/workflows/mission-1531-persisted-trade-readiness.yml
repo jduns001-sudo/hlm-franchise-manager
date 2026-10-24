@@ -1,0 +1,18 @@
+name: Mission 1531 Persisted Trade Readiness
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1531-persisted-trade-readiness.chromium.test.js'
+      - '.github/workflows/mission-1531-persisted-trade-readiness.yml'
+  workflow_dispatch:
+jobs:
+  trade-readiness-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1531-persisted-trade-readiness.chromium.test.js

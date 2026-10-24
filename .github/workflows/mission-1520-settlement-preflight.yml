@@ -1,0 +1,17 @@
+name: Mission 1520 Settlement Preflight
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1520-settlement-preflight.js'
+      - 'hlm-phase11-m1520-settlement-preflight.test.js'
+      - '.github/workflows/mission-1520-settlement-preflight.yml'
+  workflow_dispatch:
+jobs:
+  settlement-preflight-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1520-settlement-preflight.test.js

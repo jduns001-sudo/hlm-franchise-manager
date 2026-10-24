@@ -1,0 +1,28 @@
+name: Mission 1512 Transaction Preparation
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1512-transaction-preparation.js'
+      - 'hlm-phase11-m1512-transaction-preparation.test.js'
+      - 'hlm-phase11-m1512-transaction-preparation.chromium.test.js'
+      - '.github/workflows/mission-1512-transaction-preparation.yml'
+  workflow_dispatch:
+jobs:
+  preparation-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1512-transaction-preparation.test.js
+  preparation-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1512-transaction-preparation.chromium.test.js

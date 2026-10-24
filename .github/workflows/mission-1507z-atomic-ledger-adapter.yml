@@ -1,0 +1,17 @@
+name: Mission 1507Z Atomic Ledger Adapter
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507z-atomic-ledger-adapter.js'
+      - 'hlm-phase11-m1507z-atomic-ledger-adapter.test.js'
+      - '.github/workflows/mission-1507z-atomic-ledger-adapter.yml'
+  workflow_dispatch:
+jobs:
+  atomic-ledger-adapter-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507z-atomic-ledger-adapter.test.js

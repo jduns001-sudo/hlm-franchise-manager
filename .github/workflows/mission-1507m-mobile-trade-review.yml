@@ -1,0 +1,16 @@
+name: Mission 1507M Mobile Trade Review
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507m-mobile-trade-*'
+      - 'hlm-phase11-mobile-office.html'
+      - '.github/workflows/mission-1507m-mobile-trade-review.yml'
+jobs:
+  mobile-trade-review-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507m-mobile-trade-review.test.js

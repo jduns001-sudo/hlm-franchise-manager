@@ -1,0 +1,18 @@
+name: Mission 1523 Persisted Source Trade Guard
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1523-persisted-source-trade-guard.js'
+      - 'hlm-phase11-m1523-persisted-source-trade-guard.test.js'
+      - '.github/workflows/mission-1523-persisted-source-trade-guard.yml'
+  workflow_dispatch:
+jobs:
+  persisted-trade-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save fake-indexeddb
+      - run: node hlm-phase11-m1523-persisted-source-trade-guard.test.js

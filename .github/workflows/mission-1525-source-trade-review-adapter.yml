@@ -1,0 +1,18 @@
+name: Mission 1525 Source Trade Review Adapter
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1525-source-trade-review-adapter.js'
+      - 'hlm-phase11-m1525-source-trade-review-adapter.test.js'
+      - '.github/workflows/mission-1525-source-trade-review-adapter.yml'
+  workflow_dispatch:
+jobs:
+  source-trade-review-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save fake-indexeddb
+      - run: node hlm-phase11-m1525-source-trade-review-adapter.test.js

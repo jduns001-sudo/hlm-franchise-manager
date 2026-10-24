@@ -1,0 +1,19 @@
+name: Mission 1532 Trade Source Parity
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1527-real-source-browser-review.js'
+      - 'hlm-phase11-m1532-trade-source-parity.chromium.test.js'
+      - '.github/workflows/mission-1532-trade-source-parity.yml'
+  workflow_dispatch:
+jobs:
+  trade-source-parity-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1532-trade-source-parity.chromium.test.js

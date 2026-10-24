@@ -1,0 +1,17 @@
+name: Mission 1521 Atomic Trade Transaction Contract
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1521-atomic-trade-transaction-contract.js'
+      - 'hlm-phase11-m1521-atomic-trade-transaction-contract.test.js'
+      - '.github/workflows/mission-1521-atomic-trade-transaction-contract.yml'
+  workflow_dispatch:
+jobs:
+  trade-contract-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1521-atomic-trade-transaction-contract.test.js

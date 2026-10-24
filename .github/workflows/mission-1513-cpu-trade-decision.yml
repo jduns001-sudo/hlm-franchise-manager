@@ -1,0 +1,17 @@
+name: Mission 1513 CPU Trade Advisory
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1513-cpu-trade-decision.js'
+      - 'hlm-phase11-m1513-cpu-trade-decision.test.js'
+      - '.github/workflows/mission-1513-cpu-trade-decision.yml'
+  workflow_dispatch:
+jobs:
+  cpu-advisory-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1513-cpu-trade-decision.test.js

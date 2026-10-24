@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Experimental GM Trade Review</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif}body{margin:0 auto;padding:18px;max-width:560px;background:#111a26;color:#f2f6fa}
+section{border:1px solid #526579;border-radius:10px;padding:16px;margin:12px 0}
+button,input{font:inherit;padding:10px;border-radius:6px}button{margin:6px 6px 6px 0;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:border-box}
+.warning{color:#f7d48b}pre{white-space:pre-wrap;overflow-wrap:anywhere}
+</style></head><body>
+<h1>GM Trade Review</h1>
+<p class="warning">EXPERIMENTAL REVIEW ONLY. No authenticated CPU consent. Production trades and saves are disabled.</p>
+<section><h2>Trade proposal</h2><label>Outgoing player ID <input id="outgoing" autocomplete="off"></label><br>
+<label>Incoming player ID <input id="incoming" autocomplete="off"></label><br>
+<button id="review" type="button">Review proposal</button>
+<button id="decline" type="button">Decline / cancel</button></section>
+<section aria-live="polite"><h2>Decision and eligibility</h2><pre id="summary">No proposal reviewed.</pre>
+<label><input type="checkbox" id="approve" disabled> I approve this reviewed experimental proposal</label><br>
+<button id="submit" type="button" disabled>Request guarded experimental settlement</button>
+<p id="status" role="status">No changes saved.</p></section>
+<script>
+'use strict';
+/* Host contract: window.HLMTradeReviewHost.review({outgoingPlayerId,incomingPlayerId})
+ * returns {ok,code,revision,cpuDecision,financial,restrictions,
+ * cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false}.
+ * Optional host.settle(request) must itself enforce persisted source, fresh
+ * revision, CPU policy and GM approval. This page never writes storage.
+ */
+(function(){
+ const by=id=>document.getElementById(id),fields=['outgoing','incoming'];
+ let current=null,busy=false;
+ const status=t=>{by('status').textContent=t};
+ const reset=()=>{current=null;by('approve').checked=false;by('approve').disabled=true;by('submit').disabled=true};
+ function invalidate(){reset();by('summary').textContent='Proposal changed. Review again.';status('No changes saved.')}
+ fields.forEach(id=>by(id).addEventListener('input',invalidate));
+ by('decline').addEventListener('click',()=>{reset();by('summary').textContent='Declined. No proposal pending.';status('Declined. No changes saved.')});
+ by('approve').addEventListener('change',()=>{by('submit').disabled=!current||!by('approve').checked||busy});
+ by('review').addEventListener('click',async()=>{
+  reset();status('Reviewing. No changes saved.');
+  const host=window.HLMTradeReviewHost,request={outgoingPlayerId:by('outgoing').value.trim(),incomingPlayerId:by('incoming').value.trim()};
+  if(!request.outgoingPlayerId||!request.incomingPlayerId||request.outgoingPlayerId===request.incomingPlayerId){
+   status('Choose two different player IDs. No changes saved.');return;
+  }
+  if(!host||typeof host.review!=='function'){status('No source-backed review host connected. No changes saved.');return}
+  busy=true;by('review').disabled=true;
+  try{
+   const result=await host.review(request);
+   if(result?.ok!==true||result.cpuConsentAuthenticated!==false||result.saved!==false||result.settlementAuthorized!==false||
+    !Number.isSafeInteger(result.revision)||result.revision<0){
+    by('summary').textContent='Review unavailable: '+String(result?.code||'invalid-host-response');
+    status('No changes saved.');return;
+   }
+   const eligible=result.financial?.eligible===true&&result.restrictions?.eligible===true;
+   current=eligible?{request,revision:result.revision}:null;
+   by('summary').textContent=JSON.stringify({revision:result.revision,cpuPolicyDecision:result.cpuDecision,
+    financialEligibility:result.financial,tradeRestrictions:result.restrictions,
+    cpuConsentAuthenticated:false,productionSettlementAuthorized:false},null,2);
+   by('approve').disabled=!eligible;
+   status(eligible?'Review only. No changes saved.':'Trade ineligible. Approval blocked. No changes saved.');
+  }catch{status('Review failed. No changes saved.')}
+  finally{busy=false;by('review').disabled=false}
+ });
+ by('submit').addEventListener('click',async()=>{
+  if(!current||!by('approve').checked||busy)return;
+  const host=window.HLMTradeReviewHost;
+  if(typeof host?.settle!=='function'){status('Guarded settlement not connected. No changes saved.');return}
+  busy=true;by('submit').disabled=true;
+  const approval=current;reset();
+  try{
+   const result=await host.settle({...approval.request,expectedGameRevision:approval.revision,gmApproved:true});
+   status(result?.saved===true&&result?.settlementAuthorized===false&&result?.experimentalSyntheticSave===true
+    ?'Experimental synthetic transaction saved. Production settlement remains disabled.'
+    :'Settlement blocked: '+String(result?.code||'unavailable')+'. No changes saved.');
+  }catch{status('Settlement failed. No changes saved.')}
+  finally{busy=false}
+ });
+})();
+</script></body></html>

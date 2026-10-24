@@ -1,0 +1,17 @@
+name: Mission 1514 Transaction Integration Gate
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1514-transaction-integration-gate.js'
+      - 'hlm-phase11-m1514-transaction-integration-gate.test.js'
+      - '.github/workflows/mission-1514-transaction-integration-gate.yml'
+  workflow_dispatch:
+jobs:
+  integration-gate-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1514-transaction-integration-gate.test.js

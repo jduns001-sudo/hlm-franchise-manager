@@ -1,0 +1,28 @@
+name: Mission 1508 Browser Ledger
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1508-browser-ledger.js'
+      - 'hlm-phase11-m1508-browser-ledger.test.js'
+      - 'hlm-phase11-m1508-browser-ledger.chromium.test.js'
+      - '.github/workflows/mission-1508-browser-ledger.yml'
+  workflow_dispatch:
+jobs:
+  browser-ledger-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1508-browser-ledger.test.js
+  browser-ledger-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1508-browser-ledger.chromium.test.js

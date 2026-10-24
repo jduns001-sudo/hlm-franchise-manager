@@ -1,0 +1,17 @@
+name: Mission 1518 CPU Decision Provenance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1518-cpu-decision-provenance.js'
+      - 'hlm-phase11-m1518-cpu-decision-provenance.test.js'
+      - '.github/workflows/mission-1518-cpu-decision-provenance.yml'
+  workflow_dispatch:
+jobs:
+  cpu-provenance-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1518-cpu-decision-provenance.test.js
