@@ -4,7 +4,7 @@ const {evidence}=require('./hlm-phase11-m1561-browser-trade-provenance');
 const {settleBrowserVerifiedSyntheticTrade:settle}=require('./hlm-phase11-m1562-browser-indexeddb-trade-settlement');
 function state(){return {schemaVersion:1,meta:{revision:0,controlledTeamId:'A'},universe:{players:[{id:'pA',teamId:'A'},{id:'pB',teamId:'B'}],teams:[{id:'A'},{id:'B'}],leagues:[],prospects:[],staff:[]},assets:{contracts:[{playerId:'pA',teamId:'A',status:'active',aav:4,tradePermission:'allowed'},{playerId:'pB',teamId:'B',status:'active',aav:7,tradePermission:'allowed'}],draftPicks:[]},activity:{transactions:[],games:[],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{teamCapLimits:{A:100,B:100}},extensions:{tradeRosterLimits:{A:30,B:30}}}}
 const input={outgoingPlayerId:'pA',incomingPlayerId:'pB',gmApproved:true,expectedGameRevision:0};
-const options={experimentalEnabled:true,gmApproved:true,syntheticTestAuthorization:true,eventId:'m1562_synthetic',experimentalDatabaseName:'hlm-phase11-m1562-experimental-test',cryptoApi:crypto.webcrypto};
+const options={experimentalEnabled:true,gmApproved:true,syntheticTestAuthorization:true,eventId:'m1562_synthetic',experimentalDatabaseName:'hlm-phase11-m1562-experimental-test',cryptoApi:crypto.webcrypto,expectedGameRevision:0};
 test('valid browser provenance reaches synthetic settlement but never production authorization',async()=>{
  const s=state(),proof=await evidence(s,input,options);assert.equal(proof.ok,true,proof.code);
  const result=await settle(s,input,proof,options);
