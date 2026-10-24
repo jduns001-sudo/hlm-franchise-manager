@@ -19,7 +19,7 @@ open.addEventListener('click',()=>{
 cancel.addEventListener('click',()=>reset('Next GM action review declined. No changes saved.'));
 $('season-trade-refresh')?.addEventListener('click',refresh);
 const output=$('output');if(output)new MutationObserver(refresh).observe(output,{childList:true,subtree:true,characterData:true});
-new MutationObserver(()=>reset('Current GM action changed. Refresh review before opening. No save performed.')).observe(link,{attributes:true,attributeFilter:['href']});
+new MutationObserver(()=>{reset('Current GM action changed. No save performed.');refresh()}).observe(link,{attributes:true,attributeFilter:['href']});
 window.addEventListener('storage',e=>{if(e.key===manager.key)reset('Saved franchise changed in another tab. Refresh next GM action. No save performed.')});
 refresh();
 })();
