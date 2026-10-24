@@ -15,6 +15,14 @@ label{display:block;margin:14px 0}button,select{font:inherit;padding:10px;max-wi
 <label><input id="authorize" type="checkbox" disabled> Enable synthetic trades in this isolated test franchise for this session.</label>
 <button id="connect" type="button" disabled>Connect trade workspace</button>
 <p id="connection-status" role="status">Disconnected. No franchise selected.</p>
+<section aria-label="Choose trade players">
+<h2>Choose players</h2>
+<p>Choices come from saved team ownership and active contracts. Review checks cap space, restrictions and the CPU policy.</p>
+<label>Your player <select id="outgoing-player" disabled><option value="">Connect a franchise first</option></select></label>
+<label>Player to acquire <select id="incoming-player" disabled><option value="">Connect a franchise first</option></select></label>
+<button id="refresh-players" type="button" disabled>Refresh saved rosters</button>
+<p id="roster-status" role="status">No roster loaded.</p>
+</section>
 <p>After a reload, reconnect to review the latest saved revision. A submitted settlement may finish before the page reloads.</p>
 <iframe id="trade-frame" src="hlm-phase11-m1524-gm-trade-review.html" title="GM Trade Review"></iframe>
 </body></html>
