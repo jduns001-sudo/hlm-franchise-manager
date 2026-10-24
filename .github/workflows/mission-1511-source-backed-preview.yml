@@ -1,0 +1,28 @@
+name: Mission 1511 Source-backed Preview
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1511-source-backed-transaction-preview.js'
+      - 'hlm-phase11-m1511-source-backed-transaction-preview.test.js'
+      - 'hlm-phase11-m1511-source-backed-transaction-preview.chromium.test.js'
+      - '.github/workflows/mission-1511-source-backed-preview.yml'
+  workflow_dispatch:
+jobs:
+  preview-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1511-source-backed-transaction-preview.test.js
+  preview-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1511-source-backed-transaction-preview.chromium.test.js
