@@ -1,0 +1,24 @@
+name: Mission 1551 CPU Trade Decision Lifecycle
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  cpu-lifecycle-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1551-cpu-trade-decision-lifecycle.test.js
+      - run: node hlm-phase11-m1549-cpu-trade-evidence-bridge.test.js
+  cpu-lifecycle-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1551-cpu-trade-decision-lifecycle.chromium.test.js
