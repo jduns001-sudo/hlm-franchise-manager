@@ -1,0 +1,26 @@
+name: Mission 1552 CPU Trade Authorization Review
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1552-*'
+      - '.github/workflows/mission-1552-cpu-trade-authorization.yml'
+  workflow_dispatch:
+jobs:
+  authorization-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1552-cpu-trade-authorization-review.test.js
+  authorization-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1552-cpu-trade-authorization-review.chromium.test.js
