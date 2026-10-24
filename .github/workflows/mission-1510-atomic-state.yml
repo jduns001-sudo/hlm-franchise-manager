@@ -1,0 +1,28 @@
+name: Mission 1510 Atomic Experimental State
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1510-atomic-state.js'
+      - 'hlm-phase11-m1510-atomic-state.test.js'
+      - 'hlm-phase11-m1510-atomic-state.chromium.test.js'
+      - '.github/workflows/mission-1510-atomic-state.yml'
+  workflow_dispatch:
+jobs:
+  atomic-state-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1510-atomic-state.test.js
+  atomic-state-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1510-atomic-state.chromium.test.js
