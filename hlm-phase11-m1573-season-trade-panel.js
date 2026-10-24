@@ -31,6 +31,14 @@
     report.textContent=result.players.map((p,i)=>(i===0?'Your player: ':'Player to acquire: ')+p.name+' ('+p.id+') — '+p.teamName+'\n'+
      (p.contractStatus==='source-active-contract'?'Saved active contract; annual cap charge '+(p.aav===null?'unavailable':p.aav.toLocaleString('en-US')):
       p.contractStatus==='ambiguous-active-contract'?'Multiple active contracts; source is ambiguous.':'Active contract unavailable from this saved season.')).join('\n\n')+'\n\n'+result.message;
+    const check=source.preflight({outgoingPlayerId:outgoing.value,incomingPlayerId:incoming.value});
+    const payroll=check.financial.map(t=>t.teamName+': '+(t.projectedPayroll===null?'payroll projection unavailable':
+      'salary charge '+t.beforePayroll.toLocaleString('en-US')+' → '+t.projectedPayroll.toLocaleString('en-US')+
+      ' (source cap '+t.capLimit.toLocaleString('en-US')+')')).join('\n');
+    report.textContent+='\n\nSource-backed trade preflight (read-only)\n'+payroll+'\n'+
+      (check.blockers.length?'Source blockers: '+check.blockers.join('; '):
+      'Supplied source contract/cap/roster inputs pass the limited preflight; no approval is granted.')+
+      '\n'+check.message;
     by('season-trade-cancel').disabled=false;
    }catch(error){clear('Review blocked: '+error.message);by('season-trade-review').disabled=true;}
   });
