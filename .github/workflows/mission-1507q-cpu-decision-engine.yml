@@ -1,0 +1,19 @@
+name: Mission 1507Q CPU Decision Engine
+on:
+  push:
+    branches:
+      - experiment/phase11-m1507q-cpu-decision-engine
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507q-cpu-decision-engine.js'
+      - 'hlm-phase11-m1507q-cpu-decision-engine.test.js'
+      - '.github/workflows/mission-1507q-cpu-decision-engine.yml'
+jobs:
+  cpu-decision-engine-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507q-cpu-decision-engine.test.js
