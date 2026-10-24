@@ -1,0 +1,26 @@
+name: Mission 1560 IndexedDB Trade Integration
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1560-*'
+      - '.github/workflows/mission-1560-indexeddb-trade-integration.yml'
+  workflow_dispatch:
+jobs:
+  integration-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1560-indexeddb-trade-integration.test.js hlm-phase11-m1522-isolated-atomic-trade-settlement.test.js hlm-phase11-m1516-atomic-isolated-state-persistence.test.js
+  existing-settlement-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1522-isolated-atomic-trade-settlement.chromium.test.js
