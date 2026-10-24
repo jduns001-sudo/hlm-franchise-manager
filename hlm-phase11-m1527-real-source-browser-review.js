@@ -66,8 +66,13 @@
        ?{eligible:true,reason:'source-cap-check-passed-review-only',projectedPayroll:{[teamA]:afterA,[teamB]:afterB}}
        :{eligible:false,reason:'verified-salary-cap-exceeded'};
      }
-     // No browser CPU policy authority: do not manufacture eligibility.
-     return {ok:true,revision,cpuDecision:'not-authenticated-review-only',
+     // Browser mirror of the existing deterministic CPU AAV policy (M1513).
+     // Recommendation is advisory only, never authenticated CPU consent.
+     const cpuDecision=selected.every(x=>validMoney(x.contract))
+      ?(selected[0].contract.aav<=selected[1].contract.aav?'recommend-accept':'recommend-decline')
+      :'unavailable';
+     const cpuPolicy=cpuDecision==='unavailable'?'source-contract-aav-unavailable':'incoming-team-aav-nonincreasing-v1';
+     return {ok:true,revision,cpuDecision,cpuPolicy,
       financial,
       restrictions:{eligible:false,reason:'guarded-policy-not-connected'},
       cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false};
