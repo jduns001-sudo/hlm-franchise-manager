@@ -21,9 +21,9 @@ function planTrade(state,input={}){
  if(teamA!==String(state.meta.controlledTeamId)||teamA===teamB||
    ![teamA,teamB].every(id=>state.universe.teams.filter(t=>String(t?.id)===id).length===1))
   return deny('invalid-team-ownership');
- if(input.cpuConsentAuthenticated!==true||input.cpuConsentEvidence?.teamId!==teamB||
-    input.cpuConsentEvidence?.approved!==true||input.cpuConsentEvidence?.sourceVerified!==true)
-  return deny('authenticated-receiving-team-consent-required');
+ // Caller-supplied consent flags are never authoritative. This planner cannot
+ // authenticate receiving-team consent and never grants settlement authority.
+ const consentStatus='receiving-team-consent-not-authenticated';
  if(selected.some(x=>x.contract.tradePermission!=='allowed'||['retired','suspended'].includes(x.player.status)))
   return deny('trade-restricted');
  const validAav=x=>typeof x==='number'&&Number.isFinite(x)&&x>=0;
@@ -44,6 +44,6 @@ function planTrade(state,input={}){
  ]);
  return Object.freeze({ok:true,code:'read-only-plan',revision:state.meta.revision,transfers,
   projectedPayroll:Object.freeze({[teamA]:afterA,[teamB]:afterB}),
-  cpuConsentEvidenceUnverifiedByPlanner:true,saved:false,settlementAuthorized:false});
+  consentStatus,saved:false,settlementAuthorized:false});
 }
 module.exports={planTrade};
