@@ -1,0 +1,17 @@
+name: Mission 1507U Settlement Readiness
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507u-settlement-readiness.js'
+      - 'hlm-phase11-m1507u-settlement-readiness.test.js'
+      - '.github/workflows/mission-1507u-settlement-readiness.yml'
+  workflow_dispatch:
+jobs:
+  settlement-readiness-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507u-settlement-readiness.test.js
