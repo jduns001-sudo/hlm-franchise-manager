@@ -18,7 +18,18 @@ function source(){return {schemaVersion:1,meta:{revision:1,controlledTeamId:'A'}
  assert.equal((await store.commit({experimentalEnabled:true,syntheticTestAuthorization:true,gmApproved:true,expectedRevision:0,candidateState:state,eventId:'seed'},database)).saved,true);
  const before=await store.read(database);
  assert.equal((await host.settle(approved)).code,'review-required');
- const reviewed=await host.review(request);assert.equal(reviewed.ok,true,JSON.stringify(reviewed));
+ const reviewed=await host.review({...request,terms:{revision:999},projectedPayroll:{A:0,B:0}});assert.equal(reviewed.ok,true,JSON.stringify(reviewed));
+ assert.deepEqual(reviewed.terms,{revision:1,players:[
+  {playerId:'pA',name:'pA',teamId:'A',teamName:'A',aav:4},
+  {playerId:'pB',name:'pB',teamId:'B',teamName:'B',aav:7}
+ ],teams:[
+  {teamId:'A',name:'A',beforePayroll:4,afterPayroll:7,capLimit:100,remainingCap:93},
+  {teamId:'B',name:'B',beforePayroll:7,afterPayroll:4,capLimit:100,remainingCap:96}
+ ]},'terms use persisted contracts and planner totals, ignoring caller financial claims');
+ assert.equal(Object.isFrozen(reviewed.terms),true);
+ assert.equal(Object.isFrozen(reviewed.terms.players[0]),true);
+ assert.equal(Object.isFrozen(reviewed.terms.teams[0]),true);
+ assert.throws(()=>{reviewed.terms.teams[0].afterPayroll=0},TypeError);
  assert.deepEqual(await store.read(database),before,'review is read-only');
  assert.equal((await host.settle({...approved,gmApproved:false})).saved,false);
  assert.equal((await host.settle({...approved,incomingPlayerId:'pA'})).saved,false);
@@ -40,6 +51,17 @@ function source(){return {schemaVersion:1,meta:{revision:1,controlledTeamId:'A'}
  const resumed=createHost(options);
  const next=await resumed.review({outgoingPlayerId:'pB',incomingPlayerId:'pA'});
  assert.equal(next.ok,false);assert.equal(next.code,'cpu-policy-declined');
+ assert.equal(next.terms,undefined,'declined review exposes no stale or invented terms');
  assert.deepEqual(await store.read(database),stored,'resumed next review does not write');
+ const full=source(),fullDatabase=database+'-full-payroll';
+ full.universe.players.push({id:'pC',teamId:'A'});
+ full.assets.contracts.push({playerId:'pC',teamId:'A',status:'active',aav:11,tradePermission:'allowed'},
+  {playerId:'expired',teamId:'A',status:'expired',aav:999});
+ await store.commit({experimentalEnabled:true,syntheticTestAuthorization:true,gmApproved:true,expectedRevision:0,candidateState:full,eventId:'seed'},fullDatabase);
+ const fullBefore=await store.read(fullDatabase);
+ const fullReview=await createHost({...options,experimentalDatabaseName:fullDatabase}).review(request);
+ assert.equal(fullReview.ok,true,fullReview.code);
+ assert.deepEqual(fullReview.terms.teams[0],{teamId:'A',name:'A',beforePayroll:15,afterPayroll:18,capLimit:100,remainingCap:82},'payroll includes other active contracts and excludes expired contracts');
+ assert.deepEqual(await store.read(fullDatabase),fullBefore,'financial summary never writes');
  console.log('M1566 persisted host: explicit opt-in, approval, cancellation, atomic settlement, duplicate/stale rejection and resume passed');
 })().catch(e=>{console.error(e);process.exitCode=1});

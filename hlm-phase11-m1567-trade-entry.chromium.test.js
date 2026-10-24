@@ -42,7 +42,18 @@ async function connect(page){
   assert.match(await page.locator('#outgoing-player').innerText(),/Alex Source/);
   assert.match(await page.locator('#incoming-player').innerText(),/Blair Source/);
   await page.locator('#outgoing-player').selectOption('pA');await page.locator('#incoming-player').selectOption('pB');
+  await trade.locator('#review').click();
+  assert.match(await trade.locator('#terms').innerText(),/You send: Alex Source \(pA\)/);
+  assert.match(await trade.locator('#terms').innerText(),/You receive: Blair Source \(pB\)/);
+  assert.match(await trade.locator('#terms').innerText(),/A: payroll 4 → 7; cap limit 100; remaining cap 93/);
+  assert.match(await trade.locator('#terms').innerText(),/B: payroll 7 → 4; cap limit 100; remaining cap 96/);
+  await trade.locator('#approve').check();
+  await page.locator('#incoming-player').selectOption('');
+  assert.equal(await trade.locator('#terms').innerText(),'No trade terms reviewed.');
+  assert.equal(await trade.locator('#submit').isDisabled(),true,'changed selection invalidates financial review and approval');
+  await page.locator('#incoming-player').selectOption('pB');
   await trade.locator('#review').click();await trade.locator('#approve').check();await trade.locator('#decline').click();
+  assert.equal(await trade.locator('#terms').innerText(),'No trade terms reviewed.');
   assert.deepEqual(await snapshot(page),before,'decline never saves');
   const other=await context.newPage();await other.goto(url);await other.waitForFunction(()=>!document.getElementById('franchise').disabled);await connect(other);
   const stale=other.frameLocator('#trade-frame');
@@ -79,6 +90,7 @@ async function connect(page){
   await page.locator('#outgoing-player').selectOption('pB');await page.locator('#incoming-player').selectOption('pA');await trade.locator('#review').click();
   await page.waitForFunction(()=>document.getElementById('trade-frame').contentDocument.getElementById('summary').textContent.includes('cpu-policy-declined'));
   assert.equal(await trade.locator('#approve').isDisabled(),true);
+  assert.equal(await trade.locator('#terms').innerText(),'No trade terms reviewed.','blocked review never reuses old financial terms');
   assert.deepEqual(await snapshot(page),stored);
   assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'untouched');
   assert.deepEqual(await page.evaluate(()=>Object.keys(localStorage)),['hlm_front_office_v8']);assert.deepEqual(errors,[]);
