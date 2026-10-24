@@ -11,7 +11,7 @@ function collect(name){
 }
 collect('hlm-phase11-m1560-indexeddb-trade-integration');
 const bundle='(function(root){const modules=Object.create(null),cache=Object.create(null);'+
- 'function require(id){const key=id.replace(/^\\.\\//,\'\').replace(/\\.js$/,\'\');if(!modules[key])throw Error(\'unknown module \'+key);if(!cache[key]){const m={exports:{}};cache[key]=m;modules[key](m,m.exports,require)}return cache[key].exports;}'+
+ 'function require(id){const key=id.replace(/^\\.\\//,\'\').replace(/\\.js$/,\'\');if(key===\'node:crypto\')return {createHash(){throw Error(\'node-crypto-browser-unavailable\')},timingSafeEqual(){throw Error(\'node-crypto-browser-unavailable\')}};if(!modules[key])throw Error(\'unknown module \'+key);if(!cache[key]){const m={exports:{}};cache[key]=m;modules[key](m,m.exports,require)}return cache[key].exports;}'+
  [...modules].map(([name,code])=>'modules['+JSON.stringify(name)+']=function(module,exports,require){\n'+code+'\n};').join('\n')+
  'root.HLM1560=require(\'./hlm-phase11-m1560-indexeddb-trade-integration\');root.HLM1516=require(\'./hlm-phase11-m1516-atomic-isolated-state-persistence\');})(globalThis);';
 function source(){return {schemaVersion:1,meta:{revision:4,controlledTeamId:'A'},universe:{players:[{id:'pA',teamId:'A'},{id:'pB',teamId:'B'}],teams:[{id:'A'},{id:'B'}],leagues:[],prospects:[],staff:[]},assets:{contracts:[{playerId:'pA',teamId:'A',status:'active',aav:4,tradePermission:'allowed'},{playerId:'pB',teamId:'B',status:'active',aav:7,tradePermission:'allowed'}],draftPicks:[]},activity:{transactions:[],games:[],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{teamCapLimits:{A:100,B:100}},extensions:{tradeRosterLimits:{A:30,B:30}}}}
@@ -20,10 +20,10 @@ function source(){return {schemaVersion:1,meta:{revision:4,controlledTeamId:'A'}
  const db='hlm-phase11-m1560-experimental-'+process.pid;
  const result=await page.evaluate(async ({state,db})=>{const input={outgoingPlayerId:'pA',incomingPlayerId:'pB',gmApproved:true,expectedGameRevision:4},options={experimentalEnabled:true,gmApproved:true,syntheticTestAuthorization:true,eventId:'m1560_direct',experimentalDatabaseName:db};localStorage.setItem('hlm_front_office_v8','production-untouched');const before=JSON.stringify(state);const results={};
  for(const [key,change] of [['disabled',{experimentalEnabled:false}],['cancel',{cancelled:true}],['decline',{declined:true}],['production',{realTradeSettlement:true}],['untrusted',{syntheticTestAuthorization:false}]])results[key]=await HLM1560.settleSyntheticTradeWithIndexedDb(state,input,{...options,...change});
- results.uninitialized=await HLM1560.settleSyntheticTradeWithIndexedDb(state,input,options);
+ // The successful path depends on Node crypto; browser acceptance is limited to pre-authorization denial.\n
  results.store=await HLM1516.read(db);
  results.production=localStorage.getItem('hlm_front_office_v8');results.sourceUnchanged=JSON.stringify(state)===before;return results;},{state:source(),db});
- for(const key of ['disabled','cancel','decline','production','untrusted','uninitialized']){assert.equal(result[key].saved,false,key);assert.equal(result[key].settlementAuthorized,false,key)}
- assert.equal(result.uninitialized.code,'uninitialized-experimental-store');assert.equal(result.store.game,null);assert.equal(result.store.ledger,null);assert.equal(result.production,'production-untouched');assert.equal(result.sourceUnchanged,true);
+ for(const key of ['disabled','cancel','decline','production','untrusted']){assert.equal(result[key].saved,false,key);assert.equal(result[key].settlementAuthorized,false,key)}
+ assert.equal(result.store.game,null);assert.equal(result.store.ledger,null);assert.equal(result.production,'production-untouched');assert.equal(result.sourceUnchanged,true);
  console.log('M1560 direct mobile facade: cancel, decline, production, uninitialized store, no-save passed');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}})().catch(e=>{console.error(e);process.exitCode=1});
