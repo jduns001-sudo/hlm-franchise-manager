@@ -1,0 +1,20 @@
+name: Mission 1576 Contract Provenance Readiness
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1576-*'
+      - '.github/workflows/mission-1576-contract-provenance-readiness.yml'
+  workflow_dispatch:
+jobs:
+  provenance-readiness-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1576-contract-provenance-readiness.js
+      - run: node hlm-phase11-m1576-contract-provenance-readiness.test.js
+      - run: node hlm-phase11-m1575-contract-source-intake.test.js
+      - run: node hlm-phase11-m1574-season-trade-preflight.test.js
+      - run: node hlm-phase11-real-universe-journey.test.js
