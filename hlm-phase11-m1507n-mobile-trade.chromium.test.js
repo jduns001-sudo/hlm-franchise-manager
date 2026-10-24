@@ -3,6 +3,9 @@ const assert=require('node:assert/strict'),{chromium}=require('playwright');
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
 const {createGameStateEnvelope}=require('./hlm-game-state');
 const {KEY}=require('./hlm-phase11-isolated-single-game');
+const crypto=require('node:crypto');
+const {identity}=require('./hlm-phase11-m1507p-trade-authority-readiness');
+const {create:cpuEngine}=require('./hlm-phase11-m1507q-cpu-decision-engine');
 (async()=>{
  const server=http.createServer((req,res)=>{
   const name=path.basename(decodeURIComponent(new URL(req.url,'http://localhost').pathname));
@@ -30,6 +33,9 @@ const {KEY}=require('./hlm-phase11-isolated-single-game');
    localStorage.setItem(key,raw);localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL');
   },{key:KEY,raw:JSON.stringify(source)});
   const before=await page.evaluate(key=>localStorage.getItem(key),KEY);
+  const revision=crypto.createHash('sha256').update(before).digest('hex');
+  const expected=identity(JSON.parse(before),{outgoingPlayerId:'a',incomingPlayerId:'b'},revision);
+  assert.equal(cpuEngine().decide(JSON.parse(before),{outgoingPlayerId:'a',incomingPlayerId:'b'},revision).proposalDigest,expected.digest);
   await page.reload();
   await page.locator('nav [data-panel="team"]').click();
   const link=page.locator('#team a[href$="hlm-phase11-m1507m-mobile-trade-review.html"]');
@@ -41,15 +47,17 @@ const {KEY}=require('./hlm-phase11-isolated-single-game');
   await page.locator('#incoming').selectOption('b');
   for(const decision of ['approve','decline','cancel']){
    await page.locator('#review').click();
+   await page.waitForFunction(()=>document.querySelector('#report').textContent.includes('Proposal digest: '));
    assert.match(await page.locator('#report').innerText(),/favorable-for-receiving-team/);
    assert.match(await page.locator('#report').innerText(),/Deterministic CPU engine decision \(not authenticated\): (accept|blocked)/);
-   assert.match(await page.locator('#report').innerText(),/Proposal digest: [a-f0-9]{64}/);
+   assert.match(await page.locator('#report').innerText(),new RegExp('Proposal digest: '+expected.digest));
    assert.match(await page.locator('#report').innerText(),/CPU consent: NOT authenticated/);
    await page.locator('#'+decision).click();
    assert.match(await page.locator('#report').innerText(),/Settlement: BLOCKED. Saved: NO/);
    assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),before);
   }
   await page.locator('#review').click();
+  await page.waitForFunction(()=>document.querySelector('#report').textContent.includes('Proposal digest: '));
   const stale=JSON.parse(before);stale.meta.currentDate='2029-01-01';
   await page.evaluate(({key,raw})=>localStorage.setItem(key,raw),{key:KEY,raw:JSON.stringify(stale)});
   await page.waitForTimeout(100);
