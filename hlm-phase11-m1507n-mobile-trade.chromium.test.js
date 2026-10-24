@@ -42,6 +42,7 @@ const {KEY}=require('./hlm-phase11-isolated-single-game');
   for(const decision of ['approve','decline','cancel']){
    await page.locator('#review').click();
    assert.match(await page.locator('#report').innerText(),/favorable-for-receiving-team/);
+   assert.match(await page.locator('#report').innerText(),/Mobile CPU decision indication \\(valuation-derived, not authenticated\\): accept preview/);
    assert.match(await page.locator('#report').innerText(),/CPU consent: NOT authenticated/);
    await page.locator('#'+decision).click();
    assert.match(await page.locator('#report').innerText(),/Settlement: BLOCKED. Saved: NO/);
