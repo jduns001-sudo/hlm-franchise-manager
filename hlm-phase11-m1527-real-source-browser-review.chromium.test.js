@@ -31,13 +31,13 @@ const {chromium}=require('playwright');
   assert.equal((await page.evaluate(()=>window.HLMRealSourceTradeReview.connect({experimentalEnabled:true,experimentalDatabaseName:'hlm-m1527-source-test'}))).ok,true);
   await page.locator('#outgoing').fill('pA');await page.locator('#incoming').fill('pB');
   await page.locator('#review').click();
-  assert.match(await page.locator('#summary').innerText(),/not-authenticated-review-only/);
+  await page.locator('#summary').getByText('not-authenticated-review-only').waitFor();
   await page.locator('#approve').check();await page.locator('#submit').click();
-  assert.match(await page.locator('#status').innerText(),/Settlement blocked/);
+  await page.locator('#status').getByText(/Settlement blocked/).waitFor();
   await page.locator('#review').click();await page.locator('#decline').click();
   assert.equal(await page.locator('#submit').isDisabled(),true);
   await page.locator('#outgoing').fill('unknown');await page.locator('#review').click();
-  assert.match(await page.locator('#summary').innerText(),/source-ownership-or-contract-mismatch/);
+  await page.locator('#summary').getByText(/source-ownership-or-contract-mismatch/).waitFor();
   console.log('M1527 real IndexedDB mobile read-only source, default-off, invalid owner, blocked settlement and decline passed');
  }finally{await browser.close();await new Promise(r=>server.close(r))}
 })().catch(e=>{console.error(e);process.exitCode=1});
