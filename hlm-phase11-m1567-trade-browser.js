@@ -577,6 +577,18 @@ async function settleBrowserVerifiedSyntheticTrade(state,input={},record,options
   if(players.length!==1||contracts.length!==1||String(players[0].teamId)!==from||String(contracts[0].teamId)!==from)return deny('stale-transfer-source');
   players[0].teamId=to;contracts[0].teamId=to;
  }
+ if(candidate.activity.transactions.some(t=>t?.id===options.eventId))return deny('duplicate-transaction-id');
+ const label=(entity,id)=>typeof entity?.name==='string'&&entity.name.trim()?entity.name.trim():String(id);
+ const transfers=[[input.outgoingPlayerId,controlled,other],[input.incomingPlayerId,other,controlled]].map(([id,from,to])=>{
+  const player=state.universe.players.find(p=>String(p.id)===id);
+  const contract=state.assets.contracts.find(c=>String(c.playerId)===id&&c.status==='active');
+  const fromTeam=state.universe.teams.find(t=>String(t.id)===from),toTeam=state.universe.teams.find(t=>String(t.id)===to);
+  return {playerId:id,playerName:label(player,id),fromTeamId:from,fromTeamName:label(fromTeam,from),
+   toTeamId:to,toTeamName:label(toTeam,to),aav:contract.aav};
+ });
+ candidate.activity.transactions.push({id:options.eventId,type:'experimental-player-trade',experimental:true,
+  sourceRevision:state.meta.revision,revision:state.meta.revision+1,gmApproved:true,
+  cpuConsentAuthenticated:false,productionSettlementAuthorized:false,transfers});
  candidate.meta.revision++;
  if(validateGameStateEnvelope(candidate).valid!==true||candidate.meta.revision!==prepared.proposedRevision)return deny('invalid-candidate');
  try{
@@ -723,6 +735,7 @@ mods["hlm-phase11-m1568-trade-player-options"]=function(module,exports,require){
 /* Read-only choices from the selected persisted synthetic franchise. */
 const store=require('./hlm-phase11-m1516-atomic-isolated-state-persistence');
 const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {tradeHistory}=require('./hlm-phase11-m1570-persisted-trade-history');
 const deny=code=>({ok:false,code,saved:false});
 async function listPlayers(options={}){
  if(options.experimentalEnabled!==true)return deny('experiment-disabled');
@@ -753,10 +766,45 @@ async function listPlayers(options={}){
    (String(player.teamId)===controlled?outgoing:incoming).push(option);
   }
   const sort=(a,b)=>a.label.localeCompare(b.label)||a.id.localeCompare(b.id);outgoing.sort(sort);incoming.sort(sort);
-  return {ok:true,revision:game.meta.revision,outgoing,incoming,saved:false};
+  return {ok:true,revision:game.meta.revision,outgoing,incoming,history:tradeHistory(game,ledger),saved:false};
  }catch{return deny('isolated-storage-error')}
 }
 module.exports={listPlayers};
+
+};
+mods["hlm-phase11-m1570-persisted-trade-history"]=function(module,exports,require){
+'use strict';
+/* Read only committed experimental records. Never reconstruct legacy trades
+ * from current ownership or claim authenticated consent from ledger membership. */
+function tradeHistory(game,ledger){
+ const deny=()=>({ok:false,code:'invalid-trade-history',entries:[]});
+ const revision=game?.meta?.revision,transactions=game?.activity?.transactions;
+ if(!Number.isSafeInteger(revision)||revision<1||ledger?.revision!==revision||
+  !Array.isArray(transactions)||!Array.isArray(ledger.events))return deny();
+ const records=transactions.filter(t=>t?.type==='experimental-player-trade');
+ const seenIds=new Set(),seenRevisions=new Set();
+ const text=x=>typeof x==='string'&&x.trim().length>0;
+ for(const t of records){
+  if(!text(t.id)||seenIds.has(t.id)||seenRevisions.has(t.revision)||
+   transactions.filter(x=>x?.id===t.id).length!==1||
+   t.experimental!==true||t.gmApproved!==true||t.cpuConsentAuthenticated!==false||
+   t.productionSettlementAuthorized!==false||!Number.isSafeInteger(t.sourceRevision)||t.sourceRevision<1||
+   t.revision!==t.sourceRevision+1||t.revision>revision||
+   ledger.events.filter(e=>e?.id===t.id&&e.experimental===true).length!==1||
+   ledger.events.filter(e=>e?.id===t.id).length!==1||
+   !Array.isArray(t.transfers)||t.transfers.length!==2)return deny();
+  const [a,b]=t.transfers;
+  if(![a,b].every(p=>p&&['playerId','playerName','fromTeamId','fromTeamName','toTeamId','toTeamName'].every(k=>text(p[k]))&&
+   typeof p.aav==='number'&&Number.isFinite(p.aav)&&p.aav>=0)||
+   a.playerId===b.playerId||a.fromTeamId===a.toTeamId||a.fromTeamId!==b.toTeamId||a.toTeamId!==b.fromTeamId)return deny();
+  seenIds.add(t.id);seenRevisions.add(t.revision);
+ }
+ // Fresh values; callers cannot mutate their loaded GameState through this view.
+ return {ok:true,entries:records.slice().sort((a,b)=>b.revision-a.revision).map(t=>({id:t.id,revision:t.revision,
+  transfers:t.transfers.map(p=>({playerId:p.playerId,playerName:p.playerName,fromTeamId:p.fromTeamId,
+   fromTeamName:p.fromTeamName,toTeamId:p.toTeamId,toTeamName:p.toTeamName,aav:p.aav}))}))};
+}
+module.exports={tradeHistory};
 
 };
 root.HLMExperimentalTradeHost=Object.freeze({createHost:require('./hlm-phase11-m1566-persisted-trade-review-host').createHost,listPlayers:require('./hlm-phase11-m1568-trade-player-options').listPlayers});

@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict');
 globalThis.indexedDB=require('fake-indexeddb').indexedDB;
 const store=require('./hlm-phase11-m1516-atomic-isolated-state-persistence');
+const {tradeHistory}=require('./hlm-phase11-m1570-persisted-trade-history');
 const {createHost}=require('./hlm-phase11-m1566-persisted-trade-review-host');
 function source(){return {schemaVersion:1,meta:{revision:1,controlledTeamId:'A'},universe:{players:[{id:'pA',teamId:'A'},{id:'pB',teamId:'B'}],teams:[{id:'A'},{id:'B'}],leagues:[],prospects:[],staff:[]},assets:{contracts:[{playerId:'pA',teamId:'A',status:'active',aav:4,tradePermission:'allowed'},{playerId:'pB',teamId:'B',status:'active',aav:7,tradePermission:'allowed'}],draftPicks:[]},activity:{transactions:[],games:[],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{teamCapLimits:{A:100,B:100}},extensions:{tradeRosterLimits:{A:30,B:30}}}}
 (async()=>{
@@ -43,6 +44,11 @@ function source(){return {schemaVersion:1,meta:{revision:1,controlledTeamId:'A'}
  assert.equal(first.saved,true,first.code);assert.equal(first.settlementAuthorized,false);assert.equal(first.cpuConsentAuthenticated,false);
  assert.equal(duplicate.saved,false);assert.equal(duplicate.code,'settlement-pending');
  const stored=await store.read(database);
+ assert.equal(stored.game.activity.transactions.length,1);
+ const trade=stored.game.activity.transactions[0];
+ assert.equal(trade.id,stored.ledger.events[1].id);assert.equal(trade.sourceRevision,1);assert.equal(trade.revision,2);
+ assert.deepEqual(trade.transfers.map(p=>[p.playerId,p.fromTeamId,p.toTeamId,p.aav]),[['pA','A','B',4],['pB','B','A',7]]);
+ assert.equal(tradeHistory(stored.game,stored.ledger).entries.length,1);
  assert.equal(stored.game.meta.revision,2);assert.equal(stored.ledger.events.length,2);
  assert.equal(stored.game.universe.players[0].teamId,'B');assert.equal(stored.game.assets.contracts[0].teamId,'B');
  assert.equal((await other.settle(approved)).saved,false,'another host cannot settle stale review');
@@ -63,5 +69,25 @@ function source(){return {schemaVersion:1,meta:{revision:1,controlledTeamId:'A'}
  assert.equal(fullReview.ok,true,fullReview.code);
  assert.deepEqual(fullReview.terms.teams[0],{teamId:'A',name:'A',beforePayroll:15,afterPayroll:18,capLimit:100,remainingCap:82},'payroll includes other active contracts and excludes expired contracts');
  assert.deepEqual(await store.read(fullDatabase),fullBefore,'financial summary never writes');
+ // Abort the actual IndexedDB transaction after both candidate records were
+ // staged. Neither ownership, transaction history nor ledger may survive.
+ const abortHost=createHost({...options,experimentalDatabaseName:fullDatabase});
+ assert.equal((await abortHost.review(request)).ok,true);
+ const prototype=require('fake-indexeddb').IDBDatabase.prototype,originalTransaction=prototype.transaction;
+ prototype.transaction=function(...args){
+  const tx=originalTransaction.apply(this,args);
+  if(this.name===fullDatabase&&args[1]==='readwrite'){
+   const objectStore=tx.objectStore.bind(tx);
+   tx.objectStore=function(...storeArgs){
+    const records=objectStore(...storeArgs),put=records.put.bind(records);
+    records.put=function(value,key){const result=put(value,key);if(key==='ledger')queueMicrotask(()=>tx.abort());return result};
+    return records;
+   };
+  }
+  return tx;
+ };
+ try{assert.equal((await abortHost.settle(approved)).saved,false,'aborted settlement never reports saved')}
+ finally{prototype.transaction=originalTransaction}
+ assert.deepEqual(await store.read(fullDatabase),fullBefore,'abort rolls back ownership, trade details and ledger together');
  console.log('M1566 persisted host: explicit opt-in, approval, cancellation, atomic settlement, duplicate/stale rejection and resume passed');
 })().catch(e=>{console.error(e);process.exitCode=1});

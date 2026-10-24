@@ -2,6 +2,7 @@
 /* Read-only choices from the selected persisted synthetic franchise. */
 const store=require('./hlm-phase11-m1516-atomic-isolated-state-persistence');
 const {validateGameStateEnvelope}=require('./hlm-game-state');
+const {tradeHistory}=require('./hlm-phase11-m1570-persisted-trade-history');
 const deny=code=>({ok:false,code,saved:false});
 async function listPlayers(options={}){
  if(options.experimentalEnabled!==true)return deny('experiment-disabled');
@@ -32,7 +33,7 @@ async function listPlayers(options={}){
    (String(player.teamId)===controlled?outgoing:incoming).push(option);
   }
   const sort=(a,b)=>a.label.localeCompare(b.label)||a.id.localeCompare(b.id);outgoing.sort(sort);incoming.sort(sort);
-  return {ok:true,revision:game.meta.revision,outgoing,incoming,saved:false};
+  return {ok:true,revision:game.meta.revision,outgoing,incoming,history:tradeHistory(game,ledger),saved:false};
  }catch{return deny('isolated-storage-error')}
 }
 module.exports={listPlayers};
