@@ -24,7 +24,7 @@ assert.equal(run(fixture(),{...input,gmApproved:false},'blocked').code,'human-gm
 assert.equal(run(fixture(),{...input,expectedGameRevision:12},'blocked').code,'stale-game-revision');
 const restricted=fixture();restricted.assets.contracts[0].tradePermission='denied';
 assert.equal(run(restricted,input,'blocked').code,'trade-restricted');
-const overcap=fixture();overcap.finances.teamCapLimits.B=2;
+const overcap=fixture();overcap.finances.teamCapLimits.B=1;
 assert.equal(run(overcap,input,'blocked').code,'salary-cap-exceeded');
 const decline=fixture();decline.assets.contracts[0].aav=4;decline.assets.contracts[1].aav=3;
 decline.extensions.cpuTradeDecisions[0].decision='decline';
