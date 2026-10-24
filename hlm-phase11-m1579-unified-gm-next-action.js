@@ -12,8 +12,9 @@ const map=Object.freeze({
  'file':null,
  'season-dashboard':null
 });
-function create(readState){
+function create(readState,readCurrentTarget){
  if(typeof readState!=='function')throw Error('Saved franchise reader required');
+ if(readCurrentTarget!==undefined&&typeof readCurrentTarget!=='function')throw Error('Current action reader must be a function');
  let snapshot=null,target=null;
  return Object.freeze({
   prepare(fragment){
@@ -32,6 +33,8 @@ function create(readState){
    if(snapshot===null||!target)throw Error('Refresh current GM action first');
    const current=readState();
    if(!current||JSON.stringify(current)!==snapshot){snapshot=null;target=null;throw Error('Saved season changed; refresh GM next action');}
+   if(readCurrentTarget&&String(readCurrentTarget()).replace(/^#/,'')!==target){snapshot=null;target=null;throw Error('GM next action changed; refresh before reviewing');}
+   if(target==='day-review'&&!current.activity.games.some(g=>g.status==='scheduled')){snapshot=null;target=null;throw Error('No scheduled GM day remains');}
    const chosen=target;target=null;snapshot=null;
    return Object.freeze({target:chosen,saved:false,requiresExplicitGMApproval:true});
   },
