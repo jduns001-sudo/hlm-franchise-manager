@@ -31,7 +31,7 @@ const {chromium}=require('playwright');
   assert.equal((await page.evaluate(()=>window.HLMRealSourceTradeReview.connect({experimentalEnabled:true,experimentalDatabaseName:'hlm-m1527-source-test'}))).ok,true);
   await page.locator('#outgoing').fill('pA');await page.locator('#incoming').fill('pB');
   await page.locator('#review').click();
-  await page.locator('#summary').getByText('not-authenticated-review-only').waitFor();
+  await page.locator('#summary').getByText('unavailable').waitFor();
   await page.locator('#approve').check();await page.locator('#submit').click();
   await page.locator('#status').getByText(/Settlement blocked/).waitFor();
   await page.locator('#review').click();await page.locator('#decline').click();
