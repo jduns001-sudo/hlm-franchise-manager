@@ -37,7 +37,7 @@
   if(!Number.isSafeInteger(expectedRevision)||expectedRevision<0||
     !nextLedger||nextLedger.schema!==INITIAL.schema||
     nextLedger.revision!==expectedRevision+1||
-    !nextLedger.consumed||typeof nextLedger.consumed!=='object'||
+    !nextLedger.consumed||typeof nextLedger.consumed!=='object'||Array.isArray(nextLedger.consumed)||
     typeof fingerprint!=='string'||! /^[a-f0-9]{64}$/.test(fingerprint)||
     nextLedger.consumed[fingerprint]!==true)
    return {committed:false,code:'invalid-transition'};
@@ -49,7 +49,17 @@
    get.onsuccess=()=>{
     const current=get.result||INITIAL;
     if(current.schema!==INITIAL.schema||current.revision!==expectedRevision||
-       !current.consumed||Object.prototype.hasOwnProperty.call(current.consumed,fingerprint)){
+       !current.consumed||typeof current.consumed!=='object'||Array.isArray(current.consumed)||
+       Object.prototype.hasOwnProperty.call(current.consumed,fingerprint)){
+     reason='stale-or-replayed';return;
+    }
+    // Fail closed unless this is exactly one additive fingerprint. This
+    // prevents caller-crafted transitions from erasing prior receipts.
+    const previous=Object.keys(current.consumed),incoming=Object.keys(nextLedger.consumed);
+    if(incoming.length!==previous.length+1||
+       previous.some(k=>! /^[a-f0-9]{64}$/.test(k)||current.consumed[k]!==true||nextLedger.consumed[k]!==true)||
+       incoming.some(k=>! /^[a-f0-9]{64}$/.test(k)||nextLedger.consumed[k]!==true)||
+       incoming.filter(k=>!Object.prototype.hasOwnProperty.call(current.consumed,k)).length!==1){
      reason='stale-or-replayed';return;
     }
     // Only one readwrite transaction can hold this object store at a time.
