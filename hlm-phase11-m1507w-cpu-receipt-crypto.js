@@ -35,7 +35,7 @@ function verify(state,input,revision,receipt,publicKey,options){
  if(Buffer.byteLength(payload)>MAX_RECEIPT_BYTES)return deny('receipt-too-large',id.digest);
  let valid=false;
  try{
-  const key=crypto.createPublicKey(publicKey);
+  const key=publicKey instanceof crypto.KeyObject && publicKey.type==='public' ? publicKey : crypto.createPublicKey(publicKey);
   if(key.asymmetricKeyType!=='ed25519')return deny('unsupported-key-type',id.digest);
   valid=crypto.verify(null,Buffer.from(payload),key,Buffer.from(receipt.signature,'base64url'));
  }catch{return deny('signature-verification-failed',id.digest)}
