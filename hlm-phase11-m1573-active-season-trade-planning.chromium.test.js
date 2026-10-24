@@ -61,6 +61,7 @@ const {chromium}=require('playwright');
   // M1579 next GM action reuses day review and never approves or saves.
   await page.waitForFunction(()=>document.getElementById('gm-next-action-link').getAttribute('href')==='#day-review');
   assert.equal(await page.locator('#gm-playoff-handoff-open').isDisabled(),true,'playoff handoff is disabled during regular season');
+  assert.equal(await page.locator('#gm-playoff-continuity-open').isDisabled(),true,'playoff postgame requires an authoritative saved playoff state');
   assert.match(await page.locator('#gm-playoff-handoff-status').innerText(),/No eligible playoff action/);
 
   await page.locator('#gm-unified-action-open').click();
