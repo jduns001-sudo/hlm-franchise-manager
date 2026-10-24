@@ -14,7 +14,7 @@ button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:b
 <label>Incoming player ID <input id="incoming" autocomplete="off"></label><br>
 <button id="review" type="button">Review proposal</button>
 <button id="decline" type="button">Decline / cancel</button></section>
-<section aria-live="polite"><h2>Decision and eligibility</h2><pre id="summary">No proposal reviewed.</pre>
+<section aria-live="polite"><h2>Decision and eligibility</h2><pre id="terms">No trade terms reviewed.</pre><pre id="summary">No proposal reviewed.</pre>
 <label><input type="checkbox" id="approve" disabled> I approve this reviewed experimental proposal</label><br>
 <button id="submit" type="button" disabled>Request guarded experimental settlement</button>
 <p id="status" role="status">No changes saved.</p></section>
@@ -30,7 +30,7 @@ button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:b
  const by=id=>document.getElementById(id),fields=['outgoing','incoming'];
  let current=null,busy=false,reviewEpoch=0,settling=false;
  const status=t=>{by('status').textContent=t};
- const reset=()=>{current=null;by('approve').checked=false;by('approve').disabled=true;by('submit').disabled=true};
+ const reset=()=>{by('terms').textContent='No trade terms reviewed.';current=null;by('approve').checked=false;by('approve').disabled=true;by('submit').disabled=true};
  function invalidate(){reviewEpoch++;reset();by('summary').textContent='Proposal changed. Review again.';status('No changes saved.')}
  fields.forEach(id=>by(id).addEventListener('input',invalidate));
  by('decline').addEventListener('click',()=>{if(settling)return;reviewEpoch++;reset();by('summary').textContent='Declined. No proposal pending.';status('Declined. No changes saved.')});
@@ -50,6 +50,13 @@ button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:b
     !Number.isSafeInteger(result.revision)||result.revision<0){
     by('summary').textContent='Review unavailable: '+String(result?.code||'invalid-host-response');
     status('No changes saved.');return;
+   }
+   if(result.terms?.revision===result.revision&&Array.isArray(result.terms.players)&&Array.isArray(result.terms.teams)){
+    const number=value=>typeof value==='number'&&Number.isFinite(value)?value.toLocaleString('en-US'):'Unavailable';
+    const terms=result.terms;
+    by('terms').textContent='Reviewed saved revision '+terms.revision+'\n'+
+     terms.players.map((p,i)=>(i===0?'You send: ':'You receive: ')+p.name+' ('+p.playerId+') — '+p.teamName+'; annual cap charge '+number(p.aav)).join('\n')+'\n\n'+
+     terms.teams.map(t=>t.name+': payroll '+number(t.beforePayroll)+' → '+number(t.afterPayroll)+'; cap limit '+number(t.capLimit)+'; remaining cap '+number(t.remainingCap)).join('\n');
    }
    const eligible=result.financial?.eligible===true&&result.restrictions?.eligible===true;
    current=eligible?{request,revision:result.revision}:null;

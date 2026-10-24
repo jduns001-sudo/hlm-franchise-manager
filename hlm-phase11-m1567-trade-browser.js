@@ -40,9 +40,24 @@ function createHost(config={}){
     if(!proof.ok)return deny(proof.code);
     if(proof.payload.decision!=='recommend-accept')return deny('cpu-policy-declined');
     if(ticket!==epoch||settling)return deny('review-superseded');
+    // Display only scalar terms from this same persisted review snapshot.
+    // Projected payroll comes from the validated planner, never from caller input.
+    const players=[request.outgoingPlayerId,request.incomingPlayerId].map(id=>{
+     const player=state.universe.players.find(p=>String(p.id)===id);
+     const contract=state.assets.contracts.find(c=>String(c.playerId)===id&&c.status==='active');
+     const team=state.universe.teams.find(t=>String(t.id)===String(player.teamId));
+     return Object.freeze({playerId:id,name:typeof player.name==='string'&&player.name.trim()?player.name.trim():id,teamId:String(team.id),teamName:typeof team.name==='string'&&team.name.trim()?team.name.trim():String(team.id),aav:contract.aav});
+    });
+    const teams=players.map(player=>{
+     const teamId=player.teamId,capLimit=state.finances.teamCapLimits[teamId];
+     const beforePayroll=state.assets.contracts.filter(c=>c.status==='active'&&String(c.teamId)===teamId).reduce((sum,c)=>sum+c.aav,0);
+     const afterPayroll=plan.projectedPayroll[teamId];
+     return Object.freeze({teamId,name:player.teamName,beforePayroll,afterPayroll,capLimit,remainingCap:capLimit-afterPayroll});
+    });
+    const terms=Object.freeze({revision,players:Object.freeze(players),teams:Object.freeze(teams)});
     pending={state,request,proof,revision};
     return Object.freeze({ok:true,code:'persisted-synthetic-review-only',revision,
-     cpuDecision:proof.payload.decision,financial:{eligible:true,sourceValidated:true},
+     terms,cpuDecision:proof.payload.decision,financial:{eligible:true,sourceValidated:true},
      restrictions:{eligible:true,sourceValidated:true},saved:false,
      cpuConsentAuthenticated:false,settlementAuthorized:false});
    }catch{return deny('isolated-review-error')}
