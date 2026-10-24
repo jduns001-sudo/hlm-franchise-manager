@@ -1,0 +1,63 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const {createGameStateEnvelope}=require('./hlm-game-state');
+const {createBrowserFranchiseSaveStore}=require('./hlm-phase10-browser-storage');
+const {applyScheduledGame}=require('./hlm-phase10-apply-game');
+const {calculateStandings}=require('./hlm-phase10-standings');
+const {reviewPickTransfer}=require('./hlm-phase11-source-pick-transfer');
+const {create,KEY}=require('./hlm-phase11-isolated-single-game');
+const PICK='DP-0-2028-1-1-1';
+const source={pickId:PICK,league:0,year:2028,round:1,originalTeamId:1,currentOwnerId:5,status:'AVAILABLE',source:'hlm-universe.json'};
+function setup(){
+ const memory=new Map([['hlm_front_office_v8','PRODUCTION_SENTINEL']]);
+ const storage={getItem:key=>memory.get(key)??null,setItem:(key,value)=>memory.set(key,value)};
+ const engine={createBrowserFranchiseSaveStore,applyScheduledGame,calculateStandings,reviewPickTransfer};
+ const manager=create(engine,storage);
+ const state=createGameStateEnvelope({meta:{controlledTeamId:5,currentDate:'2026-10-23'},teams:[{id:1,name:'New Jersey'},{id:5,name:'Pittsburgh'}],draftPicks:[source]});
+ manager.stage(state,true);
+ return {storage,manager,engine};
+}
+const options={pickId:PICK,fromTeamId:5,toTeamId:1};
+test('review and declined approval do not write; explicit approval persists only pick ownership across reload',()=>{
+ const {storage,manager,engine}=setup();
+ const before=storage.getItem(KEY);
+ const preview=manager.reviewPickTransfer(options);
+ assert.equal(preview.review.requiresGmApproval,true);
+ assert.equal(storage.getItem(KEY),before);
+ assert.throws(()=>manager.approveReviewedPickTransfer(false),/approval/i);
+ assert.equal(storage.getItem(KEY),before);
+ const result=manager.approveReviewedPickTransfer(true);
+ assert.equal(result.nextState.assets.draftPicks[0].currentOwnerId,1);
+ const after=storage.getItem(KEY);
+ assert.notEqual(after,before);
+ const reloaded=create(engine,storage).load();
+ assert.equal(reloaded.assets.draftPicks[0].currentOwnerId,1);
+ assert.equal(reloaded.assets.contracts.length,0);
+ assert.equal(reloaded.universe.prospects.length,0);
+ assert.equal(storage.getItem('hlm_front_office_v8'),'PRODUCTION_SENTINEL');
+ assert.throws(()=>manager.approveReviewedPickTransfer(true),/Review pick transfer/i);
+});
+test('stale tab cannot approve a reviewed pick transfer and cannot change saved state',()=>{
+ const {storage,manager,engine}=setup();
+ const stale=create(engine,storage);
+ manager.reviewPickTransfer(options);
+ const before=storage.getItem(KEY);
+ const other=create(engine,storage);
+ other.reviewPickTransfer(options);
+ other.approveReviewedPickTransfer(true);
+ const accepted=storage.getItem(KEY);
+ assert.notEqual(accepted,before);
+ assert.throws(()=>manager.approveReviewedPickTransfer(true),/changed|reload/i);
+ assert.throws(()=>stale.reviewPickTransfer(options),/changed|reload/i);
+ assert.equal(storage.getItem(KEY),accepted);
+ assert.equal(create(engine,storage).load().assets.draftPicks[0].currentOwnerId,1);
+});
+test('invalid recipient and wrong source owner fail without writing',()=>{
+ const {storage,manager}=setup();
+ const before=storage.getItem(KEY);
+ assert.throws(()=>manager.reviewPickTransfer({...options,toTeamId:999}),/Unknown franchise team/);
+ assert.throws(()=>manager.reviewPickTransfer({...options,fromTeamId:1}),/controlled-team/i);
+ assert.equal(storage.getItem(KEY),before);
+ assert.throws(()=>manager.approveReviewedPickTransfer(true),/Review pick transfer/i);
+});
