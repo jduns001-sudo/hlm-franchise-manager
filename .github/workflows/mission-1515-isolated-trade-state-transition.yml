@@ -1,0 +1,17 @@
+name: Mission 1515 Isolated Trade State Transition
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1515-isolated-trade-state-transition.js'
+      - 'hlm-phase11-m1515-isolated-trade-state-transition.test.js'
+      - '.github/workflows/mission-1515-isolated-trade-state-transition.yml'
+  workflow_dispatch:
+jobs:
+  transition-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1515-isolated-trade-state-transition.test.js
