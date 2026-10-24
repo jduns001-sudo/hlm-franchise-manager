@@ -1,0 +1,32 @@
+name: Mission 1578 Contract Integration Requirements
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1578-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-m1573-active-season-trade-planning.chromium.test.js'
+      - '.github/workflows/mission-1578-contract-integration-requirements.yml'
+  workflow_dispatch:
+jobs:
+  integration-requirements-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1578-contract-integration-requirements.js
+      - run: node --check hlm-phase11-m1578-contract-integration-requirements-panel.js
+      - run: node hlm-phase11-m1578-contract-integration-requirements.test.js
+      - run: node hlm-phase11-m1577-contract-evidence-board.test.js
+      - run: node hlm-phase11-real-universe-journey.test.js
+  integration-requirements-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1573-active-season-trade-planning.chromium.test.js
