@@ -57,6 +57,16 @@ const {chromium}=require('playwright');
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'declined requirements no-save');
   await page.locator('#season-contract-requirements-refresh').click();
 
+
+  // M1579 next GM action reuses day review and never approves or saves.
+  await page.waitForFunction(()=>document.getElementById('gm-next-action-link').getAttribute('href')==='#day-review');
+  await page.locator('#gm-unified-action-open').click();
+  assert.match(await page.locator('#gm-unified-action-status').innerText(),/No action approved or saved/);
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'opening review never persists a GM action');
+  await page.locator('#gm-unified-action-decline').evaluate(el=>el.disabled=false);
+  await page.locator('#gm-unified-action-decline').click();
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'GM next action declined without save');
+
   const outgoing=String(own[0].id),incoming=choices[0];
 
   // M1575: local document never enters GameState. Even a claimed verified
