@@ -1,0 +1,13 @@
+name: Mission 1542 Atomic Trade Commit Guard
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  commit-guard-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1542-atomic-trade-commit-guard.test.js
