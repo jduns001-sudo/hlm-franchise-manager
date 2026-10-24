@@ -1,0 +1,17 @@
+name: Mission 1507X CPU Trust Registry
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507x-cpu-trust-registry.js'
+      - 'hlm-phase11-m1507x-cpu-trust-registry.test.js'
+      - '.github/workflows/mission-1507x-cpu-trust-registry.yml'
+  workflow_dispatch:
+jobs:
+  cpu-trust-registry-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507x-cpu-trust-registry.test.js
