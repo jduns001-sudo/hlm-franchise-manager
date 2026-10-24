@@ -39,6 +39,22 @@ const {chromium}=require('playwright');
    ok:true,revision:4,cpuConsentAuthenticated:true,settlementAuthorized:false,saved:false})});
   await page.locator('#review').click();
   assert.equal(await page.locator('#approve').isDisabled(),true,'forged CPU consent cannot enable approval');
+  // A delayed host response must never revive approval after GM cancellation.
+  let resolveDelayed;
+  await page.evaluate(()=>{window.HLMTradeReviewHost.review=()=>new Promise(resolve=>{window.__resolveDelayedReview=resolve})});
+  await page.locator('#review').click();
+  await page.locator('#decline').click();
+  await page.evaluate(()=>window.__resolveDelayedReview({ok:true,revision:5,cpuDecision:'accept',financial:{eligible:true},restrictions:{eligible:true},cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false}));
+  await page.locator('#review').waitFor({state:'visible'});
+  assert.equal(await page.locator('#approve').isDisabled(),true,'late review cannot override decline');
+  assert.equal(await page.locator('#submit').isDisabled(),true);
+  assert.match(await page.locator('#status').innerText(),/Declined. No changes saved/);
+  // Editing an input during a pending review must also invalidate the response.
+  await page.locator('#review').click();
+  await page.locator('#incoming').fill('pC');
+  await page.evaluate(()=>window.__resolveDelayedReview({ok:true,revision:5,cpuDecision:'accept',financial:{eligible:true},restrictions:{eligible:true},cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false}));
+  assert.equal(await page.locator('#approve').isDisabled(),true,'late review cannot override changed proposal');
+  assert.equal(await page.locator('#submit').isDisabled(),true);
   console.log('M1524 mobile review, default-off, explicit approval, decline no-save, input invalidation and forged-consent rejection passed');
   await page.close();
  }finally{await browser.close();await new Promise(r=>server.close(r))}
