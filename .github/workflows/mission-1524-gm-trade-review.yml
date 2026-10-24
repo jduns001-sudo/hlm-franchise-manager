@@ -1,0 +1,19 @@
+name: Mission 1524 GM Trade Review
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1524-gm-trade-review.html'
+      - 'hlm-phase11-m1524-gm-trade-review.chromium.test.js'
+      - '.github/workflows/mission-1524-gm-trade-review.yml'
+  workflow_dispatch:
+jobs:
+  gm-trade-review-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1524-gm-trade-review.chromium.test.js
