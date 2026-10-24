@@ -1,0 +1,8 @@
+/* M1582 fail-closed read-only playoff action handoff. Never clicks approval controls. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMPlayoffReviewHandoff=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+'use strict';
+function create(readState,readTarget){if(typeof readState!=='function'||typeof readTarget!=='function')throw Error('Readers required');let snapshot=null,action=null;
+function classify(state){if(!state||!Array.isArray(state.activity?.games))return null;if(state.activity.games.some(g=>g.status==='scheduled'))return null;const bracket=state.extensions?.phase10Playoffs;if(!bracket)return (state.universe?.teams||[]).length>=4?'playoff-start':null;return bracket.status==='active'?'playoff-next':null}
+return Object.freeze({classify,prepare(){snapshot=null;action=null;const state=readState(),eligible=classify(state);if(!eligible||String(readTarget()).replace(/^#/,'')!==eligible)return Object.freeze({available:false,saved:false});snapshot=JSON.stringify(state);action=eligible;return Object.freeze({available:true,action:eligible,saved:false})},open(){if(!snapshot||!action)throw Error('Refresh playoff action');const current=readState();if(!current||JSON.stringify(current)!==snapshot||classify(current)!==action||String(readTarget()).replace(/^#/,'')!==action){snapshot=null;action=null;throw Error('Stale playoff review; refresh saved season')}const id=action;snapshot=null;action=null;return Object.freeze({target:id,saved:false,requiresHumanGMApproval:true})},decline(){snapshot=null;action=null;return Object.freeze({saved:false,declined:true})}})}
+return Object.freeze({create});
+});
