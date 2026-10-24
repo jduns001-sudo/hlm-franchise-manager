@@ -34,8 +34,8 @@ const {chromium}=require('playwright');
   await page.locator('#summary').getByText(/source-ownership-or-contract-mismatch/).waitFor();
 
 
-  await page.locator('#approve').check();await page.locator('#submit').click();
-  await page.locator('#status').getByText(/Settlement blocked/).waitFor();
+  assert.equal(await page.locator('#approve').isDisabled(),true);
+  assert.equal(await page.locator('#submit').isDisabled(),true);
   await page.locator('#review').click();await page.locator('#decline').click();
   assert.equal(await page.locator('#submit').isDisabled(),true);
   await page.locator('#outgoing').fill('unknown');await page.locator('#review').click();
