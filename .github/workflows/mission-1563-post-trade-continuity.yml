@@ -1,0 +1,26 @@
+name: Mission 1563 Post-Trade Franchise Continuity
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1563-*'
+      - '.github/workflows/mission-1563-post-trade-continuity.yml'
+  workflow_dispatch:
+jobs:
+  continuity-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1563-post-trade-continuity.test.js
+  continuity-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1563-post-trade-continuity.chromium.test.js
