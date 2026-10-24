@@ -55,6 +55,27 @@ const {chromium}=require('playwright');
   await page.evaluate(()=>window.__resolveDelayedReview({ok:true,revision:5,cpuDecision:'accept',financial:{eligible:true},restrictions:{eligible:true},cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false}));
   assert.equal(await page.locator('#approve').isDisabled(),true,'late review cannot override changed proposal');
   assert.equal(await page.locator('#submit').isDisabled(),true);
+  // Once an approved request is dispatched, do not offer a misleading cancel/no-save action.
+  // The invalidation scenario above leaves both IDs as pC; restore a valid proposal.
+  await page.locator('#incoming').fill('pB');
+  await page.evaluate(()=>{window.__settleCalls=0;window.HLMTradeReviewHost={
+   review:async()=>({ok:true,revision:7,cpuDecision:'accept',financial:{eligible:true},restrictions:{eligible:true},cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false}),
+   settle:()=>{window.__settleCalls++;return new Promise(resolve=>{window.__resolvePendingSettlement=resolve})}
+  }});
+  await page.locator('#review').click();await page.locator('#approve').check();
+  await page.locator('#submit').click();
+  assert.equal(await page.locator('#decline').isDisabled(),true,'decline must not promise no-save during dispatched settlement');
+  assert.equal(await page.locator('#outgoing').isDisabled(),true);
+  assert.equal(await page.locator('#incoming').isDisabled(),true);
+  assert.equal(await page.locator('#review').isDisabled(),true);
+  assert.match(await page.locator('#status').innerText(),/Cancellation is unavailable after submission/);
+  await page.evaluate(()=>window.__resolvePendingSettlement({saved:false,code:'cpu-consent-not-authenticated',settlementAuthorized:false}));
+  await page.locator('#decline').waitFor({state:'visible'});
+  await page.waitForFunction(()=>!document.getElementById('decline').disabled);
+  assert.match(await page.locator('#status').innerText(),/Settlement blocked/);
+  assert.equal(await page.evaluate(()=>window.__settleCalls),1);
+  assert.equal(await page.locator('#outgoing').isEnabled(),true);
+  assert.equal(await page.locator('#submit').isDisabled(),true);
   console.log('M1524 mobile review, default-off, explicit approval, decline no-save, input invalidation and forged-consent rejection passed');
   await page.close();
  }finally{await browser.close();await new Promise(r=>server.close(r))}

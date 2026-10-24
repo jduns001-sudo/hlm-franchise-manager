@@ -28,12 +28,12 @@ button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:b
  */
 (function(){
  const by=id=>document.getElementById(id),fields=['outgoing','incoming'];
- let current=null,busy=false,reviewEpoch=0;
+ let current=null,busy=false,reviewEpoch=0,settling=false;
  const status=t=>{by('status').textContent=t};
  const reset=()=>{current=null;by('approve').checked=false;by('approve').disabled=true;by('submit').disabled=true};
  function invalidate(){reviewEpoch++;reset();by('summary').textContent='Proposal changed. Review again.';status('No changes saved.')}
  fields.forEach(id=>by(id).addEventListener('input',invalidate));
- by('decline').addEventListener('click',()=>{reviewEpoch++;reset();by('summary').textContent='Declined. No proposal pending.';status('Declined. No changes saved.')});
+ by('decline').addEventListener('click',()=>{if(settling)return;reviewEpoch++;reset();by('summary').textContent='Declined. No proposal pending.';status('Declined. No changes saved.')});
  by('approve').addEventListener('change',()=>{by('submit').disabled=!current||!by('approve').checked||busy});
  by('review').addEventListener('click',async()=>{
   const epoch=++reviewEpoch;reset();status('Reviewing. No changes saved.');
@@ -62,18 +62,20 @@ button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:b
   finally{busy=false;by('review').disabled=false}
  });
  by('submit').addEventListener('click',async()=>{
-  if(!current||!by('approve').checked||busy)return;
+  if(!current||!by('approve').checked||busy||settling)return;
   const host=window.HLMTradeReviewHost;
   if(typeof host?.settle!=='function'){status('Guarded settlement not connected. No changes saved.');return}
-  busy=true;by('submit').disabled=true;
+  busy=true;settling=true;by('submit').disabled=true;
+  fields.forEach(id=>by(id).disabled=true);by('decline').disabled=true;by('review').disabled=true;
   const approval=current;reset();
+  status('Settlement request in progress. Cancellation is unavailable after submission.');
   try{
    const result=await host.settle({...approval.request,expectedGameRevision:approval.revision,gmApproved:true});
    status(result?.saved===true&&result?.settlementAuthorized===false&&result?.experimentalSyntheticSave===true
     ?'Experimental synthetic transaction saved. Production settlement remains disabled.'
     :'Settlement blocked: '+String(result?.code||'unavailable')+'. No changes saved.');
   }catch{status('Settlement failed. No changes saved.')}
-  finally{busy=false}
+  finally{busy=false;settling=false;fields.forEach(id=>by(id).disabled=false);by('decline').disabled=false;by('review').disabled=false}
  });
 })();
 </script></body></html>
