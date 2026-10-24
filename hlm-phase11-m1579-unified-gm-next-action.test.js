@@ -28,6 +28,7 @@ currentLink='#day-review';continuity.prepare('#day-review');
 assert.equal(continuity.open().target,'day-review');
 state.activity.games.forEach(g=>{if(g.status==='scheduled')g.status='final'});
 assert.equal(continuity.prepare('#day-review').available,false);
+currentLink='#offseason-review';
 assert.equal(continuity.prepare('#offseason-review').available,true);
 assert.equal(continuity.open().target,'offseason-review');
 const afterReload=create(reader,()=>currentLink);
