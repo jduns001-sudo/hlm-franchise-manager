@@ -1,8 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createGameStateEnvelope}=require('./hlm-game-state');
-const {assess}=require('./hlm-phase11-m1507p-trade-authority-readiness');
-const {contract}=require('./hlm-phase11-trusted-consent-contract');
+const {assess,identity}=require('./hlm-phase11-m1507p-trade-authority-readiness');
 const input={outgoingPlayerId:'a',incomingPlayerId:'b'};
 function state(){
  const s=createGameStateEnvelope({meta:{controlledTeamId:1},
@@ -15,7 +14,7 @@ function state(){
  return s;
 }
 test('valid source proposal has stable digest but no consent or settlement',()=>{
- const s=state(),before=JSON.stringify(s),id=contract(s,input,'revision-1');
+ const s=state(),before=JSON.stringify(s),id=identity(s,input,'revision-1');
  const r=assess(s,input,'revision-1');
  assert.equal(r.proposalDigest,id.digest);
  assert.equal(r.code,'independent-cpu-proof-missing');
@@ -28,7 +27,7 @@ test('valid source proposal has stable digest but no consent or settlement',()=>
  assert.equal(JSON.stringify(s),before);
 });
 test('spoofed matching proof and flags never grant CPU authority',()=>{
- const s=state(),id=contract(s,input,'revision-1');
+ const s=state(),id=identity(s,input,'revision-1');
  const r=assess(s,input,'revision-1',{proposalDigest:id.digest,stateRevision:id.revision,
   nonce:'nonce-1',signature:'fake',trusted:true,receivingTeamConsent:true},{gmApproved:true});
  assert.equal(r.code,'trusted-cpu-authority-and-replay-ledger-unavailable');
@@ -37,7 +36,7 @@ test('spoofed matching proof and flags never grant CPU authority',()=>{
  assert.equal(r.saved,false);
 });
 test('stale revisions, cancellation and source restrictions fail closed',()=>{
- const s=state(),id=contract(s,input,'revision-1');
+ const s=state(),id=identity(s,input,'revision-1');
  assert.equal(assess(s,input,'revision-2',{proposalDigest:id.digest,stateRevision:id.revision}).code,'stale-or-mismatched-proof');
  assert.equal(assess(s,input,'revision-1',null,{cancelled:true}).code,'gm-declined-or-cancelled');
  s.assets.contracts[0].tradePermission='unknown';
