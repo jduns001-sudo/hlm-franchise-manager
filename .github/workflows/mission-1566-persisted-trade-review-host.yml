@@ -1,0 +1,33 @@
+name: Mission 1566 Persisted Trade Review Host
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1566-*'
+      - 'hlm-phase11-m1524-gm-trade-review*'
+      - 'hlm-phase11-m1525-*'
+      - 'hlm-phase11-m1561-*'
+      - 'hlm-phase11-m1562-*'
+      - 'hlm-phase11-m1516-*'
+      - '.github/workflows/mission-1566-persisted-trade-review-host.yml'
+  workflow_dispatch:
+jobs:
+  persisted-host-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save fake-indexeddb
+      - run: node hlm-phase11-m1566-persisted-trade-review-host.test.js
+  persisted-host-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1566-persisted-trade-review-host.chromium.test.js
+      - run: node hlm-phase11-m1524-gm-trade-review.chromium.test.js
