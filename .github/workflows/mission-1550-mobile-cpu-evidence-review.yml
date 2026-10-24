@@ -1,0 +1,24 @@
+name: Mission 1550 Mobile CPU Evidence Review
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  cpu-evidence-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1550-mobile-cpu-evidence-review.test.js
+      - run: node hlm-phase11-m1549-cpu-trade-evidence-bridge.test.js
+  cpu-evidence-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1550-mobile-cpu-evidence-review.chromium.test.js

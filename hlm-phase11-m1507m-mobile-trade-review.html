@@ -12,6 +12,7 @@ button:disabled{opacity:.45}a{color:#a9d6ff}pre{white-space:pre-wrap;overflow-wr
 <button id="approve" type="button" disabled>Approve review (settlement blocked)</button><button id="decline" type="button" disabled>Decline (no save)</button><button id="cancel" type="button" disabled>Cancel (no save)</button></section>
 <script src="./hlm-phase11-m1507m-mobile-trade-bundle.js"></script>
 <script src="./hlm-phase11-m1507t-browser-cpu-engine.js"></script>
+<script src="./hlm-phase11-m1550-browser-cpu-evidence-bridge.js"></script>
 <script>
 (function(){'use strict';
 const KEY='hlm-phase11-m1340-isolated-single-game-v1';
@@ -45,6 +46,7 @@ $('review').addEventListener('click',async()=>{
   const revision=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw))),b=>b.toString(16).padStart(2,'0')).join('');
   const input={outgoingPlayerId:$('outgoing').value,incomingPlayerId:$('incoming').value};
   const cpuDecision=await window.HLMPhase11BrowserCpuDecision.decide(source,input,revision);
+  const evidence=window.HLMPhase11CpuEvidenceBridge.review(source,{...input,gmApproved:true,expectedGameRevision:source.meta?.revision});
   if(sequence!==cpuSequence)return;
   if(window.localStorage.getItem(KEY)!==raw){clear();message('Review blocked: stale-save. No save.');return;}
 
@@ -52,6 +54,7 @@ $('review').addEventListener('click',async()=>{
   '\nCPU rating advice: '+(cpu.status==='cpu-trade-evaluation-preview'?cpu.recommendation+' ('+cpu.receivingTeamRatingDelta+' OVR delta)':'Unavailable: '+cpu.code)+
   '\nDeterministic CPU engine decision (not authenticated): '+cpuDecision.decision+' ('+(cpuDecision.code||cpuDecision.status)+')'+
   '\nProposal digest: '+(cpuDecision.proposalDigest||'unavailable')+
+  '\nSource CPU evidence: '+evidence.code+(evidence.evidenceStatus?' ('+evidence.evidenceStatus+')':'')+'; agreement: '+(evidence.decisionMatches===true?'yes':'not verified')+
   '\nCPU consent: NOT authenticated. Settlement: DISABLED.\nNo save has occurred.');
   for(const id of ['approve','decline','cancel'])$(id).disabled=false;
  }catch(e){message('Review blocked: '+e.message+'. No save.')}
