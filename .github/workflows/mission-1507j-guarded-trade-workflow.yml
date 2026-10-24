@@ -1,0 +1,15 @@
+name: Mission 1507J Guarded Trade Workflow
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507j-guarded-trade-workflow*'
+      - '.github/workflows/mission-1507j-guarded-trade-workflow.yml'
+jobs:
+  guarded-trade-workflow-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507j-guarded-trade-workflow.test.js
