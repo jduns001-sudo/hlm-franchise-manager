@@ -42,7 +42,7 @@ const {create:cpuEngine}=require('./hlm-phase11-m1507q-cpu-decision-engine');
   await link.waitFor({state:'visible'});
   await link.click();
   await page.locator('#review').waitFor({state:'visible'});
-  assert.equal(await page.locator('#review').isEnabled(),true);
+  assert.equal(await page.locator('#review').isEnabled(),true,'Mobile trade review unavailable: '+await page.locator('#report').innerText());
   await page.locator('#outgoing').selectOption('a');
   await page.locator('#incoming').selectOption('b');
   for(const decision of ['approve','decline','cancel']){
