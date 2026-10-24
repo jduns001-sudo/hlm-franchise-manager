@@ -20,10 +20,11 @@ function source(){return {schemaVersion:1,meta:{revision:4,controlledTeamId:'A'}
  const db='hlm-phase11-m1560-experimental-'+process.pid;
  const result=await page.evaluate(async ({state,db})=>{const input={outgoingPlayerId:'pA',incomingPlayerId:'pB',gmApproved:true,expectedGameRevision:4},options={experimentalEnabled:true,gmApproved:true,syntheticTestAuthorization:true,eventId:'m1560_direct',experimentalDatabaseName:db};localStorage.setItem('hlm_front_office_v8','production-untouched');const before=JSON.stringify(state);const results={};
  for(const [key,change] of [['disabled',{experimentalEnabled:false}],['cancel',{cancelled:true}],['decline',{declined:true}],['production',{realTradeSettlement:true}],['untrusted',{syntheticTestAuthorization:false}]])results[key]=await HLM1560.settleSyntheticTradeWithIndexedDb(state,input,{...options,...change});
- // The successful path depends on Node crypto; browser acceptance is limited to pre-authorization denial.\n
+ // Successful trade paths require Node crypto; browser coverage here is pre-authorization denial.
+
  results.store=await HLM1516.read(db);
  results.production=localStorage.getItem('hlm_front_office_v8');results.sourceUnchanged=JSON.stringify(state)===before;return results;},{state:source(),db});
  for(const key of ['disabled','cancel','decline','production','untrusted']){assert.equal(result[key].saved,false,key);assert.equal(result[key].settlementAuthorized,false,key)}
  assert.equal(result.store.game,null);assert.equal(result.store.ledger,null);assert.equal(result.production,'production-untouched');assert.equal(result.sourceUnchanged,true);
- console.log('M1560 direct mobile facade: cancel, decline, production, uninitialized store, no-save passed');
+ console.log('M1560 direct mobile facade: cancel, decline, production, no-save passed');
 }finally{await browser.close();await new Promise(resolve=>server.close(resolve))}})().catch(e=>{console.error(e);process.exitCode=1});
