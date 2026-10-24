@@ -5,13 +5,16 @@
 const {propose}=require('./hlm-phase11-m1507h-trade-proposal');
 const {inspect}=require('./hlm-phase11-m1507i-trade-invariant-gate');
 const {evaluate}=require('./hlm-phase11-m1507k-cpu-trade-policy');
+const {create:createCpuEngine}=require('./hlm-phase11-m1507q-cpu-decision-engine');
+const crypto=require('node:crypto');
 function create(storage,key){
  if(!storage||typeof storage.getItem!=='function'||typeof key!=='string'||!key||
   key==='hlm_front_office_v8'||!key.startsWith('hlm-phase11-'))
   throw Error('Explicit Phase 11 isolated franchise storage required');
  let baseline=storage.getItem(key),pending=null;
+ let cpuEngine=createCpuEngine();
  const deny=(code)=>Object.freeze({status:'trade-settlement-blocked',code,saved:false,settlementAuthorized:false,experimental:true});
- function reload(){baseline=storage.getItem(key);pending=null;return baseline?JSON.parse(baseline):null}
+ function reload(){baseline=storage.getItem(key);pending=null;cpuEngine=createCpuEngine();return baseline?JSON.parse(baseline):null}
  function review(input){
   pending=null;
   if(storage.getItem(key)!==baseline)return deny('stale-save');
@@ -26,8 +29,9 @@ function create(storage,key){
   if(verified.status!=='trade-proposal-invariants-verified')return deny('invariants-failed');
   if(storage.getItem(key)!==baseline)return deny('stale-save');
   const cpuEvaluation=evaluate(source,input);
+  const cpuDecision=cpuEngine.decide(source,input,crypto.createHash('sha256').update(baseline).digest('hex'));
   pending={baseline,input:JSON.parse(JSON.stringify(input)),candidate:JSON.stringify(preview.nextState)};
-  return Object.freeze({status:'awaiting-human-GM-decision',review:preview.review,cpuEvaluation,
+  return Object.freeze({status:'awaiting-human-GM-decision',review:preview.review,cpuEvaluation,cpuDecision,
    settlementAuthorized:false,saved:false,experimental:true});
  }
  function decide(action){

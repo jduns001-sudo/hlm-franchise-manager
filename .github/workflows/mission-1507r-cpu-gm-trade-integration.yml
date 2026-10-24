@@ -1,0 +1,19 @@
+name: Mission 1507R CPU GM Trade Integration
+on:
+  push:
+    branches:
+      - experiment/phase11-m1507r-cpu-gm-trade-integration
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507j-guarded-trade-workflow.js'
+      - 'hlm-phase11-m1507r-cpu-gm-trade-integration.test.js'
+      - '.github/workflows/mission-1507r-cpu-gm-trade-integration.yml'
+jobs:
+  cpu-gm-trade-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1507r-cpu-gm-trade-integration.test.js
