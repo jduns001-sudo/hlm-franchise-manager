@@ -1,0 +1,26 @@
+name: Mission 1559 Atomic Store Adapter
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1559-*'
+      - '.github/workflows/mission-1559-atomic-store-adapter.yml'
+  workflow_dispatch:
+jobs:
+  atomic-store-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1559-atomic-store-adapter.test.js
+  atomic-store-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1559-atomic-store-adapter.chromium.test.js
