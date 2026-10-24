@@ -41,8 +41,8 @@ $('review').addEventListener('click',async()=>{
   const cpu=result.cpuEvaluation;
   const raw=window.localStorage.getItem(KEY);
   if(!raw)throw Error('missing-isolated-save');
-  const revision=raw;
   const source=JSON.parse(raw);
+  const revision=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(raw))),b=>b.toString(16).padStart(2,'0')).join('');
   const input={outgoingPlayerId:$('outgoing').value,incomingPlayerId:$('incoming').value};
   const cpuDecision=await window.HLMPhase11BrowserCpuDecision.decide(source,input,revision);
   if(sequence!==cpuSequence)return;
