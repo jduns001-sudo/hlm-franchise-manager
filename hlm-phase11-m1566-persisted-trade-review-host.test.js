@@ -69,5 +69,25 @@ function source(){return {schemaVersion:1,meta:{revision:1,controlledTeamId:'A'}
  assert.equal(fullReview.ok,true,fullReview.code);
  assert.deepEqual(fullReview.terms.teams[0],{teamId:'A',name:'A',beforePayroll:15,afterPayroll:18,capLimit:100,remainingCap:82},'payroll includes other active contracts and excludes expired contracts');
  assert.deepEqual(await store.read(fullDatabase),fullBefore,'financial summary never writes');
+ // Abort the actual IndexedDB transaction after both candidate records were
+ // staged. Neither ownership, transaction history nor ledger may survive.
+ const abortHost=createHost({...options,experimentalDatabaseName:fullDatabase});
+ assert.equal((await abortHost.review(request)).ok,true);
+ const prototype=require('fake-indexeddb').IDBDatabase.prototype,originalTransaction=prototype.transaction;
+ prototype.transaction=function(...args){
+  const tx=originalTransaction.apply(this,args);
+  if(this.name===fullDatabase&&args[1]==='readwrite'){
+   const objectStore=tx.objectStore.bind(tx);
+   tx.objectStore=function(...storeArgs){
+    const records=objectStore(...storeArgs),put=records.put.bind(records);
+    records.put=function(value,key){const result=put(value,key);if(key==='ledger')queueMicrotask(()=>tx.abort());return result};
+    return records;
+   };
+  }
+  return tx;
+ };
+ try{assert.equal((await abortHost.settle(approved)).saved,false,'aborted settlement never reports saved')}
+ finally{prototype.transaction=originalTransaction}
+ assert.deepEqual(await store.read(fullDatabase),fullBefore,'abort rolls back ownership, trade details and ledger together');
  console.log('M1566 persisted host: explicit opt-in, approval, cancellation, atomic settlement, duplicate/stale rejection and resume passed');
 })().catch(e=>{console.error(e);process.exitCode=1});
