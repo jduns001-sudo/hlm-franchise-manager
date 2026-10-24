@@ -67,6 +67,14 @@ const {chromium}=require('playwright');
   await page.locator('#gm-unified-action-decline').click();
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'GM next action declined without save');
 
+  await page.reload();
+  await page.waitForFunction(()=>document.getElementById('gm-next-action-link').getAttribute('href')==='#day-review');
+  assert.equal(await page.locator('#gm-unified-action-open').isDisabled(),false,'reload restores current safe day review');
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'reload and safe handoff do not persist');
+  await page.locator('#gm-unified-action-decline').click();
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'reload decline preserves saved state');
+
+
   const outgoing=String(own[0].id),incoming=choices[0];
 
   // M1575: local document never enters GameState. Even a claimed verified
