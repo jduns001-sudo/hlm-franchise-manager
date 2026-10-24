@@ -72,9 +72,20 @@
       ?(selected[0].contract.aav<=selected[1].contract.aav?'recommend-accept':'recommend-decline')
       :'unavailable';
      const cpuPolicy=cpuDecision==='unavailable'?'source-contract-aav-unavailable':'incoming-team-aav-nonincreasing-v1';
+     // Mirror M1445 read-only restriction and equal-size roster checks.
+     // Unknown permissions, team identities, limits or statuses fail closed.
+     const teams=game.universe?.teams,limits=game.extensions?.tradeRosterLimits;
+     const teamExists=id=>Array.isArray(teams)&&teams.some(t=>String(t.id)===id);
+     const allowed=selected.every(x=>x.contract.tradePermission==='allowed'&&
+      x.player.status!=='retired'&&x.player.status!=='suspended');
+     const limitOk=limits&&[teamA,teamB].every(id=>Number.isSafeInteger(limits[id])&&
+      players.filter(p=>String(p.teamId)===id).length<=limits[id]);
+     const restrictions=teamExists(teamA)&&teamExists(teamB)&&allowed&&limitOk
+      ?{eligible:true,reason:'source-restrictions-passed-review-only'}
+      :{eligible:false,reason:'source-restrictions-or-roster-limits-unverified'};
      return {ok:true,revision,cpuDecision,cpuPolicy,
       financial,
-      restrictions:{eligible:false,reason:'guarded-policy-not-connected'},
+      restrictions,
       cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false};
     }catch{return deny('isolated-storage-error')}
    },
