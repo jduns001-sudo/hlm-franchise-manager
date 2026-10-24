@@ -1,0 +1,28 @@
+name: Mission 1509 Ledger Integrity
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1508-browser-ledger.js'
+      - 'hlm-phase11-m1509-ledger-integrity.test.js'
+      - 'hlm-phase11-m1509-ledger-integrity.chromium.test.js'
+      - '.github/workflows/mission-1509-ledger-integrity.yml'
+  workflow_dispatch:
+jobs:
+  ledger-integrity-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1509-ledger-integrity.test.js
+  ledger-integrity-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1509-ledger-integrity.chromium.test.js
