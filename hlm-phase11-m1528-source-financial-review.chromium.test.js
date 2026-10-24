@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {chromium}=require('playwright');
 (async()=>{
  const html=fs.readFileSync(path.join(__dirname,'hlm-phase11-m1524-gm-trade-review.html'),'utf8');
- const bridge=fs.readFileSync(path.join(__dirname,'hlm-phase11-m1528-real-source-browser-review.js'),'utf8');
+ const bridge=fs.readFileSync(path.join(__dirname,'hlm-phase11-m1527-real-source-browser-review.js'),'utf8');
  const server=http.createServer((req,res)=>{res.writeHead(200,{'content-type':'text/html'});res.end(html)});
  await new Promise(r=>server.listen(0,'127.0.0.1',r));
  const browser=await chromium.launch({headless:true});
