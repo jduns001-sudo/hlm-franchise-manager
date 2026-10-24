@@ -1,0 +1,26 @@
+name: Mission 1554 CPU Authorization Proposal Binding
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1554-*'
+      - '.github/workflows/mission-1554-cpu-authorization-binding.yml'
+  workflow_dispatch:
+jobs:
+  binding-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1554-cpu-authorization-proposal-binding.test.js
+  binding-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1554-cpu-authorization-proposal-binding.chromium.test.js
