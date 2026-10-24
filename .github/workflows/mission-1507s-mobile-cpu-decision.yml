@@ -1,0 +1,21 @@
+name: Mission 1507S Mobile CPU Decision Preview
+on:
+  push:
+    branches:
+      - experiment/phase11-m1507s-mobile-cpu-decision
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1507m-mobile-trade-review.html'
+      - 'hlm-phase11-m1507n-mobile-trade.chromium.test.js'
+      - '.github/workflows/mission-1507s-mobile-cpu-decision.yml'
+jobs:
+  mobile-cpu-decision-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1507n-mobile-trade.chromium.test.js
