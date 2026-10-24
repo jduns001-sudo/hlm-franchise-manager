@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Experimental Franchise Trade Workspace</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif}body{margin:0 auto;padding:18px;max-width:700px;background:#111a26;color:#f2f6fa}
+label{display:block;margin:14px 0}button,select{font:inherit;padding:10px;max-width:100%}iframe{width:100%;min-height:820px;border:1px solid #526579;border-radius:10px;margin-top:16px}p{line-height:1.5}.warning{color:#f7d48b}
+</style>
+<script src="hlm-phase11-m1567-trade-browser.js" defer></script>
+<script src="hlm-phase11-m1567-trade-entry.js" defer></script>
+</head><body>
+<h1>Experimental franchise trades</h1>
+<p class="warning">Isolated synthetic test workspace. Production trading remains disabled. CPU policy recommendations are not authenticated consent.</p>
+<p>Select an existing experimental franchise. Each trade still requires review and your approval. Connecting does not save a transaction.</p>
+<label>Existing experimental franchise <select id="franchise" disabled><option value="">Loading franchises…</option></select></label>
+<label><input id="authorize" type="checkbox" disabled> Enable synthetic trades in this isolated test franchise for this session.</label>
+<button id="connect" type="button" disabled>Connect trade workspace</button>
+<p id="connection-status" role="status">Disconnected. No franchise selected.</p>
+<section aria-label="Choose trade players">
+<h2>Choose players</h2>
+<p>Choices come from saved team ownership and active contracts. Review checks cap space, restrictions and the CPU policy.</p>
+<label>Your player <select id="outgoing-player" disabled><option value="">Connect a franchise first</option></select></label>
+<label>Player to acquire <select id="incoming-player" disabled><option value="">Connect a franchise first</option></select></label>
+<button id="refresh-players" type="button" disabled>Refresh saved rosters</button>
+<p id="roster-status" role="status">No roster loaded.</p>
+</section>
+<p>After a reload, reconnect to review the latest saved revision. A submitted settlement may finish before the page reloads.</p>
+<iframe id="trade-frame" src="hlm-phase11-m1524-gm-trade-review.html" title="GM Trade Review"></iframe>
+</body></html>

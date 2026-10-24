@@ -1,0 +1,26 @@
+name: Mission 1562 Browser IndexedDB Trade Settlement
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1562-*'
+      - '.github/workflows/mission-1562-browser-indexeddb-trade-settlement.yml'
+  workflow_dispatch:
+jobs:
+  settlement-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1562-browser-indexeddb-trade-settlement.test.js
+  settlement-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1562-browser-indexeddb-trade-settlement.chromium.test.js

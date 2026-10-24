@@ -28,15 +28,15 @@ button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:b
  */
 (function(){
  const by=id=>document.getElementById(id),fields=['outgoing','incoming'];
- let current=null,busy=false;
+ let current=null,busy=false,reviewEpoch=0,settling=false;
  const status=t=>{by('status').textContent=t};
  const reset=()=>{current=null;by('approve').checked=false;by('approve').disabled=true;by('submit').disabled=true};
- function invalidate(){reset();by('summary').textContent='Proposal changed. Review again.';status('No changes saved.')}
+ function invalidate(){reviewEpoch++;reset();by('summary').textContent='Proposal changed. Review again.';status('No changes saved.')}
  fields.forEach(id=>by(id).addEventListener('input',invalidate));
- by('decline').addEventListener('click',()=>{reset();by('summary').textContent='Declined. No proposal pending.';status('Declined. No changes saved.')});
+ by('decline').addEventListener('click',()=>{if(settling)return;reviewEpoch++;reset();by('summary').textContent='Declined. No proposal pending.';status('Declined. No changes saved.')});
  by('approve').addEventListener('change',()=>{by('submit').disabled=!current||!by('approve').checked||busy});
  by('review').addEventListener('click',async()=>{
-  reset();status('Reviewing. No changes saved.');
+  const epoch=++reviewEpoch;reset();status('Reviewing. No changes saved.');
   const host=window.HLMTradeReviewHost,request={outgoingPlayerId:by('outgoing').value.trim(),incomingPlayerId:by('incoming').value.trim()};
   if(!request.outgoingPlayerId||!request.incomingPlayerId||request.outgoingPlayerId===request.incomingPlayerId){
    status('Choose two different player IDs. No changes saved.');return;
@@ -45,6 +45,7 @@ button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:b
   busy=true;by('review').disabled=true;
   try{
    const result=await host.review(request);
+   if(epoch!==reviewEpoch||fields.some(id=>by(id).value.trim()!==request[id==='outgoing'?'outgoingPlayerId':'incomingPlayerId']))return;
    if(result?.ok!==true||result.cpuConsentAuthenticated!==false||result.saved!==false||result.settlementAuthorized!==false||
     !Number.isSafeInteger(result.revision)||result.revision<0){
     by('summary').textContent='Review unavailable: '+String(result?.code||'invalid-host-response');
@@ -57,22 +58,24 @@ button:disabled{opacity:.45;cursor:not-allowed}input{max-width:100%;box-sizing:b
     cpuConsentAuthenticated:false,productionSettlementAuthorized:false},null,2);
    by('approve').disabled=!eligible;
    status(eligible?'Review only. No changes saved.':'Trade ineligible. Approval blocked. No changes saved.');
-  }catch{status('Review failed. No changes saved.')}
+  }catch{if(epoch===reviewEpoch)status('Review failed. No changes saved.')}
   finally{busy=false;by('review').disabled=false}
  });
  by('submit').addEventListener('click',async()=>{
-  if(!current||!by('approve').checked||busy)return;
+  if(!current||!by('approve').checked||busy||settling)return;
   const host=window.HLMTradeReviewHost;
   if(typeof host?.settle!=='function'){status('Guarded settlement not connected. No changes saved.');return}
-  busy=true;by('submit').disabled=true;
+  busy=true;settling=true;by('submit').disabled=true;
+  fields.forEach(id=>by(id).disabled=true);by('decline').disabled=true;by('review').disabled=true;
   const approval=current;reset();
+  status('Settlement request in progress. Cancellation is unavailable after submission.');
   try{
    const result=await host.settle({...approval.request,expectedGameRevision:approval.revision,gmApproved:true});
    status(result?.saved===true&&result?.settlementAuthorized===false&&result?.experimentalSyntheticSave===true
     ?'Experimental synthetic transaction saved. Production settlement remains disabled.'
     :'Settlement blocked: '+String(result?.code||'unavailable')+'. No changes saved.');
   }catch{status('Settlement failed. No changes saved.')}
-  finally{busy=false}
+  finally{busy=false;settling=false;fields.forEach(id=>by(id).disabled=false);by('decline').disabled=false;by('review').disabled=false}
  });
 })();
 </script></body></html>
