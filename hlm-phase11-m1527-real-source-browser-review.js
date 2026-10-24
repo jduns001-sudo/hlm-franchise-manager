@@ -58,7 +58,7 @@
      const validMoney=x=>typeof x.aav==='number'&&Number.isFinite(x.aav)&&x.aav>=0;
      let financial={eligible:false,reason:'source-financial-evidence-unavailable'};
      if(cap&&Number.isFinite(cap[teamA])&&Number.isFinite(cap[teamB])&&
-        active.every(validMoney)&&selected.every(x=>validMoney(x.contract))){
+        active.filter(x=>[teamA,teamB].includes(String(x.teamId))).every(validMoney)&&selected.every(x=>validMoney(x.contract))){
       const payroll=id=>active.filter(x=>String(x.teamId)===id).reduce((sum,x)=>sum+x.aav,0);
       const afterA=payroll(teamA)-selected[0].contract.aav+selected[1].contract.aav;
       const afterB=payroll(teamB)-selected[1].contract.aav+selected[0].contract.aav;
