@@ -50,7 +50,61 @@ function create(readState){
   return {source:'current-saved-isolated-season',players,saved:false,settlementAuthorized:false,cpuConsentAuthenticated:false,
    message:'Player source review only. Trade approval and settlement are not connected to this season.'};
  }
- return Object.freeze({choices,review});
+
+ // This is evidence inspection, not a settlement authorization. The source
+ // is the currently persisted isolated season, never a constructed trade fixture.
+ function preflight(input={}){
+  const reviewed=review(input),source=inspect(),reasons=[];
+  const affected=reviewed.players.map(player=>{
+   const teamId=player.teamId;
+   const roster=source.players.filter(p=>String(p.teamId)===teamId&&p.retired!==true&&p.status!==-1&&p.status!=='retired');
+   const matched=new Map();let missing=0,ambiguous=0,invalid=0,payroll=0;
+   for(const p of roster){
+    const records=source.contracts.filter(c=>c&&c.status==='active'&&String(c.playerId)===String(p.id));
+    if(records.length===0){missing++;continue}
+    if(records.length!==1){ambiguous++;continue}
+    const c=records[0];
+    if(String(c.teamId)!==teamId||typeof c.aav!=='number'||!Number.isFinite(c.aav)||c.aav<0){invalid++;continue}
+    matched.set(String(p.id),c);payroll+=c.aav;
+   }
+   if(missing)reasons.push(player.teamName+': '+missing+' roster player(s) missing unique active contract evidence');
+   if(ambiguous)reasons.push(player.teamName+': '+ambiguous+' ambiguous active contract record(s)');
+   if(invalid)reasons.push(player.teamName+': '+invalid+' invalid active contract ownership or cap charge(s)');
+   const orphans=source.contracts.filter(c=>c&&c.status==='active'&&String(c.teamId)===teamId&&
+    !roster.some(p=>String(p.id)===String(c.playerId)));
+   if(orphans.length)reasons.push(player.teamName+': '+orphans.length+' active contract(s) without matching current roster ownership');
+   const cap=source.state.finances?.teamCapLimits?.[teamId];
+   if(typeof cap!=='number'||!Number.isFinite(cap)||cap<0)
+    reasons.push(player.teamName+': source team cap limit unavailable');
+   const limit=source.state.extensions?.tradeRosterLimits?.[teamId];
+   if(!Number.isSafeInteger(limit)||limit<0)
+    reasons.push(player.teamName+': source roster limit unavailable');
+   else if(roster.length>limit)reasons.push(player.teamName+': current roster exceeds source limit');
+   return {teamId,teamName:player.teamName,rosterCount:roster.length,capLimit:typeof cap==='number'&&Number.isFinite(cap)&&cap>=0?cap:null,
+    beforePayroll:missing||ambiguous||invalid||orphans.length?null:payroll,matched};
+  });
+  const contracts=reviewed.players.map((p,i)=>affected[i].matched.get(p.id));
+  for(let i=0;i<contracts.length;i++){
+   if(!contracts[i])reasons.push(reviewed.players[i].name+': selected player has no valid active contract evidence');
+   else if(contracts[i].tradePermission!=='allowed')
+    reasons.push(reviewed.players[i].name+': source trade permission is not explicitly allowed');
+  }
+  const [outgoing,incoming]=contracts,readyToCalculate=affected.every(t=>t.beforePayroll!==null&&t.capLimit!==null)&&
+   outgoing!==undefined&&incoming!==undefined;
+  const financial=affected.map((team,i)=>{
+   const projectedPayroll=readyToCalculate?team.beforePayroll-(i===0?outgoing.aav:incoming.aav)+
+    (i===0?incoming.aav:outgoing.aav):null;
+   if(projectedPayroll!==null&&projectedPayroll>team.capLimit)
+    reasons.push(team.teamName+': projected payroll exceeds source cap');
+   return Object.freeze({teamId:team.teamId,teamName:team.teamName,beforePayroll:team.beforePayroll,
+    projectedPayroll,capLimit:team.capLimit,rosterCount:team.rosterCount});
+  });
+  return Object.freeze({source:'current-saved-isolated-season',saved:false,settlementAuthorized:false,
+   cpuConsentAuthenticated:false,sourceDataComplete:reasons.length===0,
+   blockers:Object.freeze(reasons),financial:Object.freeze(financial),
+   message:'Read-only financial and roster preflight only. CPU consent, league restrictions and real-season settlement are not authenticated or enabled.'});
+ }
+ return Object.freeze({choices,review,preflight});
 }
 return Object.freeze({create});
 });
