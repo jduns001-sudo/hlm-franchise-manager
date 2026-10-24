@@ -52,6 +52,7 @@ const {KEY}=require('./hlm-phase11-isolated-single-game');
   await page.locator('#review').click();
   const stale=JSON.parse(before);stale.meta.currentDate='2029-01-01';
   await page.evaluate(({key,raw})=>localStorage.setItem(key,raw),{key:KEY,raw:JSON.stringify(stale)});
+  await page.locator('#report').getByText(/Review blocked: stale-save|Deterministic CPU engine decision/).waitFor();
   await page.locator('#approve').click();
   assert.match(await page.locator('#report').innerText(),/stale-save/);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),JSON.stringify(stale));
