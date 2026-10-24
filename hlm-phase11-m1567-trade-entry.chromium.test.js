@@ -39,6 +39,7 @@ async function connect(page){
   assert.match(await trade.locator('#status').innerText(),/No source-backed review host/);
   await page.locator('#franchise').selectOption(database);assert.equal(await page.locator('#connect').isDisabled(),true);
   await connect(page);assert.deepEqual(await snapshot(page),before,'connection never writes');
+  assert.match(await page.locator('#trade-history').innerText(),/No recorded experimental player trades/);
   assert.match(await page.locator('#outgoing-player').innerText(),/Alex Source/);
   assert.match(await page.locator('#incoming-player').innerText(),/Blair Source/);
   await page.locator('#outgoing-player').selectOption('pA');await page.locator('#incoming-player').selectOption('pB');
@@ -75,8 +76,18 @@ async function connect(page){
   await page.evaluate(()=>{window.__releaseTradeLock=true});
   await page.waitForFunction(()=>document.getElementById('trade-frame').contentDocument.getElementById('status').textContent.startsWith('Experimental synthetic transaction saved'));
   const stored=await snapshot(page);assert.equal(stored.game.meta.revision,2);assert.equal(stored.ledger.events.length,2);
+  assert.equal(stored.game.activity.transactions.length,1,'ownership and transaction history commit together');
+  const transaction=stored.game.activity.transactions[0];
+  assert.equal(transaction.id,stored.ledger.events[1].id);
+  assert.equal(transaction.revision,2);assert.equal(transaction.productionSettlementAuthorized,false);
+  assert.match(await page.locator('#trade-history').innerText(),/Refresh saved rosters/);
   await page.locator('#refresh-players').click();
   await page.waitForFunction(()=>document.getElementById('roster-status').textContent.startsWith('Saved roster revision 2'));
+  const savedHistory=await page.locator('#trade-history').innerText();
+  assert.match(savedHistory,/Saved revision 2/);
+  assert.match(savedHistory,/Alex Source \(pA\): A → B; annual cap charge 4/);
+  assert.match(savedHistory,/Blair Source \(pB\): B → A; annual cap charge 7/);
+  assert.equal(await page.locator('#trade-history img').count(),0);
   assert.match(await page.locator('#outgoing-player').innerText(),/Blair Source/);
   assert.doesNotMatch(await page.locator('#outgoing-player').innerText(),/Alex Source/);
   assert.match(await page.locator('#incoming-player').innerText(),/Alex Source/);
@@ -88,6 +99,7 @@ async function connect(page){
   assert.equal(await page.locator('#authorize').isChecked(),false);assert.equal(await page.locator('#connect').isDisabled(),true);
   assert.deepEqual(await snapshot(page),stored,'persisted franchise survives real reload');
   await connect(page);
+  assert.equal(await page.locator('#trade-history').innerText(),savedHistory,'committed trade history survives reconnect and reload');
   await page.locator('#outgoing-player').selectOption('pB');await page.locator('#incoming-player').selectOption('pA');await trade.locator('#review').click();
   await page.waitForFunction(()=>document.getElementById('trade-frame').contentDocument.getElementById('summary').textContent.includes('cpu-policy-declined'));
   assert.equal(await trade.locator('#approve').isDisabled(),true);

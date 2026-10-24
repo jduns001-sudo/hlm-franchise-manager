@@ -1,0 +1,37 @@
+name: Mission 1570 Persisted Trade History
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1568-*'
+      - 'hlm-phase11-m1570-*'
+      - 'hlm-phase11-m1562-*'
+      - 'hlm-phase11-m1524-*'
+      - 'hlm-phase11-m1567-*'
+      - 'hlm-phase11-m1566-*'
+      - '.github/workflows/mission-1570-persisted-trade-history.yml'
+  workflow_dispatch:
+jobs:
+  trade-history-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save fake-indexeddb
+      - run: node hlm-phase11-m1570-persisted-trade-history.test.js
+      - run: node hlm-phase11-m1568-trade-player-options.test.js
+      - run: node hlm-phase11-m1567-build-trade-browser.js --check
+      - run: node hlm-phase11-m1567-trade-browser.test.js
+      - run: node hlm-phase11-m1566-persisted-trade-review-host.test.js
+  trade-history-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1567-trade-entry.chromium.test.js
+      - run: node hlm-phase11-m1524-gm-trade-review.chromium.test.js

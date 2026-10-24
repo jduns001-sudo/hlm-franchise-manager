@@ -39,6 +39,18 @@ async function settleBrowserVerifiedSyntheticTrade(state,input={},record,options
   if(players.length!==1||contracts.length!==1||String(players[0].teamId)!==from||String(contracts[0].teamId)!==from)return deny('stale-transfer-source');
   players[0].teamId=to;contracts[0].teamId=to;
  }
+ if(candidate.activity.transactions.some(t=>t?.id===options.eventId))return deny('duplicate-transaction-id');
+ const label=(entity,id)=>typeof entity?.name==='string'&&entity.name.trim()?entity.name.trim():String(id);
+ const transfers=[[input.outgoingPlayerId,controlled,other],[input.incomingPlayerId,other,controlled]].map(([id,from,to])=>{
+  const player=state.universe.players.find(p=>String(p.id)===id);
+  const contract=state.assets.contracts.find(c=>String(c.playerId)===id&&c.status==='active');
+  const fromTeam=state.universe.teams.find(t=>String(t.id)===from),toTeam=state.universe.teams.find(t=>String(t.id)===to);
+  return {playerId:id,playerName:label(player,id),fromTeamId:from,fromTeamName:label(fromTeam,from),
+   toTeamId:to,toTeamName:label(toTeam,to),aav:contract.aav};
+ });
+ candidate.activity.transactions.push({id:options.eventId,type:'experimental-player-trade',experimental:true,
+  sourceRevision:state.meta.revision,revision:state.meta.revision+1,gmApproved:true,
+  cpuConsentAuthenticated:false,productionSettlementAuthorized:false,transfers});
  candidate.meta.revision++;
  if(validateGameStateEnvelope(candidate).valid!==true||candidate.meta.revision!==prepared.proposedRevision)return deny('invalid-candidate');
  try{
