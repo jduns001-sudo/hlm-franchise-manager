@@ -62,6 +62,7 @@ const {chromium}=require('playwright');
   await page.waitForFunction(()=>document.getElementById('gm-next-action-link').getAttribute('href')==='#day-review');
   assert.equal(await page.locator('#gm-playoff-handoff-open').isDisabled(),true,'playoff handoff is disabled during regular season');
   assert.equal(await page.locator('#gm-playoff-continuity-open').isDisabled(),true,'playoff postgame requires an authoritative saved playoff state');
+  assert.equal(await page.locator('#gm-championship-next-open').isDisabled(),true,'championship handoff requires archived or completed authoritative season');
   assert.match(await page.locator('#gm-playoff-handoff-status').innerText(),/No eligible playoff action/);
 
   await page.locator('#gm-unified-action-open').click();
