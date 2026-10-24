@@ -51,12 +51,12 @@ function reject(mutate,part){
 }
 reject(d=>d.contracts.push({...d.contracts[0],contractId:'duplicate'}),/Duplicate supplied/);
 reject(d=>d.contracts.push({...d.contracts[0]}),/Duplicate supplied/);
-reject(d=>d.contracts[0].playerId='unknown',/player absent|player absent|player absent|player absent|Contract player absent/);
+reject(d=>d.contracts[0].playerId='unknown',/Contract player absent/);
 reject(d=>d.contracts[0].teamId='B',/ownership mismatched/);
 reject(d=>d.contracts[0].aav=-1,/Invalid supplied/);
 reject(d=>d.contracts[0].aav='4',/Invalid supplied/);
 reject(d=>d.contracts[0].status='inactive',/Invalid supplied/);
-reject(d=>d.scope.teamIds.push('A'),/repeated source coverage team/);
+reject(d=>d.scope.teamIds=['A','A'],/repeated source coverage team/);
 reject(d=>d.scope.teamIds=['A'],/outside declared coverage/);
 reject(d=>d.source.asOfDate='2026-02-31',/Source publisher/);
 reject(d=>d.source.publisher='',/Source publisher/);
