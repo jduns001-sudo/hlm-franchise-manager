@@ -43,6 +43,7 @@ async function connect(page){
   assert.match(await page.locator('#incoming-player').innerText(),/Blair Source/);
   await page.locator('#outgoing-player').selectOption('pA');await page.locator('#incoming-player').selectOption('pB');
   await trade.locator('#review').click();
+  await page.waitForFunction(()=>document.getElementById('trade-frame').contentDocument.getElementById('terms').textContent.startsWith('Reviewed saved revision 1'));
   assert.match(await trade.locator('#terms').innerText(),/You send: Alex Source \(pA\)/);
   assert.match(await trade.locator('#terms').innerText(),/You receive: Blair Source \(pB\)/);
   assert.match(await trade.locator('#terms').innerText(),/A: payroll 4 → 7; cap limit 100; remaining cap 93/);
