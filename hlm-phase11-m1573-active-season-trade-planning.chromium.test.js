@@ -31,6 +31,19 @@ const {chromium}=require('playwright');
   assert.equal(await page.locator('#season-trade-outgoing option').count(),own.length+1);
   const choices=await page.locator('#season-trade-incoming option').evaluateAll(options=>options.map(o=>o.value).filter(Boolean));
   assert.ok(choices.length>100);assert.ok(choices.every(id=>state.universe.players.some(p=>String(p.id)===id&&String(p.teamId)!==owner)));
+
+  // M1577: the real saved-season roster has no source contracts.
+  await page.locator('#season-evidence-board-refresh').click();
+  await page.waitForFunction(()=>document.getElementById('season-evidence-board-report').textContent.includes('Publisher authenticated: NO'));
+  assert.match(await page.locator('#season-evidence-board-report').innerText(),/missing active contracts/);
+  assert.match(await page.locator('#season-evidence-board-report').innerText(),/team cap unavailable/);
+  assert.match(await page.locator('#season-evidence-board-report').innerText(),/Trading authorized: NO/);
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'readiness report cannot persist');
+  await page.locator('#season-evidence-board-decline').click();
+  assert.match(await page.locator('#season-evidence-board-report').innerText(),/review declined/);
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'declined readiness report no-save');
+  await page.locator('#season-evidence-board-refresh').click();
+
   const outgoing=String(own[0].id),incoming=choices[0];
 
   // M1575: local document never enters GameState. Even a claimed verified
@@ -86,6 +99,10 @@ const {chromium}=require('playwright');
   await page.waitForFunction(()=>document.getElementById('season-trade-report').textContent.includes('another tab'));
 
   await page.waitForFunction(()=>document.getElementById('season-contract-report').textContent.includes('another tab'));
+
+  await page.waitForFunction(()=>document.getElementById('season-evidence-board-report').textContent.includes('another tab'));
+  assert.equal(await page.locator('#season-evidence-board-decline').isDisabled(),true,'cross-tab approval invalidates old report');
+
   assert.equal(await page.locator('#season-contract-file').isDisabled(),true,'stale tab invalidates external inspection');
   assert.equal(await page.locator('#season-contract-review').isDisabled(),true);
 
