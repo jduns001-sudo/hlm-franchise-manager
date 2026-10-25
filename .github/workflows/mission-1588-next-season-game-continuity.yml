@@ -1,0 +1,31 @@
+name: Mission 1588 Next-Season GM Game Continuity
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1588-*'
+      - '.github/workflows/mission-1588-next-season-game-continuity.yml'
+  workflow_dispatch:
+jobs:
+  next-season-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1588-next-season-game-continuity.js
+      - run: node hlm-phase11-m1588-next-season-game-continuity.test.js
+      - run: node hlm-phase11-m1588-next-season-approved-final.test.js
+      - run: node hlm-phase11-m1587-gm-decision-handoff.test.js
+      - run: node hlm-phase11-m1586-multiseason-gm-readiness.test.js
+  next-season-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1588-next-season-game-continuity.chromium.test.js
+      - run: node hlm-phase11-m1588-next-season-approved-final.chromium.test.js

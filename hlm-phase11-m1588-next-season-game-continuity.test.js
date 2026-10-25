@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),{create}=require('./hlm-phase11-m1588-next-season-game-continuity'),{build}=require('./hlm-phase11-new-franchise');
+const universe=require('./hlm-universe.json'),engine={...require('./hlm-game-state'),...require('./hlm-phase10-season-schedule')};
+let state=build(universe,5,engine);const read=()=>structuredClone(state),gate=create(read);
+assert.equal(gate.inspect().available,false);assert.throws(()=>gate.open(),/Refresh/);
+state.extensions.phase10CurrentSeasonId='2027-28';state.extensions.phase10Playoffs=null;state.history.seasons=[{seasonId:'2026-27',championTeamId:1}];
+const controlled=state.meta.controlledTeamId;state.activity.games.forEach(g=>g.status='final');
+const game=state.activity.games.find(g=>[g.homeTeamId,g.awayTeamId].map(String).includes(String(controlled)));
+assert.ok(game);game.status='scheduled';game.date='2027-10-01';
+let inspected=gate.inspect();assert.equal(inspected.available,true);assert.equal(inspected.gameId,game.id);
+let handed=gate.open();assert.equal(handed.target,'day-review');assert.equal(handed.requiresExplicitGMApproval,true);assert.equal(handed.saved,false);
+gate.inspect();assert.equal(gate.decline().saved,false);assert.throws(()=>gate.open(),/Refresh/);
+gate.inspect();state.meta.revision=(state.meta.revision||0)+1;assert.throws(()=>gate.open(),/Stale/);
+const fresh=create(read);assert.equal(fresh.inspect().gameId,game.id);assert.equal(fresh.open().saved,false);
+game.status='final';assert.equal(fresh.inspect().available,false);
+game.status='scheduled';game.homeTeamId=1;game.awayTeamId=2;assert.equal(fresh.inspect().available,false);
+assert.equal(state.history.seasons[0].seasonId,'2026-27');
+console.log('Mission 1588 source game, controlled team, stale state, decline, reload, historical continuity, no-save PASS');
