@@ -1,0 +1,28 @@
+name: Mission 1610 Visible GM Fixture Blockers
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1610-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1610-gm-fixture-blockers.yml'
+  workflow_dispatch:
+jobs:
+  fixture-blockers-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1610-gm-fixture-blockers.js
+      - run: node hlm-phase11-m1610-gm-fixture-blockers.test.js
+  fixture-blockers-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1610-gm-fixture-blockers.chromium.test.js
