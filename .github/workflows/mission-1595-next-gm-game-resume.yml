@@ -1,0 +1,27 @@
+name: Mission 1595 Next GM Game Resume
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1595-*'
+      - '.github/workflows/mission-1595-next-gm-game-resume.yml'
+  workflow_dispatch:
+jobs:
+  next-game-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1595-next-gm-game-resume.js
+      - run: node hlm-phase11-m1595-next-gm-game-resume.test.js
+  next-game-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1595-next-gm-game-resume.chromium.test.js
