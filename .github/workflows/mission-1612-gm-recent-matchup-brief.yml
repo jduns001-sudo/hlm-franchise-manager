@@ -1,0 +1,28 @@
+name: Mission 1612 GM Recent Matchup Brief
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1612-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1612-gm-recent-matchup-brief.yml'
+  workflow_dispatch:
+jobs:
+  gm-matchup-brief-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1612-gm-recent-matchup-brief.js
+      - run: node hlm-phase11-m1612-gm-recent-matchup-brief.test.js
+  gm-matchup-brief-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1612-gm-recent-matchup-brief.chromium.test.js
