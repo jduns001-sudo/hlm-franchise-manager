@@ -1,0 +1,28 @@
+name: Mission 1611 GM Continuation Timeline
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1611-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1611-gm-continuation-timeline.yml'
+  workflow_dispatch:
+jobs:
+  gm-timeline-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1611-gm-continuation-timeline.js
+      - run: node hlm-phase11-m1611-gm-continuation-timeline.test.js
+  gm-timeline-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1611-gm-continuation-timeline.chromium.test.js
