@@ -1,0 +1,26 @@
+name: Mission 1615 Positive GM Skater Handoff
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1615-*'
+      - '.github/workflows/mission-1615-positive-gm-skater-handoff.yml'
+  workflow_dispatch:
+jobs:
+  gm-positive-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1615-positive-gm-skater-handoff.test.js
+  gm-positive-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1615-positive-gm-skater-handoff.chromium.test.js
