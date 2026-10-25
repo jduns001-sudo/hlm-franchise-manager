@@ -1,0 +1,28 @@
+name: Mission 1613 GM Opponent Preview
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1613-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1613-gm-opponent-preview.yml'
+  workflow_dispatch:
+jobs:
+  gm-opponent-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1613-gm-next-opponent-preview.js
+      - run: node hlm-phase11-m1613-gm-next-opponent-preview.test.js
+  gm-opponent-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1613-gm-next-opponent-preview.chromium.test.js
