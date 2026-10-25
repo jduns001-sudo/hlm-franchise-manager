@@ -1,0 +1,28 @@
+name: Mission 1603 Visible GM Readiness Review
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1603-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1603-visible-gm-readiness.yml'
+  workflow_dispatch:
+jobs:
+  gm-visible-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1603-gm-readiness-visible-panel.js
+      - run: node hlm-phase11-m1603-gm-readiness-visible-panel.test.js
+  gm-visible-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1603-gm-readiness-visible-panel.chromium.test.js
