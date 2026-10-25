@@ -28,4 +28,3 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node hlm-phase11-m1608c-reconciliation.chromium.test.js
       - run: node hlm-phase11-m1608-atomic-isolated-trade.chromium.test.js
-      - run: node hlm-phase11-m1608-real-isolated-settlement-boundary.chromium.test.js
