@@ -1,0 +1,33 @@
+name: Mission 1609 Consolidated Workspace
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-m1608-*'
+      - 'hlm-phase11-m1609-consolidated-workspace.test.js'
+      - '.github/workflows/mission-1609-consolidated-workspace.yml'
+  workflow_dispatch:
+jobs:
+  consolidated-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1609-consolidated-workspace.test.js
+      - run: node hlm-phase11-m1608-real-isolated-settlement-boundary.test.js
+      - run: node hlm-phase11-m1608-unified-gm-preflight-refresh.test.js
+      - run: node hlm-phase11-m1608-actionable-cpu-blocker-review.test.js
+  consolidated-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1608-real-isolated-settlement-boundary.chromium.test.js
+      - run: node hlm-phase11-m1608-unified-gm-preflight-refresh.chromium.test.js
+      - run: node hlm-phase11-m1608-actionable-cpu-blocker-review.chromium.test.js
