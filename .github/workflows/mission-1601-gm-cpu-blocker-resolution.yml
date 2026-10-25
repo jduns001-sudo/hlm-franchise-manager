@@ -1,0 +1,27 @@
+name: Mission 1601 GM CPU Blocker Resolution
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1601-*'
+      - '.github/workflows/mission-1601-gm-cpu-blocker-resolution.yml'
+  workflow_dispatch:
+jobs:
+  cpu-resolution-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1601-gm-cpu-blocker-resolution.js
+      - run: node hlm-phase11-m1601-gm-cpu-blocker-resolution.test.js
+  cpu-resolution-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1601-gm-cpu-blocker-resolution.chromium.test.js
