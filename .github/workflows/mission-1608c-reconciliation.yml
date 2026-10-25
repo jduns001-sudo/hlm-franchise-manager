@@ -1,0 +1,30 @@
+name: Mission 1608-C Isolated Trade Reconciliation
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1608*'
+      - '.github/workflows/mission-1608-isolated-atomic-trade.yml'
+      - '.github/workflows/mission-1608c-reconciliation.yml'
+  workflow_dispatch:
+jobs:
+  reconciliation-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1608c-reconciliation.test.js
+      - run: node --test hlm-phase11-m1608-atomic-isolated-trade.test.js
+      - run: node --test hlm-phase11-m1608-real-isolated-settlement-boundary.test.js
+  reconciliation-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1608c-reconciliation.chromium.test.js
+      - run: node hlm-phase11-m1608-atomic-isolated-trade.chromium.test.js
