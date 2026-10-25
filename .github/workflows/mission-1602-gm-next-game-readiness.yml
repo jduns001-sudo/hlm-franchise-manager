@@ -1,0 +1,27 @@
+name: Mission 1602 GM Next Game Readiness
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1602-*'
+      - '.github/workflows/mission-1602-gm-next-game-readiness.yml'
+  workflow_dispatch:
+jobs:
+  readiness-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1602-gm-next-game-readiness.js
+      - run: node hlm-phase11-m1602-gm-next-game-readiness.test.js
+  readiness-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1602-gm-next-game-readiness.chromium.test.js
