@@ -1,0 +1,27 @@
+name: Mission 1608 Isolated Atomic Trade Settlement
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1608-*'
+      - '.github/workflows/mission-1608-isolated-atomic-trade.yml'
+  workflow_dispatch:
+jobs:
+  atomic-trade-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1608-atomic-isolated-trade.js
+      - run: node --test hlm-phase11-m1608-atomic-isolated-trade.test.js
+  atomic-trade-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1608-atomic-isolated-trade.chromium.test.js
