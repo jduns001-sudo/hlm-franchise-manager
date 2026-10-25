@@ -1,0 +1,28 @@
+name: Mission 1589 Next Controlled GM Game
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1589-*'
+      - '.github/workflows/mission-1589-next-controlled-game.yml'
+  workflow_dispatch:
+jobs:
+  next-gm-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1589-next-controlled-game.js
+      - run: node hlm-phase11-m1589-next-controlled-game.test.js
+      - run: node hlm-phase11-m1588-next-season-approved-final.test.js
+  next-gm-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1589-next-controlled-game.chromium.test.js
