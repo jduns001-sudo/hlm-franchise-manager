@@ -15,6 +15,7 @@ jobs:
           node-version: '22'
       - run: node --check hlm-phase11-m1588-next-season-game-continuity.js
       - run: node hlm-phase11-m1588-next-season-game-continuity.test.js
+      - run: node hlm-phase11-m1588-next-season-approved-final.test.js
       - run: node hlm-phase11-m1587-gm-decision-handoff.test.js
       - run: node hlm-phase11-m1586-multiseason-gm-readiness.test.js
   next-season-mobile:
