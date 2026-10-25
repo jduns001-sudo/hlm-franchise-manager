@@ -1,0 +1,31 @@
+name: Mission 1585 GM Multi-Season Continuation
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1585-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - 'hlm-phase11-m1573-active-season-trade-planning.chromium.test.js'
+      - '.github/workflows/mission-1585-multiseason-continuation.yml'
+  workflow_dispatch:
+jobs:
+  multiseason-continuation-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1585-multiseason-continuation.js
+      - run: node --check hlm-phase11-m1585-multiseason-continuation-panel.js
+      - run: node hlm-phase11-m1585-multiseason-continuation.test.js
+      - run: node hlm-phase11-real-universe-journey.test.js
+  multiseason-continuation-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1573-active-season-trade-planning.chromium.test.js
