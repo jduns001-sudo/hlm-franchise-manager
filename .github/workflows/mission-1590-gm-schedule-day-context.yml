@@ -1,0 +1,28 @@
+name: Mission 1590 GM Schedule Day Context
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1590-*'
+      - '.github/workflows/mission-1590-gm-schedule-day-context.yml'
+  workflow_dispatch:
+jobs:
+  gm-context-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1590-gm-schedule-day-context.js
+      - run: node hlm-phase11-m1590-gm-schedule-day-context.test.js
+      - run: node hlm-phase11-m1589-next-controlled-game.test.js
+  gm-context-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1590-gm-schedule-day-context.chromium.test.js
