@@ -1,0 +1,28 @@
+name: Mission 1591 Guarded GM Day Preflight
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1591-*'
+      - '.github/workflows/mission-1591-gm-day-preflight.yml'
+  workflow_dispatch:
+jobs:
+  gm-preflight-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1591-gm-day-preflight.js
+      - run: node hlm-phase11-m1591-gm-day-preflight.test.js
+      - run: node hlm-phase11-m1590-gm-schedule-day-context.test.js
+  gm-preflight-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1591-gm-day-preflight.chromium.test.js
