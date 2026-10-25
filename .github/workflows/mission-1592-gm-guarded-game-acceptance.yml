@@ -1,0 +1,28 @@
+name: Mission 1592 Guarded GM Game Acceptance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1592-*'
+      - '.github/workflows/mission-1592-gm-guarded-game-acceptance.yml'
+  workflow_dispatch:
+jobs:
+  gm-acceptance-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1592-gm-guarded-game-acceptance.js
+      - run: node hlm-phase11-m1592-gm-guarded-game-acceptance.test.js
+      - run: node hlm-phase11-m1591-gm-day-preflight.test.js
+  gm-acceptance-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1592-gm-guarded-game-acceptance.chromium.test.js
