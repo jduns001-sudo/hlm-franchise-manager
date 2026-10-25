@@ -5,7 +5,7 @@ const {chromium}=require('playwright');
 (async()=>{
  const server=http.createServer((req,res)=>{
   const name=decodeURIComponent((req.url||'/').split('?')[0].slice(1));
-  if(!/^[\\w.-]+$/.test(name))return res.writeHead(404).end();
+  if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();
   fs.readFile(path.join(__dirname,name),(err,data)=>err?res.writeHead(404).end():res.writeHead(200,{'content-type':name.endsWith('.js')?'application/javascript':'text/html'}).end(data));
  });
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
