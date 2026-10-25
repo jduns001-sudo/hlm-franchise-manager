@@ -1,0 +1,28 @@
+name: Mission 1605 Visible CPU Blocker Board
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1605-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1605-visible-cpu-blocker-board.yml'
+  workflow_dispatch:
+jobs:
+  blocker-board-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check hlm-phase11-m1605-visible-cpu-blocker-board.js
+      - run: node hlm-phase11-m1605-visible-cpu-blocker-board.test.js
+  blocker-board-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1605-visible-cpu-blocker-board.chromium.test.js
