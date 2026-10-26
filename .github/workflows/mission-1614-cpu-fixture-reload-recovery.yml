@@ -1,0 +1,27 @@
+name: Mission 1614 CPU Fixture Reload Recovery
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1608-actionable-cpu-blocker-review.js'
+      - 'hlm-phase11-m1614-*'
+      - '.github/workflows/mission-1614-cpu-fixture-reload-recovery.yml'
+  workflow_dispatch:
+jobs:
+  restore-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1614-cpu-fixture-reload-recovery.test.js
+  restore-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1614-cpu-fixture-reload-recovery.chromium.test.js
