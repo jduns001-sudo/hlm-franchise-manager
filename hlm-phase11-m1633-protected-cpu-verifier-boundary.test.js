@@ -1,0 +1,35 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {inspectProtectedCpuVerifierBoundary}=require('./hlm-phase11-m1633-protected-cpu-verifier-boundary');
+const {requestAtomicTradeCommit}=require('./hlm-phase11-m1542-atomic-trade-commit-guard');
+const state={meta:{revision:17,controlledTeamId:'A'},universe:{teams:[{id:'A'},{id:'B'}],players:[{id:'a',teamId:'A'},{id:'b',teamId:'B'}]},assets:{contracts:[{playerId:'a',teamId:'A',status:'active',aav:2,tradePermission:'allowed'},{playerId:'b',teamId:'B',status:'active',aav:3,tradePermission:'allowed'}]},finances:{teamCapLimits:{A:10,B:10}},extensions:{tradeRosterLimits:{A:2,B:2},cpuTradeDecisions:[{proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',receivingTeamId:'B',gameRevision:17,decision:'accept'}]}};
+const input={proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',gmApproved:true,expectedGameRevision:17,reviewTime:100};
+const evidence={proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',gmTeamId:'A',receivingTeamId:'B',gameRevision:17,policyId:'incoming-team-aav-nonincreasing-v1',decision:'accept',issuedAt:90,expiresAt:110,nonce:'nonce-1',issuer:'cpu-authority'};
+let invoked=0;
+const trap=()=>{invoked++;throw Error('untrusted callback invoked')};
+const untrusted={verify:trap,authorizeIssuer:trap,consumeNonce:trap,readCurrent:trap,writeCurrent:trap,protectedVerifier:trap,verifyProtectedConsent:trap,issuerRegistry:{'cpu-authority':true},trusted:true,authenticated:true,replayProtected:true,nonceConsumed:true};
+const before=JSON.stringify(state);
+function check(i,e,code,opts=untrusted){
+ const result=inspectProtectedCpuVerifierBoundary(state,i,e,opts);
+ assert.equal(result.code,code);
+ for(const key of ['ok','issuerAuthenticated','consentAuthenticated','replayProtected','nonceConsumed','settlementAuthorized','saved'])assert.equal(result[key],false,key);
+ assert.equal(Object.isFrozen(result),true);
+ assert.equal(JSON.stringify(state),before);
+}
+check(input,evidence,'protected-cpu-consent-verifier-unavailable');
+check(input,{...evidence,issuerId:'forged',signature:'fake',keyId:'fake'},'protected-cpu-consent-verifier-unavailable');
+check(input,{...evidence,authenticated:true,protectedVerifier:trap,nonceConsumed:true},'protected-cpu-consent-verifier-unavailable');
+check(input,evidence,'protected-cpu-consent-verifier-unavailable',{...untrusted,protectedVerifier:()=>true});
+check(input,{...evidence,proposalId:'wrong'},'cpu-consent-binding-mismatch');
+check(input,{...evidence,decision:'decline'},'cpu-declined');
+check(input,{...evidence,expiresAt:100},'expired-or-not-yet-valid-cpu-consent');
+check({...input,expectedGameRevision:16},evidence,'stale-game-revision');
+check({...input,gmApproved:false},evidence,'human-gm-approval-required');
+assert.equal(invoked,0);
+let writes=0;
+const commit=requestAtomicTradeCommit({state,input:{...input,cpuConsentAuthenticated:true,cpuConsentEvidence:evidence},storageKey:'hlm-m1633-isolated',readCurrent:()=>state,writeCurrent:()=>writes++});
+assert.equal(commit.saved,false);
+assert.equal(commit.settlementAuthorized,false);
+assert.equal(writes,0);
+assert.equal(JSON.stringify(state),before);
+console.log('Mission 1633 protected CPU verifier boundary fail-closed PASS');

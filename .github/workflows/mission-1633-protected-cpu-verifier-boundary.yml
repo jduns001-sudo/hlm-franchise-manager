@@ -1,0 +1,16 @@
+name: Mission 1633 Protected CPU Verifier Boundary
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1633-*'
+      - '.github/workflows/mission-1633-protected-cpu-verifier-boundary.yml'
+  workflow_dispatch:
+jobs:
+  protected-verifier-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1633-protected-cpu-verifier-boundary.test.js
