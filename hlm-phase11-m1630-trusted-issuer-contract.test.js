@@ -1,0 +1,30 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {inspectTrustedIssuerContract,REQUIRED}=require('./hlm-phase11-m1630-trusted-issuer-contract');
+const {requestAtomicTradeCommit}=require('./hlm-phase11-m1542-atomic-trade-commit-guard');
+const state={meta:{revision:17,controlledTeamId:'A'},universe:{teams:[{id:'A'},{id:'B'}],players:[{id:'a',teamId:'A'},{id:'b',teamId:'B'}]},assets:{contracts:[{playerId:'a',teamId:'A',status:'active',aav:2,tradePermission:'allowed'},{playerId:'b',teamId:'B',status:'active',aav:3,tradePermission:'allowed'}]},finances:{teamCapLimits:{A:10,B:10}},extensions:{tradeRosterLimits:{A:2,B:2},cpuTradeDecisions:[{proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',receivingTeamId:'B',gameRevision:17,decision:'accept'}]}};
+const input={proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',gmApproved:true,expectedGameRevision:17,reviewTime:100};
+const evidence={proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',gmTeamId:'A',receivingTeamId:'B',gameRevision:17,policyId:'incoming-team-aav-nonincreasing-v1',decision:'accept',issuedAt:90,expiresAt:110,nonce:'nonce-1',issuer:'claimed',signature:'forged',authenticated:true};
+function check(s,i,e,expected,options={}){
+ const before=JSON.stringify(s),result=inspectTrustedIssuerContract(s,i,e,options);
+ assert.equal(result.code,expected);for(const k of ['ok','issuerAuthenticated','consentAuthenticated','replayProtected','settlementAuthorized','saved'])assert.equal(result[k],false);
+ assert.equal(JSON.stringify(s),before);
+}
+assert(Object.isFrozen(REQUIRED));
+check(state,input,evidence,'trusted-issuer-and-authoritative-replay-store-unavailable');
+let called=0;
+check(state,input,evidence,'trusted-issuer-and-authoritative-replay-store-unavailable',{verify:()=>{called++;return true},trusted:true,usedNonces:[],localStorage:{},issuerAuthenticated:true});
+assert.equal(called,0);
+check(state,input,{...evidence,nonce:'nonce-1',signature:'new-fake-signature'},'trusted-issuer-and-authoritative-replay-store-unavailable');
+check(state,input,{...evidence,nonce:'nonce-1',replayConsumed:false},'trusted-issuer-and-authoritative-replay-store-unavailable');
+check(state,input,{...evidence,proposalId:'other'},'cpu-consent-binding-mismatch');
+check(state,input,{...evidence,receivingTeamId:'C'},'cpu-consent-binding-mismatch');
+check(state,input,{...evidence,expiresAt:100},'expired-or-not-yet-valid-cpu-consent');
+check(state,input,{...evidence,nonce:''},'cpu-consent-nonce-required');
+check(state,{...input,gmApproved:false},evidence,'human-gm-approval-required');
+check(state,{...input,expectedGameRevision:16},evidence,'stale-game-revision');
+check(state,input,{...evidence,decision:'decline'},'cpu-declined');
+check(state,input,{...evidence,policyId:'other'},'cpu-consent-binding-mismatch');
+let writes=0;const commit=requestAtomicTradeCommit({state,input:{...input,cpuConsentAuthenticated:true,cpuConsentEvidence:evidence},storageKey:'hlm-m1630-isolated',readCurrent:()=>state,writeCurrent:()=>writes++});
+assert.equal(commit.saved,false);assert.equal(commit.settlementAuthorized,false);assert.equal(writes,0);
+console.log('Mission 1630 trusted issuer contract and replay protection fail-closed PASS');
