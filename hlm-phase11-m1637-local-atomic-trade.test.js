@@ -35,10 +35,12 @@ test('atomic local candidate, replay, stale, cancellation, rollback and reload',
   const spent=await x.db.prepare('SELECT COUNT(*) AS n FROM m1637_consumed_decisions').first();
   assert.equal(spent.n,1);
   // A database constraint failure in the state update must roll back nonce insertion.
+  await initialize(x.db,'rollback-slot','r1',state());
   await x.db.prepare("CREATE TRIGGER m1637_test_failure BEFORE UPDATE ON m1637_isolated_state BEGIN SELECT RAISE(ABORT,'forced rollback'); END").run();
-  const failed=await settle(x.db,{...request,expectedRevision:'r2',nextRevision:'r3',decisionId:'decision-rollback',input:{...input,transactionId:'tx-1637-b'}});
+  const failed=await settle(x.db,{...request,slot:'rollback-slot',decisionId:'decision-rollback'});
   assert.equal(failed.saved,false);
   assert.equal((await x.db.prepare("SELECT COUNT(*) AS n FROM m1637_consumed_decisions WHERE decision_id='decision-rollback'").first()).n,0);
+  assert.equal((await read(x.db,'rollback-slot')).revision,'r1');
   assert.equal((await read(x.db,request.slot)).revision,'r2');
  }finally{await x.mf.dispose()}
  x=await open(dir);
