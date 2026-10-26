@@ -1,0 +1,26 @@
+name: Mission 1626 Unified Alpha1 Journey Acceptance
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1626-*'
+      - '.github/workflows/mission-1626-unified-alpha1-journey.yml'
+  workflow_dispatch:
+jobs:
+  unified-alpha1-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1626-unified-alpha1-journey.test.js
+  unified-alpha1-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1626-unified-alpha1-journey.chromium.test.js
