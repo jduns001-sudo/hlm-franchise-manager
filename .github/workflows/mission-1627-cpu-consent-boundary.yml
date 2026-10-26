@@ -1,0 +1,26 @@
+name: Mission 1627 Source-Verified CPU Consent Boundary
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1627-*'
+      - '.github/workflows/mission-1627-cpu-consent-boundary.yml'
+  workflow_dispatch:
+jobs:
+  cpu-consent-boundary-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1627-cpu-consent-boundary.test.js
+  cpu-consent-boundary-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1627-cpu-consent-boundary.chromium.test.js
