@@ -1,0 +1,16 @@
+name: Mission 1632 Issuer Authorization Contract
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1632-*'
+      - '.github/workflows/mission-1632-issuer-authorization-contract.yml'
+  workflow_dispatch:
+jobs:
+  issuer-authorization-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1632-issuer-authorization-contract.test.js
