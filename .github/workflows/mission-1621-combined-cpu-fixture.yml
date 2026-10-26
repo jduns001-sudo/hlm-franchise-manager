@@ -1,0 +1,26 @@
+name: Mission 1621 Combined CPU Fixture Integration
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1621-*'
+      - '.github/workflows/mission-1621-combined-cpu-fixture.yml'
+  workflow_dispatch:
+jobs:
+  combined-cpu-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1621-combined-cpu-fixture.test.js
+  combined-cpu-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1621-combined-cpu-fixture.chromium.test.js
