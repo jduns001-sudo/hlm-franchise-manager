@@ -1,0 +1,16 @@
+name: Mission 1630 Trusted Issuer Contract
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1630-*'
+      - '.github/workflows/mission-1630-trusted-issuer-contract.yml'
+  workflow_dispatch:
+jobs:
+  trusted-issuer-contract-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1630-trusted-issuer-contract.test.js
