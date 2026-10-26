@@ -27,10 +27,12 @@ function assertDb(db){if(!db||typeof db.prepare!=='function'||typeof db.batch!==
 async function initialize(db,slot,revision,state){
  assertDb(db);
  if(typeof slot!=='string'||!slot||typeof revision!=='string'||!revision||!validateGameStateEnvelope(state).valid)throw Error('Invalid isolated fixture');
- const statements=schema.split(';').map(s=>s.trim()).filter(Boolean);
- // The trigger contains an internal semicolon, so execute the complete schema
- // using the D1 exec method, which supports multi-statement SQL.
- await db.exec(schema);
+ // D1 exec's SQL splitter cannot safely parse a trigger body. Use prepared
+ // CREATE TABLE statements, then a separately prepared trigger statement.
+ const statements=schema.split('CREATE TRIGGER IF NOT EXISTS');
+ await db.prepare(statements[0].split(';')[0].trim()).run();
+ await db.prepare(statements[0].split(';')[1].trim()).run();
+ await db.prepare('CREATE TRIGGER IF NOT EXISTS'+statements[1].trim()).run();
  await db.prepare('INSERT INTO m1637_isolated_state(slot,revision,state_json) VALUES (?,?,?)').bind(slot,revision,JSON.stringify(state)).run();
 }
 async function read(db,slot){
