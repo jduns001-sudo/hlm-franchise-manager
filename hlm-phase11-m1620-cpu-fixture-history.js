@@ -36,4 +36,4 @@ function mount(doc,readState,host){
 }
 return Object.freeze({project,mount});
 });
-(function(){try{if(typeof document==='undefined'||!document.getElementById('gm-m1607-fixtures'))return;const manager=HLMIsolatedSingleGame.create(HLMPhase10,localStorage);HLMCPUFixtureHistory.mount(document,()=>manager.peek(),document.getElementById('gm-m1607-fixtures'))}catch(e){console.warn('Experimental CPU fixture history unavailable:',e.message)}})();
+(function(){try{if(typeof document==='undefined'||!document.getElementById('gm-m1607-fixtures'))return;const manager=HLMIsolatedSingleGame.create(HLMPhase10,localStorage);HLMCPUFixtureHistory.mount(document,()=>{manager.load();return manager.peek()},document.getElementById('gm-m1607-fixtures'))}catch(e){console.warn('Experimental CPU fixture history unavailable:',e.message)}})();
