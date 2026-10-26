@@ -51,7 +51,10 @@ assert.ok(authoritative[0].text.includes('Final '+lifecycle.fixture.awayGoals+'-
 const unchanged=await tabB.evaluate(k=>localStorage.getItem(k),key);
 await tabB.locator('#gm-m1620-refresh').click();
 assert.equal(await tabB.evaluate(k=>localStorage.getItem(k),key),unchanged,'read-only history refresh must not save');
+const reloadErrors=[];tabB.on('pageerror',e=>reloadErrors.push(e.message));
 await tabB.reload();
+const diagnostic=await tabB.evaluate(()=>({status:document.querySelector('#gm-m1620-status')?.textContent,section:!!document.querySelector('#gm-m1620-history'),count:document.querySelectorAll('#gm-m1620-list li').length,save:!!localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'),state:(()=>{try{const m=HLMIsolatedSingleGame.create(HLMPhase10,localStorage);const s=m.peek();return {games:s?.activity?.games?.length,teams:s?.universe?.teams?.length,controlled:s?.meta?.controlledTeamId}}catch(e){return {error:e.message}}})()}));
+console.log('Mission 1620 reload diagnostic',JSON.stringify({diagnostic,reloadErrors}));
 await tabB.locator('#gm-m1620-list li').filter({hasText:String(lifecycle.fixture.id)}).waitFor({state:'visible',timeout:15000});
 assert.equal(await tabB.locator('#gm-m1620-list li').filter({hasText:String(lifecycle.fixture.id)}).count(),1,'reload preserves visible CPU final');
 const staleEvent=tabA.evaluate(k=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('No storage event')),15000);window.addEventListener('storage',e=>{if(e.key===k){clearTimeout(timer);resolve(true)}},{once:true})}),key);
