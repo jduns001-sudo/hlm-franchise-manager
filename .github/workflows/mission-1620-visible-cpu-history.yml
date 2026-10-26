@@ -1,0 +1,27 @@
+name: Mission 1620 GM-Visible CPU Fixture History
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1620-*'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1620-visible-cpu-history.yml'
+  workflow_dispatch:
+jobs:
+  visible-history-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1620-cpu-fixture-history.test.js
+  visible-history-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1620-cpu-fixture-history.chromium.test.js
