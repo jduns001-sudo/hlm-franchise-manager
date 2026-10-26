@@ -31,7 +31,7 @@ function mount(doc,readState,host){
  function clear(message){list.replaceChildren();status.textContent=message}
  function update(){if(stale){clear('Another tab changed the franchise. Reload the isolated workspace before reviewing. No save.');return}try{const rows=project(readState());list.replaceChildren();for(const f of rows){const li=doc.createElement('li');li.dataset.gameId=f.id;li.textContent=f.date+' | '+f.away+' at '+f.home+' | '+(f.status==='final'?'Final '+f.awayGoals+'-'+f.homeGoals:'Scheduled')+' | '+f.id;list.append(li)}status.textContent=rows.length+' authoritative CPU fixture(s), '+rows.filter(x=>x.status==='final').length+' final. Read-only; no save.'}catch(e){clear('CPU history unavailable: '+e.message+'. No save.')}}
  refresh.addEventListener('click',update);
- root.addEventListener?.('storage',e=>{if(e.key==='hlm-phase11-m1340-isolated-single-game-v1'){stale=true;clear('Another tab changed the franchise. Reload the isolated workspace before reviewing. No save.')}});
+ globalThis.addEventListener?.('storage',e=>{if(e.key==='hlm-phase11-m1340-isolated-single-game-v1'){stale=true;clear('Another tab changed the franchise. Reload the isolated workspace before reviewing. No save.')}});
  update();return Object.freeze({section,update});
 }
 return Object.freeze({project,mount});
