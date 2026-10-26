@@ -16,7 +16,7 @@ deny({...state,extensions:{...state.extensions,cpuTradeDecisions:[...state.exten
 deny({...state,extensions:{...state.extensions,cpuTradeDecisions:[{...state.extensions.cpuTradeDecisions[0],gameRevision:16}]}},input,'stale-cpu-decision');
 deny({...state,extensions:{...state.extensions,cpuTradeDecisions:[{...state.extensions.cpuTradeDecisions[0],decision:'decline'}]}},input,'cpu-declined');
 deny({...state,assets:{contracts:[{...state.assets.contracts[0],aav:4},state.assets.contracts[1]]}},input,'cpu-policy-conflict');
-deny({...state,universe:{...state.universe,players:[state.universe.players[0],{...state.universe.players[1],teamId:'A'}]}},input,'receiving-team-mismatch');
+deny({...state,universe:{...state.universe,players:[state.universe.players[0],{...state.universe.players[1],teamId:'A'}]}},input,'unique-active-ownership-required');
 let writes=0;const gate=requestAtomicTradeCommit({state,input:{...input,cpuConsentAuthenticated:true,cpuConsentEvidence:good},storageKey:'hlm-m1627-isolated',readCurrent:()=>state,writeCurrent:()=>writes++});
 assert.equal(gate.code,'receiving-team-consent-not-authenticated');assert.equal(writes,0);
 console.log('Mission 1627 Node source-bound read-only decision, rejection matrix, and settlement fail-closed PASS');
