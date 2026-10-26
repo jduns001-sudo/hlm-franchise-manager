@@ -1,0 +1,27 @@
+name: Mission 1612 CPU Fixture Context
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1608-actionable-cpu-blocker-review.js'
+      - 'hlm-phase11-m1612-*'
+      - '.github/workflows/mission-1612-cpu-fixture-context.yml'
+  workflow_dispatch:
+jobs:
+  context-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1612-cpu-fixture-context.test.js
+  context-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1612-cpu-fixture-context.chromium.test.js
