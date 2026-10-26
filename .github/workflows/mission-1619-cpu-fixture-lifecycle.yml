@@ -1,0 +1,26 @@
+name: Mission 1619 Guarded CPU Fixture Lifecycle
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1619-*'
+      - '.github/workflows/mission-1619-cpu-fixture-lifecycle.yml'
+  workflow_dispatch:
+jobs:
+  cpu-lifecycle-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1619-cpu-fixture-lifecycle.test.js
+  cpu-lifecycle-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1619-cpu-fixture-lifecycle.chromium.test.js
