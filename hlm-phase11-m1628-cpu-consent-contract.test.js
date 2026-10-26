@@ -1,0 +1,26 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {verifyCpuConsent}=require('./hlm-phase11-m1628-cpu-consent-contract');
+const {requestAtomicTradeCommit}=require('./hlm-phase11-m1542-atomic-trade-commit-guard');
+const state={meta:{revision:17,controlledTeamId:'A'},universe:{teams:[{id:'A'},{id:'B'}],players:[{id:'a',teamId:'A'},{id:'b',teamId:'B'}]},assets:{contracts:[{playerId:'a',teamId:'A',status:'active',aav:2,tradePermission:'allowed'},{playerId:'b',teamId:'B',status:'active',aav:3,tradePermission:'allowed'}]},extensions:{cpuTradeDecisions:[{proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',receivingTeamId:'B',gameRevision:17,decision:'accept'}]}};
+const input={proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',gmApproved:true,expectedGameRevision:17,reviewTime:100};
+const evidence={proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',gmTeamId:'A',receivingTeamId:'B',gameRevision:17,policyId:'incoming-team-aav-nonincreasing-v1',decision:'accept',issuedAt:90,expiresAt:110,nonce:'unique-1',issuer:'CPU-B',authenticated:true,signature:'forged'};
+const baseline=JSON.stringify(state);
+function check(s,i,e,code){const before=JSON.stringify(s),r=verifyCpuConsent(s,i,e);assert.equal(r.code,code);assert.equal(r.ok,false);assert.equal(r.consentAuthenticated,false);assert.equal(r.settlementAuthorized,false);assert.equal(r.saved,false);assert.equal(JSON.stringify(s),before);}
+check(state,input,evidence,'independent-cpu-issuer-required');
+check(state,input,{},'cpu-consent-binding-mismatch');
+check(state,{...input,gmApproved:false},evidence,'human-gm-approval-required');
+check(state,{...input,expectedGameRevision:16},evidence,'stale-game-revision');
+check(state,input,{...evidence,proposalId:'fake'},'cpu-consent-binding-mismatch');
+check(state,input,{...evidence,receivingTeamId:'C'},'cpu-consent-binding-mismatch');
+check(state,input,{...evidence,gameRevision:16},'cpu-consent-binding-mismatch');
+check(state,input,{...evidence,policyId:'untrusted'},'cpu-consent-binding-mismatch');
+check(state,input,{...evidence,decision:'decline'},'cpu-declined');
+check(state,input,{...evidence,expiresAt:95},'expired-or-not-yet-valid-cpu-consent');
+check(state,input,{...evidence,nonce:''},'cpu-consent-nonce-required');
+check({...state,extensions:{cpuTradeDecisions:[...state.extensions.cpuTradeDecisions,...state.extensions.cpuTradeDecisions]}},input,evidence,'unique-source-decision-required');
+check({...state,meta:{...state.meta,revision:18}},input,evidence,'stale-game-revision');
+assert.equal(JSON.stringify(state),baseline);
+let writes=0;const result=requestAtomicTradeCommit({state,input:{...input,cpuConsentAuthenticated:true,cpuConsentEvidence:evidence},storageKey:'hlm-m1628-isolated',readCurrent:()=>state,writeCurrent:()=>writes++});
+assert.equal(result.saved,false);assert.equal(result.settlementAuthorized,false);assert.equal(writes,0);
+console.log('Mission 1628 read-only CPU consent fail-closed contract PASS');
