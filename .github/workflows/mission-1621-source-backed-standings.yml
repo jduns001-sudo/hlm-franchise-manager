@@ -1,0 +1,17 @@
+name: Mission 1621 Source-Backed Standings
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1621-source-backed-standings.js'
+      - 'hlm-phase11-m1621-source-backed-standings.test.js'
+      - '.github/workflows/mission-1621-source-backed-standings.yml'
+  workflow_dispatch:
+jobs:
+  source-backed-standings-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1621-source-backed-standings.test.js
