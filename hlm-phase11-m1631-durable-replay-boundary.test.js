@@ -1,0 +1,25 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {inspectDurableReplayBoundary}=require('./hlm-phase11-m1631-durable-replay-boundary');
+const {requestAtomicTradeCommit}=require('./hlm-phase11-m1542-atomic-trade-commit-guard');
+const state={meta:{revision:17,controlledTeamId:'A'},universe:{teams:[{id:'A'},{id:'B'}],players:[{id:'a',teamId:'A'},{id:'b',teamId:'B'}]},assets:{contracts:[{playerId:'a',teamId:'A',status:'active',aav:2,tradePermission:'allowed'},{playerId:'b',teamId:'B',status:'active',aav:3,tradePermission:'allowed'}]},finances:{teamCapLimits:{A:10,B:10}},extensions:{tradeRosterLimits:{A:2,B:2},cpuTradeDecisions:[{proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',receivingTeamId:'B',gameRevision:17,decision:'accept'}]}};
+const input={proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',gmApproved:true,expectedGameRevision:17,reviewTime:100};
+const evidence={proposalId:'p-1',outgoingPlayerId:'a',incomingPlayerId:'b',gmTeamId:'A',receivingTeamId:'B',gameRevision:17,policyId:'incoming-team-aav-nonincreasing-v1',decision:'accept',issuedAt:90,expiresAt:110,nonce:'nonce-1',issuer:'claimed',signature:'forged'};
+let calls=0;
+const untrusted={verify:()=>{calls++;return true},consumeNonce:()=>{calls++;return true},readNonce:()=>{calls++;return false},writeCurrent:()=>{calls++;},durable:true,authenticated:true,nonceConsumed:true,usedNonces:[],localStorage:{}};
+const original=JSON.stringify(state);
+function check(i,e,code){const r=inspectDurableReplayBoundary(state,i,e,untrusted);assert.equal(r.code,code);for(const k of ['ok','issuerAuthenticated','consentAuthenticated','replayProtected','nonceConsumed','settlementAuthorized','saved'])assert.equal(r[k],false);assert.equal(JSON.stringify(state),original);}
+check(input,evidence,'independent-atomic-replay-authority-unavailable');
+check(input,{...evidence,nonce:'nonce-1',signature:'replacement'},'independent-atomic-replay-authority-unavailable');
+check(input,{...evidence,nonce:'nonce-1',replayConsumed:true},'independent-atomic-replay-authority-unavailable');
+check(input,{...evidence,nonce:'nonce-1',usedNonces:['nonce-1']},'independent-atomic-replay-authority-unavailable');
+check(input,{...evidence,decision:'decline'},'cpu-declined');
+check(input,{...evidence,expiresAt:100},'expired-or-not-yet-valid-cpu-consent');
+check(input,{...evidence,proposalId:'wrong'},'cpu-consent-binding-mismatch');
+check({...input,gmApproved:false},evidence,'human-gm-approval-required');
+check({...input,expectedGameRevision:16},evidence,'stale-game-revision');
+assert.equal(calls,0);
+let writes=0;
+const commit=requestAtomicTradeCommit({state,input:{...input,cpuConsentAuthenticated:true,cpuConsentEvidence:evidence},storageKey:'hlm-m1631-isolated',readCurrent:()=>state,writeCurrent:()=>writes++});
+assert.equal(commit.saved,false);assert.equal(commit.settlementAuthorized,false);assert.equal(writes,0);
+console.log('Mission 1631 durable replay boundary fail-closed PASS');
