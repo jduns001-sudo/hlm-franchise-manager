@@ -1,0 +1,16 @@
+name: Mission 1629 Independent CPU Issuer Boundary
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1629-*'
+      - '.github/workflows/mission-1629-independent-cpu-issuer.yml'
+  workflow_dispatch:
+jobs:
+  independent-cpu-issuer-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1629-independent-cpu-issuer.test.js
