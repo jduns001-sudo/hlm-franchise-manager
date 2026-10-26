@@ -32,7 +32,7 @@ async function initialize(db,slot,revision,state){
  const statements=schema.split('CREATE TRIGGER IF NOT EXISTS');
  await db.prepare(statements[0].split(';')[0].trim()).run();
  await db.prepare(statements[0].split(';')[1].trim()).run();
- await db.prepare('CREATE TRIGGER IF NOT EXISTS'+statements[1].trim()).run();
+ await db.prepare('CREATE TRIGGER IF NOT EXISTS '+statements[1].trim()).run();
  await db.prepare('INSERT INTO m1637_isolated_state(slot,revision,state_json) VALUES (?,?,?)').bind(slot,revision,JSON.stringify(state)).run();
 }
 async function read(db,slot){
