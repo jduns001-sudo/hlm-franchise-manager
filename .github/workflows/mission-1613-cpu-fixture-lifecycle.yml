@@ -1,0 +1,27 @@
+name: Mission 1613 CPU Fixture Context Lifecycle
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1608-actionable-cpu-blocker-review.js'
+      - 'hlm-phase11-m1613-*'
+      - '.github/workflows/mission-1613-cpu-fixture-lifecycle.yml'
+  workflow_dispatch:
+jobs:
+  context-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1613-cpu-fixture-lifecycle.test.js
+  context-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save playwright
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-m1613-cpu-fixture-lifecycle.chromium.test.js
