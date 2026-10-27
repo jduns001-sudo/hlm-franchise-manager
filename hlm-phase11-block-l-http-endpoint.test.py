@@ -52,6 +52,15 @@ class EndpointAcceptance(unittest.TestCase):
             self.assertEqual(self.request(body)[0],400)
         self.assertEqual(self.calls, [])
 
+    def test_seed_rejected_before_any_coordinator_call(self):
+        for seed in ('true', '"17"', '-1', '1.5', 'null'):
+            body = '{"action":"review","franchise":"SYNTHETIC","revision":1,"seed":' + seed + '}'
+            self.assertEqual(self.request(body)[0], 400)
+        self.assertEqual(self.calls, [])
+        recover = '{"action":"recover","franchise":"SYNTHETIC","revision":1,"review_id":"R1"}'
+        self.assertEqual(self.request(recover)[0], 200)
+        self.assertEqual(self.calls[-1][0], "recover")
+
     def test_oversized_json_rejected_before_parsing(self):
         body = '{"action":"review","franchise":"SYNTHETIC","revision":1,"seed":17,"padding":"' + ("x" * 8192) + '"}'
         self.assertEqual(self.request(body)[0], 400)
