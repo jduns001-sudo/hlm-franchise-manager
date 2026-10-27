@@ -14,7 +14,7 @@ spec.loader.exec_module(endpoint_module)
 
 def create_experimental_wsgi_app(*, enabled=False, session_resolver=None,
                                  csrf_verifier=None, authorize=None,
-                                 bridge_factory=None, origin=None, binding_verifier=None):
+                                 bridge_factory=None, origin=None, binding_verifier=None, binding_issuer=None):
     if enabled is not True:
         raise RuntimeError("Block L experimental service is disabled")
     if not all(callable(x) for x in (session_resolver, csrf_verifier, authorize, bridge_factory)):
@@ -22,7 +22,7 @@ def create_experimental_wsgi_app(*, enabled=False, session_resolver=None,
     endpoint = endpoint_module.ExperimentalGMReviewEndpoint(
         session_resolver=session_resolver, csrf_verifier=csrf_verifier,
         authorize=authorize, bridge_factory=bridge_factory, origin=origin,
-        binding_verifier=binding_verifier)
+        binding_verifier=binding_verifier, binding_issuer=binding_issuer)
     def app(environ, start_response):
         def reply(status, payload):
             body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
