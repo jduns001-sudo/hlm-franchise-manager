@@ -21,7 +21,7 @@ test('two source-backed picks commit together and preserve multiseason archive',
  const result=lab.simulate(request);
  assert.equal(result.committed,true);
  const after=lab.snapshot();
- for(const t of transfers)assert.equal(after.state.assets.draftPicks.find(p=>p.pickId===t.id).currentOwnerId,t.to);
+ for(const t of transfers)assert.equal(String(after.state.assets.draftPicks.find(p=>p.pickId===t.id).currentOwnerId),String(t.to));
  assert.deepEqual(after.state.history.seasons,before.state.history.seasons);
  assert.equal(after.state.activity.transactions.length,before.state.activity.transactions.length+1);
  assert.equal(after.consumedDecisionIds.length,1);
