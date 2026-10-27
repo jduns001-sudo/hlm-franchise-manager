@@ -97,5 +97,27 @@ class EndpointAcceptance(unittest.TestCase):
         self.assertEqual(self.request(json.dumps(request))[0],200)
         self.assertEqual(len(self.calls),1)
 
+    def test_authenticated_binding_issuance_is_explicit_and_no_save(self):
+        import json
+        payload={"action":"bind","franchise":"SYNTHETIC","revision":1,"seed":17}
+        self.assertEqual(self.request(json.dumps(payload))[0],403)
+        self.assertEqual(self.calls,[])
+        self.endpoint.binding_issuer=lambda *,session,franchise: {
+            "binding":{"franchise":franchise,"revision":1,"seed":17},
+            "signature":"server-signed-fixture"}
+        status,result=self.request(json.dumps(payload))
+        self.assertEqual(status,200)
+        self.assertFalse(result["committed"])
+        self.assertEqual(result["server_binding"]["binding"]["franchise"],"SYNTHETIC")
+        self.assertEqual(self.calls,[])
+        for changes,expected in [
+            ({"Authorization":"Bearer wrong"},401),
+            ({"X-CSRF-Token":"bad"},403),
+            ({"Origin":"https://evil.invalid"},403)]:
+            self.assertEqual(self.request(json.dumps(payload),{**self.headers,**changes})[0],expected)
+        self.assertEqual(self.request(json.dumps({**payload,"franchise":"OTHER"}))[0],403)
+        self.assertEqual(self.request(json.dumps({**payload,"revision":2}))[0],403)
+        self.assertEqual(self.calls,[])
+
 if __name__ == "__main__":
     unittest.main()
