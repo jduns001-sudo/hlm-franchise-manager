@@ -1,0 +1,30 @@
+name: Mission 1640 Browser D1 Continuity
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1640-*'
+      - '.github/workflows/mission-1640-browser-d1.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  continuity-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --ignore-scripts miniflare@3
+      - run: node --test hlm-phase11-m1640-d1-continuity.test.js
+  continuity-mobile:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1 miniflare@3
+      - run: node hlm-phase11-m1640-d1-continuity.chromium.test.js
