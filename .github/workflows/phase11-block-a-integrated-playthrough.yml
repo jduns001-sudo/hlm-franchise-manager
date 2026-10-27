@@ -1,0 +1,20 @@
+name: Phase 11 Block A Integrated Playthrough
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-a-*'
+      - 'HFM_PHASE11_BLOCK_A_INTEGRATION_MATRIX.md'
+      - '.github/workflows/phase11-block-a-integrated-playthrough.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integrated-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-block-a-playthrough.test.js
