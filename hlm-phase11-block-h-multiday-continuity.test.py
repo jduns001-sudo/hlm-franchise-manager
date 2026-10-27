@@ -21,6 +21,16 @@ class MultiDayStandingsContinuity(previous.MultiGameStandingsAcceptance):
         self.db.execute("UPDATE block_a_lab_franchises SET game_state_json=? WHERE franchise_id=?",
                         (json.dumps(self.original),"SYNTHETIC-F"))
 
+    def test_two_games_one_revision_with_standings_and_future_untouched(self):
+        # Run inherited Block G fixture expectations without Block H's extra third-day game.
+        self.original["season"]["games"] = [
+            game for game in self.original["season"]["games"]
+            if game["id"] != "SYNTHETIC-G5"
+        ]
+        self.db.execute("UPDATE block_a_lab_franchises SET game_state_json=? WHERE franchise_id=?",
+                        (json.dumps(self.original),"SYNTHETIC-F"))
+        return super().test_two_games_one_revision_with_standings_and_future_untouched()
+
     def test_three_days_cumulative_standings_one_revision_each(self):
         day=self.multiday()
         expected=[(2,18,6),(3,19,8),(4,20,10)]
