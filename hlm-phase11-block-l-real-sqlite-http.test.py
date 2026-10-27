@@ -101,6 +101,26 @@ class RealSQLiteHTTPAcceptance(prior.ConcurrentSettlementAcceptance):
             self.assertFalse(json.loads(response)["committed"])
             self.assertEqual(self.snapshot_all(),before)
 
+    def test_wsgi_rollback_on_injected_sqlite_failure(self):
+        token=self.command("review",seed=17)[1]["review_id"]
+        original_advance=self.coordinator.advance
+        try:
+            for stage in ("state","decision"):
+                before=self.snapshot_all()
+                def fail_advance(*, _stage=stage, **kwargs):
+                    return original_advance(**kwargs,fail_at=_stage)
+                self.coordinator.advance=fail_advance
+                status,result=self.command("approve",seed=17,review_id=token,
+                                           decision_id="SYNTHETIC-DAY-18")
+                self.assertEqual(status,200)
+                self.assertFalse(result["committed"])
+                self.assertEqual(self.snapshot_all(),before)
+                self.assertEqual(self.command("recover",review_id=token)[1]["status"],"pending")
+        finally:
+            self.coordinator.advance=original_advance
+        self.assertTrue(self.command("approve",seed=17,review_id=token,
+                                     decision_id="SYNTHETIC-DAY-18")[1]["committed"])
+
     def test_invalid_seed_cannot_mutate_reviewed_state(self):
         token=self.command("review",seed=17)[1]["review_id"]
         before=self.snapshot_all()
