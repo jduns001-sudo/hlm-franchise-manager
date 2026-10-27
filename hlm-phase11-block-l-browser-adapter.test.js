@@ -43,3 +43,19 @@ test("blocks concurrent settlement and clears lock after failure", async () => {
   release({ committed: true });
   assert.equal((await first).committed, true);
 });
+
+test("cannot spoof action or GM identity through request payload", async () => {
+  const received = [];
+  const adapter = createGMReviewAdapter({ enabled: true, identity: async () => ({ authenticated: true, gm: "GM1" }), transport: async request => { received.push(request); return { committed: false }; } });
+  await adapter.decline({ ...base, action: "approve", gm: "ATTACKER" });
+  assert.equal(received[0].action, "decline");
+  assert.equal(received[0].gm, "GM1");
+});
+test("concurrent requests are blocked even during asynchronous identity lookup", async () => {
+  let releaseIdentity;
+  const adapter = createGMReviewAdapter({ enabled: true, identity: () => new Promise(resolve => { releaseIdentity = resolve; }), transport: async () => ({ committed: false }) });
+  const first = adapter.review(base);
+  await assert.rejects(adapter.approve(base), /already in progress/);
+  releaseIdentity({ authenticated: true, gm: "GM1" });
+  await first;
+});
