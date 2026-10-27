@@ -19,6 +19,7 @@ class BridgeAcceptance(prior.ConcurrentSettlementAcceptance):
         bridge = bridge_module.GMReviewSimulationBridge(coordinator)
         request = dict(self.day_request, revision=1, seed=17,
                        decision_id="SYNTHETIC-DAY-18")
+        request.pop("approved", None)  # Bridge owns approval authority; caller supplies action only.
         review = bridge.review(gm=request["gm"], franchise=request["franchise"],
                                revision=1, seed=17)
         token = review["review_id"]
