@@ -29,3 +29,16 @@ jobs:
           python hlm-phase11-block-l-gm-review-bridge.test.py
           python hlm-phase11-block-k-concurrent-settlement.test.py
           python hlm-phase11-block-l-real-sqlite-http.test.py
+  block-l-mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser test dependencies
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Mobile GM command adapter acceptance
+        run: node hlm-phase11-block-l-mobile.chromium.test.js
