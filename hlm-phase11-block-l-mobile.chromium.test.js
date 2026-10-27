@@ -48,6 +48,11 @@ const http=require("node:http");
       assert.equal(await page.locator(selector).isDisabled(),true,selector+" unexpectedly enabled without franchise");
     }
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await page.locator("#gm-workspace-review").click({force:true});
+    await page.locator("#gm-workspace-decline").click({force:true});
+    await page.locator("#gm-workspace-approve").click({force:true});
+    assert.equal(await page.locator("#gm-workspace-review").isDisabled(),true);
+    assert.equal(await page.locator("#gm-workspace-approve").isDisabled(),true);
     await page.addScriptTag({url:"http://127.0.0.1:"+server.address().port+"/hlm-phase11-block-l-isolated-command-router.js"});
     const routerResult=await page.evaluate(async()=>{
       const create=window.HLMBlockLIsolatedCommandRouter.createIsolatedCommandRouter;
