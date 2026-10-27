@@ -17,12 +17,13 @@ jobs:
       - run: node --test hlm-phase11-frontoffice-isolation.test.js
   isolated-mobile-chromium:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install --no-save playwright
-      - run: npx playwright install --with-deps chromium
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
       - run: node hlm-phase11-season-ledger.chromium.test.js
       - run: node hlm-phase11-isolated-tab-guard.chromium.test.js
