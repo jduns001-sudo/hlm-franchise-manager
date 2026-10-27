@@ -1,0 +1,25 @@
+'use strict';
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {join}=require('node:path');
+const {teams,build}=require('./hlm-phase11-new-franchise');
+const engine={...require('./hlm-game-state'),...require('./hlm-phase10-season-schedule')};
+const {buildProtectedAssetIntent}=require('./hlm-phase11-block-a-asset-intent-contract');
+const {validateAssetIntentEnvelope}=require('./hlm-phase11-block-a-service-intent-validation');
+test('service envelope detects tampering and stale revision, still refuses caller approval',()=>{
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const state=build(source,teams(source)[0].id,engine),before=JSON.stringify(state);
+ const intent=buildProtectedAssetIntent(source,state,{players:[],picks:[],prospects:[]},{},'rev-a',null,{gmApproved:true});
+ const valid=validateAssetIntentEnvelope(intent,'rev-a',{gmApproved:true});
+ assert.equal(valid.digestValid,true);
+ assert.equal(valid.revisionMatched,true);
+ assert.equal(valid.settlementAuthorized,false);
+ assert.ok(valid.reasons.includes('independent-cpu-verification-unavailable'));
+ const changed=JSON.parse(JSON.stringify(intent));
+ changed.manifest.assets.picks.push({id:'fabricated',from:'a',to:'b'});
+ assert.ok(validateAssetIntentEnvelope(changed,'rev-a',{gmApproved:true}).reasons.includes('manifest-digest-mismatch'));
+ assert.ok(validateAssetIntentEnvelope(intent,'rev-b',{gmApproved:true}).reasons.includes('stale-or-untrusted-revision'));
+ assert.ok(validateAssetIntentEnvelope(intent,'rev-a',{gmApproved:true,cancelled:true}).reasons.includes('gm-cancelled-or-declined'));
+ assert.equal(JSON.stringify(state),before);
+});
