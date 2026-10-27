@@ -6,13 +6,13 @@ const fs=require("node:fs");
 const http=require("node:http");
 
 (async()=>{
-  const files=new Set(["hlm-phase11-block-l-browser-adapter.js","hlm-phase11-block-l-service-transport.js"]);
+  const files=new Set(["hlm-phase11-block-l-browser-adapter.js","hlm-phase11-block-l-service-transport.js","hlm-phase11-isolated-single-game.html"]);
   const server=http.createServer((req,res)=>{
     const name=decodeURIComponent(req.url.split("?")[0]).slice(1);
     if(!files.has(name)){res.writeHead(404);res.end();return;}
     fs.readFile(path.join(__dirname,name),(err,data)=>{
       if(err){res.writeHead(404);res.end();return;}
-      res.setHeader("Content-Type","text/javascript");
+      res.setHeader("Content-Type",name.endsWith(".html")?"text/html":"text/javascript");
       res.end(data);
     });
   });
@@ -42,7 +42,13 @@ const http=require("node:http");
       return {actions:calls.length,viewportOk:document.documentElement.scrollWidth<=innerWidth};
     });
     assert.deepEqual(result,{actions:4,viewportOk:true});
-    console.log("Block L mobile Chromium default-off and GM command boundary passed");
+    await page.goto("http://127.0.0.1:"+server.address().port+"/hlm-phase11-isolated-single-game.html");
+    for(const selector of ["#gm-workspace-review","#gm-workspace-approve","#gm-workspace-decline","#gm-workspace-day-confirm"]){
+      assert.equal(await page.locator(selector).count(),1,selector+" missing");
+      assert.equal(await page.locator(selector).isDisabled(),true,selector+" unexpectedly enabled without franchise");
+    }
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    console.log("Block L mobile Chromium adapter and isolated gameplay default-off controls passed");
   }finally{
     await browser.close();
     await new Promise(resolve=>server.close(resolve));
