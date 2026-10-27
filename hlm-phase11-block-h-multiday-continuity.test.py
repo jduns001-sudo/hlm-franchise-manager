@@ -34,7 +34,7 @@ class MultiDayStandingsContinuity(previous.MultiGameStandingsAcceptance):
             self.assertEqual(sum(row["gp"] for row in state["season"]["standings"]),total_gp)
             self.assertEqual(state["history"],self.original["history"])
             self.assertEqual(len(state["season"]["completedDayDecisions"]),index+1)
-            self.assertEqual(len([g for g in state["season"]["games"] if g["status"]=="scheduled"]),3-index)
+            self.assertEqual(len([g for g in state["season"]["games"] if g["status"]=="scheduled"]),2-index)
             before=self.snapshot_all()
             self.assertFalse(day.advance(**request)["committed"])
             self.assertEqual(self.snapshot_all(),before)
