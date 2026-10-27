@@ -7,10 +7,11 @@ from pathlib import Path
 
 
 class GuardedSyntheticSeasonDay:
-    def __init__(self, lab, source_backed=False):
+    def __init__(self, lab, source_backed=False, multi_game=False):
         self._lab = lab
         self._db = lab._db
         self._source_backed = source_backed
+        self._multi_game = multi_game
         self._db.execute("""CREATE TABLE IF NOT EXISTS block_e_lab_consumed_days (
             decision_id TEXT PRIMARY KEY NOT NULL,
             franchise_id TEXT NOT NULL REFERENCES block_a_lab_franchises(franchise_id),
@@ -45,7 +46,46 @@ class GuardedSyntheticSeasonDay:
             if not pending:
                 raise ValueError("no-scheduled-game")
             game = pending[0]
-            if self._source_backed:
+            if self._multi_game:
+                if not self._source_backed:
+                    raise ValueError("source-backed-required")
+                if type(seed) is not int or seed < 0 or seed > 9007199254740991:
+                    raise ValueError("invalid-deterministic-seed")
+                day_games = [g for g in pending if g.get("date") == game.get("date")]
+                if len(day_games) < 1:
+                    raise ValueError("no-scheduled-day")
+                teams = state["universe"]["teams"]
+                # Existing historical finals must be valid for a full standings projection.
+                prior_finals = []
+                for g in season["games"]:
+                    if g.get("status") == "final":
+                        prior_finals.append({
+                            "id": g["id"], "status": "final",
+                            "homeTeamId": g.get("homeTeamId", g.get("home")),
+                            "awayTeamId": g.get("awayTeamId", g.get("away")),
+                            "homeGoals": g["homeGoals"], "awayGoals": g["awayGoals"],
+                            "overtime": g.get("overtime", False)
+                        })
+                input_data = {"games": day_games, "teams": teams,
+                              "priorFinals": prior_finals, "seed": seed}
+                output = subprocess.run(
+                    ["node", str(Path(__file__).with_name("hlm-phase11-block-g-multigame-adapter.js"))],
+                    input=json.dumps(input_data), capture_output=True, text=True,
+                    timeout=10, check=True
+                )
+                projection = json.loads(output.stdout)
+                results = projection["results"]
+                if len(results) != len(day_games):
+                    raise ValueError("incomplete-day-results")
+                for target, score in zip(day_games, results):
+                    if (score.get("gameId") != target["id"] or
+                        score.get("homeTeamId") != target["home"] or
+                        score.get("awayTeamId") != target["away"] or
+                        score.get("status") != "final"):
+                        raise ValueError("invalid-day-result")
+                    target.update(score)
+                season["standings"] = projection["standings"]
+            elif self._source_backed:
                 if type(seed) is not int or seed < 0 or seed > 9007199254740991:
                     raise ValueError("invalid-deterministic-seed")
                 input_data = {"gameId": game["id"], "homeTeamId": game["home"],
