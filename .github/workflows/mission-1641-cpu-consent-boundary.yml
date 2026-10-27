@@ -1,0 +1,29 @@
+name: Mission 1641 CPU Consent Boundary
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1641-*'
+      - '.github/workflows/mission-1641-cpu-consent-boundary.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  consent-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1641-cpu-consent-boundary.test.js
+  consent-mobile:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node hlm-phase11-m1641-cpu-consent-boundary.chromium.test.js
