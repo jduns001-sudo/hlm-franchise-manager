@@ -68,6 +68,13 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
         self.db.execute("UPDATE block_l_authoritative_reviews SET revision=2 WHERE franchise='SYNTHETIC-F'")
         self.assertEqual(self.command("review",seed=17,server_binding=signed)[0],403)
         self.assertEqual(self.snapshot_all(),before)
+def load_tests(loader, tests, pattern):
+    import unittest
+    return unittest.TestSuite([
+        AuthenticatedSQLiteBindingHTTP("test_authenticated_issue_review_approve_replay"),
+        AuthenticatedSQLiteBindingHTTP("test_missing_forged_stale_and_other_gm_fail_without_write")
+    ])
+
 if __name__=="__main__":
     import unittest
     unittest.main()
