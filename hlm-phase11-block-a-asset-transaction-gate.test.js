@@ -54,3 +54,19 @@ test('isolated GM review never writes on approve, decline, cancel or stale tab',
  assert.equal(session.reload().meta.controlledTeamId,state.meta.controlledTeamId);
  assert.equal(writes,0);
 });
+
+test('protected CPU authority bridge stays default-off and rejects caller-supplied approval',()=>{
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const state=build(source,teams(source)[0].id,engine);
+ const before=JSON.stringify(state);
+ const {inspectProtectedCpuConsent}=require('./hlm-phase11-block-a-asset-transaction-gate');
+ const proposal={receivingTeamId:'fabricated',outgoingPlayerId:'invented',incomingPlayerId:'invented'};
+ for(const options of [{},{experimentalEnabled:true},{experimentalEnabled:true,cancelled:true}]){
+  const result=inspectProtectedCpuConsent(state,proposal,'unverified-revision',{decision:'accepted',authorityProof:{verify:()=>true}},options);
+  assert.equal(result.independentlyAuthenticated,false);
+  assert.equal(result.atomicSettlementVerified,false);
+  assert.equal(result.settlementAuthorized,false);
+  assert.equal(result.saved,false);
+ }
+ assert.equal(JSON.stringify(state),before);
+});
