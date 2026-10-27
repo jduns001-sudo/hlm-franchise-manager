@@ -1,0 +1,32 @@
+name: Mission 1638 Local Trade Evidence Binding
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1638-local-trade-evidence*'
+      - '.github/workflows/mission-1638-local-trade-evidence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence-node:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --ignore-scripts miniflare@3
+      - run: node --test hlm-phase11-m1638-local-trade-evidence.test.js
+  evidence-mobile:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node hlm-phase11-m1638-local-trade-evidence.chromium.test.js
