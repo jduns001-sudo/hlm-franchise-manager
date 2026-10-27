@@ -1,0 +1,36 @@
+'use strict';
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {join}=require('node:path');
+const {teams,build}=require('./hlm-phase11-new-franchise');
+const engine={...require('./hlm-game-state'),...require('./hlm-phase10-season-schedule')};
+const {buildProtectedAssetIntent}=require('./hlm-phase11-block-a-asset-intent-contract');
+test('real-universe revision-bound intent is deterministic, read-only and never settlement authority',()=>{
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const state=build(source,teams(source)[0].id,engine);
+ const pick=state.assets.draftPicks.find(p=>p.status==='AVAILABLE');
+ assert.ok(pick);
+ const to=teams(source).find(t=>String(t.id)!==String(pick.currentOwnerId)).id;
+ const proposal={players:[],picks:[{pickId:pick.pickId,fromTeamId:pick.currentOwnerId,toTeamId:to}],prospects:[]};
+ const before=JSON.stringify(state);
+ const args=[source,state,proposal,{},'revision-1',null,{gmApproved:true,experimentalEnabled:true}];
+ const a=buildProtectedAssetIntent(...args),b=buildProtectedAssetIntent(...args);
+ assert.equal(a.digest,b.digest);
+ assert.equal(a.manifest.assets.picks.length,1);
+ assert.equal(a.settlementAuthorized,false);
+ assert.equal(a.independentlyAuthenticated,false);
+ assert.equal(a.replayProtected,false);
+ assert.equal(a.saved,false);
+ assert.notEqual(buildProtectedAssetIntent(source,state,proposal,{},'revision-2',null,{}).digest,a.digest);
+ assert.equal(JSON.stringify(state),before);
+});
+test('missing revision rejected and cancellation cannot authorize settlement',()=>{
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const state=build(source,teams(source)[0].id,engine),proposal={players:[],picks:[],prospects:[]};
+ assert.throws(()=>buildProtectedAssetIntent(source,state,proposal,{},'',null,{}),/revision/);
+ const result=buildProtectedAssetIntent(source,state,proposal,{},'revision-1',null,{cancelled:true,gmApproved:true});
+ assert.ok(result.manifest.blockers.includes('gm-cancelled-or-declined'));
+ assert.equal(result.gmApprovalRequested,false);
+ assert.equal(result.saved,false);
+});
