@@ -31,3 +31,26 @@ test('invalid or empty proposal cannot authorize settlement',()=>{
  assert.ok(result.issues.some(i=>i.code==='empty-transaction'));
  assert.equal(result.settlementAuthorized,false);
 });
+
+test('isolated GM review never writes on approve, decline, cancel or stale tab',()=>{
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const state=build(source,teams(source)[0].id,engine);
+ const key='phase11-block-a-test-only',initial=JSON.stringify(state);
+ let value=initial,writes=0;
+ const storage={getItem(k){assert.equal(k,key);return value},setItem(){writes++;throw Error('Write forbidden')}};
+ const {createAssetReviewSession}=require('./hlm-phase11-block-a-asset-transaction-gate');
+ const session=createAssetReviewSession(source,storage,key),proposal={players:[],picks:[],prospects:[]};
+ for(const action of ['cancel','decline','approve']){
+  session.review(proposal);
+  const result=session.decide(action);
+  assert.equal(result.saved,false);
+  assert.equal(result.settlementAuthorized,false);
+  assert.equal(value,initial);
+ }
+ session.review(proposal);
+ value=initial+' ';
+ assert.equal(session.decide('approve').code,'stale-review');
+ assert.equal(writes,0);
+ assert.equal(session.reload().meta.controlledTeamId,state.meta.controlledTeamId);
+ assert.equal(writes,0);
+});
