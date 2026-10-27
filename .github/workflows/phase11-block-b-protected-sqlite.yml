@@ -1,0 +1,21 @@
+name: Phase 11 Block B Protected SQLite Settlement
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-b-protected-sqlite-integration.test.py'
+      - 'hlm-phase11-block-a-authenticated-sqlite-lab.py'
+      - 'hlm-phase11-block-a-authenticated-sqlite-lab.test.py'
+      - 'hlm-phase11-block-a-isolated-persistence.sql'
+      - '.github/workflows/phase11-block-b-protected-sqlite.yml'
+  workflow_dispatch:
+jobs:
+  protected-sqlite-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run test-only authenticated SQLite settlement integration
+        run: python hlm-phase11-block-b-protected-sqlite-integration.test.py
