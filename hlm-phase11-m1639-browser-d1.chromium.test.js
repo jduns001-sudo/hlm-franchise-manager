@@ -49,7 +49,7 @@ const input={teamIds:['BUF','NYR'],legs:[{fromTeamId:'BUF',toTeamId:'NYR',assets
   assert.equal(committed.state.assets.contracts.find(c=>c.playerId==='p1').teamId,'NYR');
   assert.equal(committed.state.finances.buf.payroll,7000000);
   assert.equal(committed.state.finances.nyr.payroll,15000000);
-  assert.equal(committed.state.universe.draftPicks.find(p=>p.pickId==='d1').ownerTeamId,'BUF');
+  assert.equal(committed.state.assets.draftPicks.find(p=>p.pickId==='d1').ownerTeamId,'BUF');
   const replay=await page.evaluate(async r=>await(await fetch('/decision',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'approve',proposalDigest:r.proposalDigest,revision:r.revision})})).json(),review);
   assert.equal(replay.saved,false);
   assert.equal((await db.prepare('SELECT COUNT(*) AS n FROM m1637_consumed_decisions').first()).n,1);
