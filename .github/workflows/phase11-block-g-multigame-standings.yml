@@ -1,0 +1,22 @@
+name: Phase 11 Block G Multi-Game Standings
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-g-multigame-adapter.js'
+      - 'hlm-phase11-block-g-multigame-standings.test.py'
+      - 'hlm-phase11-block-e-guarded-synthetic-day.py'
+      - 'hlm-phase10-standings.js'
+      - 'hlm-phase10-game-simulator.js'
+      - '.github/workflows/phase11-block-g-multigame-standings.yml'
+  workflow_dispatch:
+jobs:
+  multigame-standings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guarded multi-game standings SQLite acceptance
+        run: python3 hlm-phase11-block-g-multigame-standings.test.py -v
