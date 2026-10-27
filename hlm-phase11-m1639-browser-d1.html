@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Isolated D1 Trade Review</title><body><h1>Isolated trade evidence review</h1><p>Local test fixture only. CPU consent is synthetic. Production trading disabled.</p><p id="status" role="status">Loading review…</p><button id="approve" disabled>Approve reviewed trade</button><button id="decline">Decline</button><script>
+let review=null;
+async function call(path,method='GET',body){const r=await fetch(path,{method,headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined});return r.json()}
+async function load(){review=await call('/review');document.querySelector('#status').textContent=review.ok?'Review digest: '+review.proposalDigest:'Review unavailable: '+review.code;document.querySelector('#approve').disabled=!review.ok}
+document.querySelector('#decline').onclick=()=>{review=null;document.querySelector('#approve').disabled=true;document.querySelector('#status').textContent='Declined. No trade submitted.'};
+document.querySelector('#approve').onclick=async()=>{if(!review)return;document.querySelector('#approve').disabled=true;const r=await call('/decision','POST',{action:'approve',proposalDigest:review.proposalDigest,revision:review.revision});document.querySelector('#status').textContent=r.saved?'Trade committed in isolated D1 fixture.':'Trade not saved: '+r.code};
+load().catch(()=>{document.querySelector('#status').textContent='Review request failed'});
+</script></body></html>
