@@ -1,0 +1,17 @@
+name: Phase 11 Block D Shared Synthetic Persistence
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-d-shared-synthetic-persistence.test.py'
+      - '.github/workflows/phase11-block-d-shared-synthetic-persistence.yml'
+      - 'hlm-phase11-block-a-authenticated-sqlite-lab.py'
+      - 'hlm-phase11-block-a-isolated-persistence.sql'
+  workflow_dispatch:
+jobs:
+  shared-synthetic-persistence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shared synthetic season and asset persistence
+        run: python3 hlm-phase11-block-d-shared-synthetic-persistence.test.py -v
