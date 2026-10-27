@@ -1,0 +1,29 @@
+name: Mission 1642 Trusted CPU Consent Verifier
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1642-*'
+      - '.github/workflows/mission-1642-trusted-cpu-consent-verifier.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verifier-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1642-trusted-cpu-consent-verifier.test.js
+  verifier-mobile:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node hlm-phase11-m1642-trusted-cpu-consent-verifier.chromium.test.js
