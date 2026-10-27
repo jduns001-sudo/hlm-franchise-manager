@@ -12,7 +12,8 @@ function createIsolatedCommandRouter(config){
     if(typeof snapshot.franchise!=="string"||!snapshot.franchise||
        !Number.isSafeInteger(snapshot.revision)||snapshot.revision<0||
        typeof snapshot.plan_id!=="string"||!snapshot.plan_id||
-       typeof snapshot.decision_id!=="string"||!snapshot.decision_id)
+       typeof snapshot.decision_id!=="string"||!snapshot.decision_id||
+       !Number.isSafeInteger(snapshot.seed)||snapshot.seed<0)
       throw Error("Reviewed plan, franchise, revision and decision required");
     if(snapshot.gm!==session.gm||snapshot.franchise!==session.franchise)
       throw Error("Isolated GM franchise mismatch");
