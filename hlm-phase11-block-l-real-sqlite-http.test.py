@@ -59,6 +59,27 @@ class RealSQLiteHTTPAcceptance(prior.ConcurrentSettlementAcceptance):
         self.assertFalse(self.command("approve",seed=17,review_id=first,decision_id="SYNTHETIC-DAY-OTHER")[1]["committed"])
         self.assertEqual(self.snapshot_all(),before)
         self.assertEqual(self.command("recover",review_id=first)[1]["status"],"stale")
+    def test_competing_sqlite_connection_cannot_double_settle_over_wsgi(self):
+        token=self.command("review",seed=17)[1]["review_id"]
+        other_connection,other=self._second_connection()
+        try:
+            before=self.snapshot_all()
+            self.assertFalse(other.advance(
+                gm=self.gm,franchise="SYNTHETIC-F",revision=1,
+                decision_id="SYNTHETIC-DAY-18",approved=False,enabled=True,
+                seed=17,review_id=token)["committed"])
+            self.assertEqual(self.snapshot_all(),before)
+            self.assertTrue(self.command("approve",seed=17,review_id=token,
+                                         decision_id="SYNTHETIC-DAY-18")[1]["committed"])
+            after=self.snapshot_all()
+            self.assertFalse(other.advance(
+                gm=self.gm,franchise="SYNTHETIC-F",revision=1,
+                decision_id="SYNTHETIC-DAY-18",approved=True,enabled=True,
+                seed=17,review_id=token)["committed"])
+            self.assertEqual(self.snapshot_all(),after)
+        finally:
+            other_connection.close()
+
     def test_invalid_seed_cannot_mutate_reviewed_state(self):
         token=self.command("review",seed=17)[1]["review_id"]
         before=self.snapshot_all()
