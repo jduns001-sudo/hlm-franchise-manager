@@ -12,11 +12,11 @@ function secondFixture(first){
    input:{...first.input,legs,transactionId:first.input.transactionId+'-second'}};
 }
 function createContinuityHandler({db,fixture,enabled=false}){
- const second=secondFixture(fixture);
  const firstHandler=createHandler({db,fixture,enabled});
- const secondHandler=createHandler({db,fixture:second,enabled});
+ const secondHandler=enabled&&fixture.input?createHandler({db,fixture:secondFixture(fixture),enabled}):null;
  return async function handle(request){
    if(!enabled)return firstHandler(request);
+   if(request.method==='POST'&&request.path==='/decision'&&request.body?.action!=='approve')return {status:200,body:{ok:false,saved:false,code:'gm-cancelled-or-declined',experimental:true,productionTouched:false}};
    const saved=await local.read(db,fixture.slot);
    if(!saved)return {status:409,body:{ok:false,saved:false,code:'missing-local-fixture',experimental:true,productionTouched:false}};
    return (saved.revision===fixture.expectedRevision?firstHandler:secondHandler)(request);
