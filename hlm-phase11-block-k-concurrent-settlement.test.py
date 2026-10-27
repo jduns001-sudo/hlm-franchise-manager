@@ -26,18 +26,25 @@ class ConcurrentSettlementAcceptance(prior.DurableReviewRecovery):
     def test_two_connections_compete_same_review(self):
         day=self.reviewed()
         request,review=self.approve(day)
-        connection,other=self._second_connection()
         try:
             barrier=threading.Barrier(3)
             results=[]
-            def settle(coordinator):
-                barrier.wait(timeout=5)
-                results.append(coordinator.advance(**request,review_id=review["review_id"]))
-            t1=threading.Thread(target=settle,args=(day,))
-            t2=threading.Thread(target=settle,args=(other,))
+            errors=[]
+            def settle():
+                connection,coordinator=self._second_connection()
+                try:
+                    barrier.wait(timeout=5)
+                    results.append(coordinator.advance(**request,review_id=review["review_id"]))
+                except BaseException as exc:
+                    errors.append(str(exc))
+                finally:
+                    connection.close()
+            t1=threading.Thread(target=settle)
+            t2=threading.Thread(target=settle)
             t1.start();t2.start();barrier.wait(timeout=5)
             t1.join(timeout=15);t2.join(timeout=15)
             self.assertFalse(t1.is_alive() or t2.is_alive())
+            self.assertEqual(errors,[])
             self.assertEqual(len(results),2)
             self.assertEqual(sum(bool(r["committed"]) for r in results),1)
             self.assertEqual(self.state()[0],2)
@@ -47,7 +54,7 @@ class ConcurrentSettlementAcceptance(prior.DurableReviewRecovery):
             self.assertEqual(day.recover_review(gm=request["gm"],franchise=request["franchise"],
                                               review_id=review["review_id"])["status"],"consumed")
         finally:
-            connection.close()
+            pass
 
     def test_locked_writer_then_retry_and_replay(self):
         day=self.reviewed()
