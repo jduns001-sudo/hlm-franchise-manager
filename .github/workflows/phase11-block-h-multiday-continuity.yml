@@ -1,0 +1,21 @@
+name: Phase 11 Block H Multi-Day Standings Continuity
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-h-multiday-continuity.test.py'
+      - 'hlm-phase11-block-e-guarded-synthetic-day.py'
+      - 'hlm-phase11-block-g-multigame-adapter.js'
+      - 'hlm-phase10-standings.js'
+      - '.github/workflows/phase11-block-h-multiday-continuity.yml'
+  workflow_dispatch:
+jobs:
+  multiday-standings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Guarded multi-day standings and SQLite continuity acceptance
+        run: python3 hlm-phase11-block-h-multiday-continuity.test.py -v
