@@ -23,7 +23,7 @@ test('isolated lab atomically moves canonical pick, records history and rejects 
  assert.equal(committed.productionSaved,false);
  assert.equal(committed.independentlyAuthenticated,false);
  const after=lab.snapshot();
- assert.equal(after.state.assets.draftPicks.find(p=>p.pickId===pick.pickId).currentOwnerId,to);
+ assert.equal(String(after.state.assets.draftPicks.find(p=>p.pickId===pick.pickId).currentOwnerId),String(to));
  assert.equal(after.state.activity.transactions.length,before.state.activity.transactions.length+1);
  assert.ok(after.consumedDecisionIds.includes('lab-only-decision'));
  assert.equal(lab.simulate(request).committed,false);
