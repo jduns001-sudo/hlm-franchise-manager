@@ -23,3 +23,29 @@ test('reject duplicate/unverified assets and preserve state',()=>{
  assert.deepEqual(result.issues.map(x=>x.code),['duplicate-player','unverified-player','unverified-pick','duplicate-pick']);
  assert.equal(JSON.stringify(state),before);
 });
+
+test('canonical NHL draft ownership reconciles without creating or changing rights',()=>{
+ const {readFileSync}=require('node:fs');
+ const {join}=require('node:path');
+ const {teams,build}=require('./hlm-phase11-new-franchise');
+ const engine={
+  ...require('./hlm-game-state'),
+  ...require('./hlm-phase10-season-schedule')
+ };
+ const universe=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const team=teams(universe).find(t=>t.abbr==='PIT');
+ assert.ok(team);
+ const state=build(universe,team.id,engine);
+ const {reconcileSourcePicks}=require('./hlm-phase11-block-a-authoritative-assets');
+ const before=JSON.stringify(state),ok=reconcileSourcePicks(universe,state);
+ assert.equal(ok.status,'source-reconciled');
+ assert.ok(ok.sourceCount>0);
+ assert.equal(ok.saved,false);
+ assert.equal(ok.settlementAuthorized,false);
+ const changed=JSON.parse(before);
+ changed.assets.draftPicks[0].currentOwnerId=-999;
+ const mismatch=reconcileSourcePicks(universe,changed);
+ assert.equal(mismatch.status,'blocked');
+ assert.ok(mismatch.issues.some(i=>i.code==='source-owner-mismatch'));
+ assert.equal(JSON.stringify(state),before);
+});
