@@ -32,12 +32,13 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
             authoritative_resolver=lambda gm,franchise:resolver.resolve_authoritative_review(self.db,gm,franchise))
         self.app=wsgi.create_experimental_wsgi_app(
             enabled=True,origin="https://jduns001-sudo.github.io",
-            session_resolver=lambda bearer: {"gm":self.gm["token"],"franchise":"SYNTHETIC-F"}
+            session_resolver=lambda bearer: {"gm":self.gm,"franchise":"SYNTHETIC-F"}
                 if bearer=="Bearer valid" else None,
             csrf_verifier=lambda session,token:token=="csrf-valid",
             authorize=lambda session,franchise:franchise==session["franchise"],
             bridge_factory=lambda session,franchise:bridge.GMReviewSimulationBridge(self.coordinator),
-            binding_issuer=self.binding.issue,binding_verifier=self.binding.verify)
+            binding_issuer=lambda *,session,franchise:self.binding.issue(session={"gm":session["gm"]["token"]},franchise=franchise),
+            binding_verifier=lambda *,session,envelope:self.binding.verify(session={"gm":session["gm"]["token"]},envelope=envelope))
     def command(self,action,**fields):
         return super().command(action,**fields)
     def test_authenticated_issue_review_approve_replay(self):
