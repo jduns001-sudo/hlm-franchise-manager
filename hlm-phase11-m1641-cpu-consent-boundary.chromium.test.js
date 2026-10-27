@@ -6,7 +6,6 @@ const {inspectAuthenticatedCpuConsent:inspect}=require('./hlm-phase11-m1641-cpu-
  const browser=await chromium.launch({headless:true});
  try{
   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
-  await page.goto('http://example.test').catch(()=>{});
   await page.goto('data:text/html,<html><body><button id="approve">Approve</button><button id="decline">Decline</button></body></html>');
   // No production UI wiring: exercise mobile interaction and the boundary in isolation.
   await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL')).catch(()=>{});
