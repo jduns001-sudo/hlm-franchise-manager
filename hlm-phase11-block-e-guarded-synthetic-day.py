@@ -21,7 +21,9 @@ class GuardedSyntheticSeasonDay:
                 franchise_id TEXT NOT NULL,
                 revision INTEGER NOT NULL,
                 plan_hash TEXT NOT NULL,
-                consumed INTEGER NOT NULL DEFAULT 0
+                consumed INTEGER NOT NULL DEFAULT 0,
+                decision_id TEXT UNIQUE,
+                gm_proof_hash TEXT
             )""")
         self._db.execute("""CREATE TABLE IF NOT EXISTS block_e_lab_consumed_days (
             decision_id TEXT PRIMARY KEY NOT NULL,
@@ -63,9 +65,28 @@ class GuardedSyntheticSeasonDay:
         plan = self._plan(gm, franchise, revision, seed, json.loads(row[1]))
         digest = hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         review_id = secrets.token_hex(24)
-        self._db.execute("INSERT INTO block_i_lab_reviews VALUES (?,?,?,?,0)",
-                         (review_id, franchise, revision, digest))
+        proof_hash = hashlib.sha256((gm["token"] + ":" + gm["proof"]).encode()).hexdigest()
+        self._db.execute(
+            "INSERT INTO block_i_lab_reviews (review_id,franchise_id,revision,plan_hash,consumed,gm_proof_hash) VALUES (?,?,?,?,0,?)",
+            (review_id, franchise, revision, digest, proof_hash))
         return {"review_id": review_id, "plan": plan}
+
+    def recover_review(self, *, gm, franchise, review_id):
+        """Read-only recovery: never grants approval or mutates franchise state."""
+        session = self._lab._gm_sessions.get(gm.get("token")) if isinstance(gm, dict) else None
+        if not session or session != (franchise, gm.get("gm"), gm.get("proof")):
+            raise ValueError("gm-untrusted")
+        row = self._db.execute(
+            "SELECT revision,plan_hash,consumed,decision_id,gm_proof_hash FROM block_i_lab_reviews "
+            "WHERE review_id=? AND franchise_id=?", (review_id, franchise)).fetchone()
+        proof_hash = hashlib.sha256((gm["token"] + ":" + gm["proof"]).encode()).hexdigest()
+        if not row or row[4] != proof_hash:
+            raise ValueError("review-unavailable")
+        current = self._db.execute("SELECT state_revision FROM block_a_lab_franchises WHERE franchise_id=?",
+                                   (franchise,)).fetchone()
+        return {"review_id": review_id, "revision": row[0],
+                "status": "consumed" if row[2] else ("stale" if not current or current[0] != row[0] else "pending"),
+                "decision_id": row[3]}
 
     def advance(self, *, gm, franchise, revision, decision_id, approved=False,
                 enabled=False, cancelled=False, declined=False, fail_at=None, seed=0, review_id=None, **_untrusted):
@@ -90,7 +111,7 @@ class GuardedSyntheticSeasonDay:
                 if not (self._multi_game and self._source_backed and isinstance(review_id, str)):
                     raise ValueError("review-required")
                 review = self._db.execute(
-                    "SELECT franchise_id,revision,plan_hash,consumed FROM block_i_lab_reviews WHERE review_id=?",
+                    "SELECT franchise_id,revision,plan_hash,consumed,decision_id,gm_proof_hash FROM block_i_lab_reviews WHERE review_id=?",
                     (review_id,)).fetchone()
                 if not review or review[0] != franchise or review[1] != revision or review[3]:
                     raise ValueError("review-invalid-or-consumed")
@@ -98,6 +119,11 @@ class GuardedSyntheticSeasonDay:
                 digest = hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
                 if review[2] != digest:
                     raise ValueError("review-plan-mismatch")
+                proof_hash = hashlib.sha256((gm["token"] + ":" + gm["proof"]).encode()).hexdigest()
+                if review[5] != proof_hash:
+                    raise ValueError("review-session-mismatch")
+                if review[4] is not None and review[4] != decision_id:
+                    raise ValueError("review-decision-mismatch")
             season = state["season"]
             if not isinstance(season["day"], int) or season["day"] < 0:
                 raise ValueError("invalid-season-day")
@@ -198,8 +224,8 @@ class GuardedSyntheticSeasonDay:
             )
             if self._review_required:
                 changed = self._db.execute(
-                    "UPDATE block_i_lab_reviews SET consumed=1 WHERE review_id=? AND consumed=0",
-                    (review_id,)).rowcount
+                    "UPDATE block_i_lab_reviews SET consumed=1,decision_id=? WHERE review_id=? AND consumed=0",
+                    (decision_id, review_id)).rowcount
                 if changed != 1:
                     raise ValueError("review-replay")
             if fail_at == "decision":

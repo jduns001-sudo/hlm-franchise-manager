@@ -1,0 +1,19 @@
+name: Phase 11 Block J Durable GM Review Recovery
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-j-durable-review.test.py'
+      - 'hlm-phase11-block-e-guarded-synthetic-day.py'
+      - '.github/workflows/phase11-block-j-durable-review.yml'
+  workflow_dispatch:
+jobs:
+  durable-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Durable review reload and cross-session acceptance
+        run: python3 hlm-phase11-block-j-durable-review.test.py -v
