@@ -7,7 +7,7 @@ This handler does not open a listener or touch production save paths.
 import json
 
 class ExperimentalGMReviewEndpoint:
-    def __init__(self, *, session_resolver, csrf_verifier, authorize, bridge_factory, origin, binding_verifier=None):
+    def __init__(self, *, session_resolver, csrf_verifier, authorize, bridge_factory, origin, binding_verifier=None, binding_issuer=None):
         if not origin.startswith("https://") or origin.endswith("/"):
             raise ValueError("Exact HTTPS origin required")
         self.session_resolver = session_resolver
@@ -18,6 +18,9 @@ class ExperimentalGMReviewEndpoint:
         if binding_verifier is not None and not callable(binding_verifier):
             raise ValueError('Trusted binding verifier required')
         self.binding_verifier = binding_verifier
+        if binding_issuer is not None and not callable(binding_issuer):
+            raise ValueError('Trusted binding issuer required')
+        self.binding_issuer = binding_issuer
 
     def handle(self, *, headers, body):
         # A hosting application must independently authenticate its bearer token.
@@ -46,8 +49,20 @@ class ExperimentalGMReviewEndpoint:
             if payload.get("action") != "recover" and (type(seed) is not int or seed < 0):
                 raise ValueError("nonnegative integer seed required")
             action = payload.get("action")
-            if action not in ("review", "recover", "approve", "decline"):
+            if action not in ("bind", "review", "recover", "approve", "decline"):
                 raise ValueError("invalid action")
+            if action == "bind":
+                if self.binding_issuer is None:
+                    return 403, {"committed": False, "error": "binding_disabled"}
+                try:
+                    issued = self.binding_issuer(session=session, franchise=franchise)
+                except (PermissionError, ValueError, TypeError, KeyError):
+                    return 403, {"committed": False, "error": "binding_unavailable"}
+                if not isinstance(issued, dict) or not isinstance(issued.get("binding"), dict) or not isinstance(issued.get("signature"), str):
+                    return 403, {"committed": False, "error": "binding_unavailable"}
+                if issued["binding"].get("revision") != revision or issued["binding"].get("seed") != seed:
+                    return 403, {"committed": False, "error": "binding_mismatch"}
+                return 200, {"committed": False, "server_binding": issued}
             # Opt-in authoritative binding check before any coordinator dispatch.
             if self.binding_verifier is not None:
                 try:
