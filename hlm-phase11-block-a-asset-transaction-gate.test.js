@@ -11,11 +11,11 @@ test('real-universe player and pick proposal cannot bypass missing contracts or 
  const team=teams(source).find(t=>t.abbr==='PIT');
  const state=build(source,team.id,engine);
  const player=state.universe.players.find(p=>String(p.teamId)===String(team.id));
- const pick=state.assets.draftPicks.find(p=>String(p.currentOwnerId)===String(team.id));
+ const pick=state.assets.draftPicks.find(p=>p.status==='AVAILABLE');
  assert.ok(player&&pick);
- const other=teams(source).find(t=>String(t.id)!==String(team.id)).id;
+ const other=teams(source).find(t=>String(t.id)!==String(team.id)&&String(t.id)!==String(pick.currentOwnerId)).id;
  const before=JSON.stringify(state);
- const result=inspectAssetTransaction(source,state,{players:[{playerId:player.id,fromTeamId:team.id,toTeamId:other}],picks:[{pickId:pick.pickId,fromTeamId:team.id,toTeamId:other}],prospects:[],gmApproved:true,cpuApproved:true});
+ const result=inspectAssetTransaction(source,state,{players:[{playerId:player.id,fromTeamId:team.id,toTeamId:other}],picks:[{pickId:pick.pickId,fromTeamId:pick.currentOwnerId,toTeamId:other}],prospects:[],gmApproved:true,cpuApproved:true});
  assert.equal(result.status,'blocked-pending-independent-authorization');
  assert.ok(result.issues.some(i=>i.code==='contract-identity-unverified'));
  assert.ok(result.issues.some(i=>i.code==='independent-cpu-consent-required'));
