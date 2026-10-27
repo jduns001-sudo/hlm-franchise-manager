@@ -80,6 +80,27 @@ class RealSQLiteHTTPAcceptance(prior.ConcurrentSettlementAcceptance):
         finally:
             other_connection.close()
 
+    def test_http_rejects_unauthorized_without_sqlite_mutation(self):
+        before=self.snapshot_all()
+        for token,csrf,franchise,expected in [
+            ("Bearer invalid","csrf-valid","SYNTHETIC-F",401),
+            ("Bearer valid","bad","SYNTHETIC-F",403),
+            ("Bearer valid","csrf-valid","OTHER",403),
+        ]:
+            body=json.dumps({"action":"review","franchise":franchise,
+                             "revision":1,"seed":17}).encode()
+            env={"PATH_INFO":"/gm-review","REQUEST_METHOD":"POST",
+                 "wsgi.url_scheme":"https","CONTENT_LENGTH":str(len(body)),
+                 "wsgi.input":io.BytesIO(body),
+                 "HTTP_ORIGIN":"https://jduns001-sudo.github.io",
+                 "HTTP_AUTHORIZATION":token,"HTTP_X_CSRF_TOKEN":csrf,
+                 "CONTENT_TYPE":"application/json"}
+            status=[]
+            response=b"".join(self.app(env,lambda s,h:status.append(s)))
+            self.assertEqual(int(status[0][:3]),expected)
+            self.assertFalse(json.loads(response)["committed"])
+            self.assertEqual(self.snapshot_all(),before)
+
     def test_invalid_seed_cannot_mutate_reviewed_state(self):
         token=self.command("review",seed=17)[1]["review_id"]
         before=self.snapshot_all()
