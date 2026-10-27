@@ -40,7 +40,7 @@ class ExperimentalGMReviewEndpoint:
             if type(revision) is not int or revision < 0:
                 raise ValueError("revision required")
             seed = payload.get("seed")
-            if type(seed) is not int or seed < 0:
+            if payload.get("action") != "recover" and (type(seed) is not int or seed < 0):
                 raise ValueError("nonnegative integer seed required")
             action = payload.get("action")
             if action not in ("review", "recover", "approve", "decline"):
