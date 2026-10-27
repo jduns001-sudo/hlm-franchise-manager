@@ -1,0 +1,33 @@
+'use strict';
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {join}=require('node:path');
+const {teams,build}=require('./hlm-phase11-new-franchise');
+const engine={...require('./hlm-game-state'),...require('./hlm-phase10-season-schedule')};
+const {inspectAssetTransaction}=require('./hlm-phase11-block-a-asset-transaction-gate');
+test('real-universe player and pick proposal cannot bypass missing contracts or CPU consent',()=>{
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const team=teams(source).find(t=>t.abbr==='PIT');
+ const state=build(source,team.id,engine);
+ const player=state.universe.players.find(p=>String(p.teamId)===String(team.id));
+ const pick=state.assets.draftPicks.find(p=>String(p.currentOwnerId)===String(team.id));
+ assert.ok(player&&pick);
+ const other=teams(source).find(t=>String(t.id)!==String(team.id)).id;
+ const before=JSON.stringify(state);
+ const result=inspectAssetTransaction(source,state,{players:[{playerId:player.id,fromTeamId:team.id,toTeamId:other}],picks:[{pickId:pick.pickId,fromTeamId:team.id,toTeamId:other}],prospects:[],gmApproved:true,cpuApproved:true});
+ assert.equal(result.status,'blocked-pending-independent-authorization');
+ assert.ok(result.issues.some(i=>i.code==='contract-identity-unverified'));
+ assert.ok(result.issues.some(i=>i.code==='independent-cpu-consent-required'));
+ assert.equal(result.gmApproved,false);
+ assert.equal(result.cpuConsentAuthenticated,false);
+ assert.equal(result.saved,false);
+ assert.equal(JSON.stringify(state),before);
+});
+test('invalid or empty proposal cannot authorize settlement',()=>{
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const team=teams(source)[0],state=build(source,team.id,engine);
+ const result=inspectAssetTransaction(source,state,{players:[],picks:[],prospects:[]});
+ assert.ok(result.issues.some(i=>i.code==='empty-transaction'));
+ assert.equal(result.settlementAuthorized,false);
+});
