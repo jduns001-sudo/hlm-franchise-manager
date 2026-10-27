@@ -6,7 +6,7 @@ const fs=require("node:fs");
 const http=require("node:http");
 
 (async()=>{
-  const files=new Set(["hlm-phase11-block-l-browser-adapter.js","hlm-phase11-block-l-service-transport.js","hlm-phase11-isolated-single-game.html"]);
+  const files=new Set(["hlm-phase11-block-l-browser-adapter.js","hlm-phase11-block-l-service-transport.js","hlm-phase11-isolated-single-game.html","hlm-phase11-block-l-isolated-command-router.js"]);
   const server=http.createServer((req,res)=>{
     const name=decodeURIComponent(req.url.split("?")[0]).slice(1);
     if(!files.has(name)){res.writeHead(404);res.end();return;}
@@ -48,6 +48,33 @@ const http=require("node:http");
       assert.equal(await page.locator(selector).isDisabled(),true,selector+" unexpectedly enabled without franchise");
     }
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    await page.addScriptTag({url:"http://127.0.0.1:"+server.address().port+"/hlm-phase11-block-l-isolated-command-router.js"});
+    const routerResult=await page.evaluate(async()=>{
+      const create=window.HLMBlockLIsolatedCommandRouter.createIsolatedCommandRouter;
+      const state={gm:"GM1",franchise:"SYNTHETIC-F",revision:1,plan_id:"P1",decision_id:"D1",seed:17};
+      const calls=[];let committed=false;
+      const adapter=Object.fromEntries(["review","decline","recover","approve"].map(action=>[action,async request=>{
+        calls.push({action,...request});
+        return action==="review"?{review_id:"R1",committed:false}:action==="approve"?
+          {committed:!committed&&(committed=true)}:{committed:false};
+      }]));
+      const config={enabled:true,adapter,snapshot:async()=>({...state}),
+        identity:async()=>({authenticated:true,gm:"GM1",franchise:"SYNTHETIC-F"})};
+      const router=create(config);
+      await router.review();await router.decline();await router.recover();
+      state.revision=2;
+      let stale=false;try{await router.approve();}catch(e){stale=/Stale/.test(e.message);}
+      if(!stale||calls.length!==3)throw Error("Stale mobile approval sent");
+      state.revision=1;
+      if(!(await router.approve()).committed)throw Error("Approved settlement missing");
+      let replay=false;try{await router.approve();}catch(e){replay=/No reviewed/.test(e.message);}
+      if(!replay||calls.length!==4)throw Error("Mobile replay sent");
+      const reloaded=create(config);
+      let reloadBlocked=false;try{await reloaded.approve();}catch(e){reloadBlocked=/No reviewed/.test(e.message);}
+      if(!reloadBlocked)throw Error("Reload auto-approved");
+      return calls.map(c=>c.action);
+    });
+    assert.deepEqual(routerResult,["review","decline","recover","approve"]);
     console.log("Block L mobile Chromium adapter and isolated gameplay default-off controls passed");
   }finally{
     await browser.close();
