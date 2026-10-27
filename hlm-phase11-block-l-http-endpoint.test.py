@@ -76,5 +76,26 @@ class EndpointAcceptance(unittest.TestCase):
         self.assertEqual(status, 400)
         self.assertIs(result["committed"], False)
 
+    def test_opt_in_server_binding_rejects_missing_mismatched_and_tampered_requests(self):
+        import json
+        self.endpoint.binding_verifier = lambda *, session, envelope: (
+            {"franchise":"SYNTHETIC","revision":1,"seed":17,"decision_id":"D1"}
+            if envelope == {"signed":"trusted"} else (_ for _ in ()).throw(PermissionError("invalid")))
+        request = {"action":"approve","franchise":"SYNTHETIC","revision":1,
+                   "seed":17,"decision_id":"D1","review_id":"R1"}
+        self.assertEqual(self.request(json.dumps(request))[0],403)
+        self.assertEqual(self.calls,[])
+        request["server_binding"]={"signed":"forged"}
+        self.assertEqual(self.request(json.dumps(request))[0],403)
+        self.assertEqual(self.calls,[])
+        request["server_binding"]={"signed":"trusted"}
+        for field, altered in (("revision",2),("seed",18),("decision_id","D2"),("franchise","OTHER")):
+            with self.subTest(field=field):
+                attempt={**request,field:altered}
+                self.assertEqual(self.request(json.dumps(attempt))[0],403)
+                self.assertEqual(self.calls,[])
+        self.assertEqual(self.request(json.dumps(request))[0],200)
+        self.assertEqual(len(self.calls),1)
+
 if __name__ == "__main__":
     unittest.main()
