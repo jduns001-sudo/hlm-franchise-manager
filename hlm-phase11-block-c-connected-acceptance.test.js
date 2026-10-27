@@ -9,7 +9,7 @@ const {join}=require('node:path');
 const root=__dirname;
 const cases=[
   ['real-universe GM-approved multiseason journey','node',['hlm-phase11-real-universe-journey.test.js']],
-  ['protected SQLite settlement durability and rollback','python3',['-m','unittest','-v','hlm-phase11-block-b-protected-sqlite-integration.test.py']]
+  ['protected SQLite settlement durability and rollback','python3',['hlm-phase11-block-b-protected-sqlite-integration.test.py']]
 ];
 for(const [name,command,args] of cases){
   test(name,()=>{
