@@ -5,6 +5,8 @@ on:
       - 'hlm-phase11-block-a-source-assets.test.js'
       - 'hlm-phase11-block-a-authoritative-assets.js'
       - 'hlm-phase11-block-a-authoritative-assets.test.js'
+      - 'hlm-phase11-block-a-asset-transaction-gate.js'
+      - 'hlm-phase11-block-a-asset-transaction-gate.test.js'
       - '.github/workflows/phase11-block-a-source-assets.yml'
   workflow_dispatch:
 permissions:
@@ -18,4 +20,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: node --test hlm-phase11-block-a-source-assets.test.js hlm-phase11-block-a-authoritative-assets.test.js
+      - run: node --test hlm-phase11-block-a-source-assets.test.js hlm-phase11-block-a-authoritative-assets.test.js hlm-phase11-block-a-asset-transaction-gate.test.js
