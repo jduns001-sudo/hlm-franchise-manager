@@ -1,0 +1,21 @@
+name: Phase 11 Block A Mobile Franchise Playthrough
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-a-*'
+      - '.github/workflows/phase11-block-a-mobile-playthrough.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mobile-playthrough:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: node hlm-phase11-block-a-mobile-playthrough.test.js

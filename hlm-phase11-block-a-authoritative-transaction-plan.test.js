@@ -1,0 +1,37 @@
+'use strict';
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {join}=require('node:path');
+const {teams,build}=require('./hlm-phase11-new-franchise');
+const engine={...require('./hlm-game-state'),...require('./hlm-phase10-season-schedule')};
+const {buildProtectedAssetIntent}=require('./hlm-phase11-block-a-asset-intent-contract');
+const {planAuthoritativeAssetTransaction}=require('./hlm-phase11-block-a-authoritative-transaction-plan');
+test('authoritative transaction planner remains blocked with real pick and missing CPU trust',()=>{
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const state=build(source,teams(source)[0].id,engine),before=JSON.stringify(state);
+ const pick=state.assets.draftPicks.find(x=>x.status==='AVAILABLE');
+ assert.ok(pick);
+ const other=teams(source).find(t=>String(t.id)!==String(pick.currentOwnerId)).id;
+ const proposal={players:[],picks:[{pickId:pick.pickId,fromTeamId:pick.currentOwnerId,toTeamId:other}],prospects:[]};
+ const intent=buildProtectedAssetIntent(source,state,proposal,{},'revision-1',null,{gmApproved:true});
+ const decision={decisionId:'caller-fabricated',proposalDigest:intent.digest,stateRevision:'revision-1',decision:'accepted'};
+ const result=planAuthoritativeAssetTransaction(source,state,intent,decision,'revision-1',{gmApproved:true,experimentalEnabled:true});
+ assert.equal(result.status,'blocked-read-only');
+ assert.equal(result.saved,false);
+ assert.equal(result.settlementAuthorized,false);
+ assert.ok(result.blockers.includes('server-owned-transaction-coordinator-unavailable'));
+ assert.equal(JSON.stringify(state),before);
+});
+test('planner catches missing contract pairing and stale pick ownership without writes',()=>{
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const state=build(source,teams(source)[0].id,engine),before=JSON.stringify(state);
+ const intent=buildProtectedAssetIntent(source,state,{players:[],picks:[],prospects:[]},{},'revision-1',null,{});
+ intent.manifest.assets.players.push({id:'fabricated',from:'wrong',to:'other'});
+ intent.manifest.assets.picks.push({id:'missing-pick',from:'wrong',to:'other'});
+ const result=planAuthoritativeAssetTransaction(source,state,intent,null,'revision-1',{gmApproved:true});
+ assert.ok(result.blockers.includes('player-contract-delta-mismatch'));
+ assert.ok(result.blockers.includes('stale-pick-ownership'));
+ assert.equal(result.saved,false);
+ assert.equal(JSON.stringify(state),before);
+});

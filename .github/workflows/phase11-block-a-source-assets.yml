@@ -1,0 +1,55 @@
+name: Phase 11 Block A Source-Backed Assets
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-a-source-assets.test.js'
+      - 'hlm-phase11-block-a-authoritative-assets.js'
+      - 'hlm-phase11-block-a-authoritative-assets.test.js'
+      - 'hlm-phase11-block-a-asset-transaction-gate.js'
+      - 'hlm-phase11-block-a-asset-transaction-gate.test.js'
+      - 'hlm-phase11-block-a-protected-settlement-boundary.js'
+      - 'hlm-phase11-block-a-protected-settlement-boundary.test.js'
+      - 'hlm-phase11-block-a-atomic-asset-preview.js'
+      - 'hlm-phase11-block-a-atomic-asset-preview.test.js'
+      - 'hlm-phase11-block-a-asset-intent-contract.js'
+      - 'hlm-phase11-block-a-asset-intent-contract.test.js'
+      - 'hlm-phase11-block-a-service-intent-validation.js'
+      - 'hlm-phase11-block-a-service-intent-validation.test.js'
+      - 'hlm-phase11-block-a-protected-service-request.js'
+      - 'hlm-phase11-block-a-protected-service-request.test.js'
+      - 'hlm-phase11-block-a-atomic-persistence-protocol.js'
+      - 'hlm-phase11-block-a-atomic-persistence-protocol.test.js'
+      - 'hlm-phase11-block-a-authoritative-transaction-plan.js'
+      - 'hlm-phase11-block-a-authoritative-transaction-plan.test.js'
+      - 'hlm-phase11-block-a-isolated-transaction-lab.js'
+      - 'hlm-phase11-block-a-isolated-transaction-lab.test.js'
+      - 'hlm-phase11-block-a-multiasset-continuity.test.js'
+      - 'hlm-phase11-block-a-synthetic-linked-assets.test.js'
+      - 'hlm-phase11-block-a-isolated-persistence.sql'
+      - 'hlm-phase11-block-a-isolated-persistence.test.py'
+      - 'hlm-phase11-block-a-isolated-concurrency.test.py'
+      - 'hlm-phase11-block-a-server-owned-settlement-boundary.js'
+      - 'hlm-phase11-block-a-server-owned-settlement-boundary.test.js'
+      - 'hlm-phase11-block-a-protected-settlement-service.js'
+      - 'hlm-phase11-block-a-protected-settlement-service.test.js'
+      - 'hlm-phase11-block-a-isolated-server-identity-lab.js'
+      - 'hlm-phase11-block-a-isolated-server-identity-lab.test.js'
+      - 'hlm-phase11-block-a-authenticated-sqlite-lab.py'
+      - 'hlm-phase11-block-a-authenticated-sqlite-lab.test.py'
+      - '.github/workflows/phase11-block-a-source-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-asset-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-block-a-source-assets.test.js hlm-phase11-block-a-authoritative-assets.test.js hlm-phase11-block-a-asset-transaction-gate.test.js hlm-phase11-block-a-protected-settlement-boundary.test.js hlm-phase11-block-a-atomic-asset-preview.test.js hlm-phase11-block-a-asset-intent-contract.test.js hlm-phase11-block-a-service-intent-validation.test.js hlm-phase11-block-a-protected-service-request.test.js hlm-phase11-block-a-atomic-persistence-protocol.test.js hlm-phase11-block-a-authoritative-transaction-plan.test.js hlm-phase11-block-a-isolated-transaction-lab.test.js hlm-phase11-block-a-multiasset-continuity.test.js hlm-phase11-block-a-synthetic-linked-assets.test.js hlm-phase11-block-a-server-owned-settlement-boundary.test.js hlm-phase11-block-a-protected-settlement-service.test.js hlm-phase11-block-a-isolated-server-identity-lab.test.js
+      - run: python3 hlm-phase11-block-a-isolated-persistence.test.py
+      - run: python3 hlm-phase11-block-a-isolated-concurrency.test.py
+      - run: python3 hlm-phase11-block-a-authenticated-sqlite-lab.test.py
