@@ -56,3 +56,35 @@ function reconcileSourcePicks(universe,state){
  return Object.freeze({status:issues.length?'blocked':'source-reconciled',sourceCount:authoritative.size,excludedSourceCount:imported.excludedCount,issues:Object.freeze(issues.map(x=>Object.freeze(x))),settlementAuthorized:false,saved:false});
 }
 module.exports.reconcileSourcePicks=reconcileSourcePicks;
+
+/**
+ * Read-only transaction-aware ownership audit.
+ * A ledger claim is evidence to inspect, not authentication of CPU consent.
+ * Never approves settlement or mutates the state.
+ */
+function reconcilePickOwnershipHistory(universe,state){
+ const base=reconcileSourcePicks(universe,state);
+ const {teams,importSourcePicks}=require('./hlm-phase11-new-franchise');
+ const source=importSourcePicks(universe,teams(universe)).accepted;
+ const byId=new Map(source.map(p=>[p.pickId,p]));
+ const history=state.activity?.transactions||[];
+ const issues=[],changes=[];
+ for(const p of state.assets?.draftPicks||[]){
+  const id=String(p.pickId??p.id),original=byId.get(id);
+  if(!original)continue;
+  if(String(p.currentOwnerId)===String(original.currentOwnerId))continue;
+  const claims=history.filter(t=>t&&
+   String(t.pickId??'')===id&&
+   String(t.toTeamId??'')===String(p.currentOwnerId)&&
+   String(t.fromTeamId??'')===String(original.currentOwnerId));
+  changes.push(Object.freeze({pickId:id,sourceOwnerId:original.currentOwnerId,currentOwnerId:p.currentOwnerId,ledgerClaims:claims.length}));
+  // Matching claims cannot independently establish consent, atomicity or authenticity.
+  issues.push(Object.freeze({code:claims.length?'ownership-change-needs-authentication':'ownership-change-without-ledger',id}));
+ }
+ for(const issue of base.issues){
+  if(issue.code==='source-owner-mismatch')continue;
+  issues.push(issue);
+ }
+ return Object.freeze({status:issues.length?'blocked':'source-reconciled',sourceCount:base.sourceCount,changes:Object.freeze(changes),issues:Object.freeze(issues),cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false});
+}
+module.exports.reconcilePickOwnershipHistory=reconcilePickOwnershipHistory;
