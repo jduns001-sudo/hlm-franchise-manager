@@ -49,3 +49,28 @@ test('canonical NHL draft ownership reconciles without creating or changing righ
  assert.ok(mismatch.issues.some(i=>i.code==='source-owner-mismatch'));
  assert.equal(JSON.stringify(state),before);
 });
+
+test('unverified pick ownership changes remain blocked even when a matching ledger claim exists',()=>{
+ const {readFileSync}=require('node:fs');
+ const {join}=require('node:path');
+ const {teams,build}=require('./hlm-phase11-new-franchise');
+ const engine={...require('./hlm-game-state'),...require('./hlm-phase10-season-schedule')};
+ const source=JSON.parse(readFileSync(join(__dirname,'hlm-universe.json'),'utf8'));
+ const team=teams(source).find(t=>t.abbr==='PIT');
+ const state=build(source,team.id,engine);
+ const pick=state.assets.draftPicks[0];
+ const original=pick.currentOwnerId;
+ const other=teams(source).find(t=>String(t.id)!==String(original)).id;
+ pick.currentOwnerId=other;
+ state.activity.transactions.push({id:'unverified-claim',pickId:pick.pickId,fromTeamId:original,toTeamId:other});
+ const before=JSON.stringify(state);
+ const {reconcilePickOwnershipHistory}=require('./hlm-phase11-block-a-authoritative-assets');
+ const result=reconcilePickOwnershipHistory(source,state);
+ assert.equal(result.status,'blocked');
+ assert.equal(result.changes.length,1);
+ assert.equal(result.changes[0].ledgerClaims,1);
+ assert.ok(result.issues.some(x=>x.code==='ownership-change-needs-authentication'));
+ assert.equal(result.cpuConsentAuthenticated,false);
+ assert.equal(result.settlementAuthorized,false);
+ assert.equal(JSON.stringify(state),before);
+});
