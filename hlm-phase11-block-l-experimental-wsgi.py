@@ -27,8 +27,7 @@ def create_experimental_wsgi_app(*, enabled=False, session_resolver=None,
             body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
             start_response(str(status) + " " + {200:"OK",400:"Bad Request",401:"Unauthorized",403:"Forbidden",404:"Not Found",405:"Method Not Allowed",413:"Payload Too Large",415:"Unsupported Media Type"}.get(status,"Error"),
                            [("Content-Type","application/json"),("Cache-Control","no-store"),
-                            ("Content-Length",str(len(body))),("Access-Control-Allow-Origin",origin),
-                            ("Vary","Origin")])
+                            ("Content-Length",str(len(body))),("Vary","Origin")])
             return [body]
         if environ.get("PATH_INFO") != "/gm-review":
             return reply(404, {"committed":False,"error":"not_found"})
