@@ -27,4 +27,4 @@ class GMReviewSimulationBridge:
         return self.coordinator.advance(
             gm=gm, franchise=franchise, revision=revision, seed=seed,
             decision_id=decision_id, review_id=review_id,
-            approved=True)
+            approved=True, enabled=True)
