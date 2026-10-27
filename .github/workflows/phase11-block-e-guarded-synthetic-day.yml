@@ -1,0 +1,17 @@
+name: Phase 11 Block E Guarded Synthetic Day
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-e-guarded-synthetic-day.py'
+      - 'hlm-phase11-block-e-guarded-synthetic-day.test.py'
+      - '.github/workflows/phase11-block-e-guarded-synthetic-day.yml'
+      - 'hlm-phase11-block-a-authenticated-sqlite-lab.py'
+  workflow_dispatch:
+jobs:
+  guarded-synthetic-day:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: GM-approved day and settlement shared SQLite acceptance
+        run: python3 hlm-phase11-block-e-guarded-synthetic-day.test.py -v
