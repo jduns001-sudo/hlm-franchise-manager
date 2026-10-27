@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Browser adapter and HTTPS transport
-        run: node --test hlm-phase11-block-l-browser-adapter.test.js hlm-phase11-block-l-service-transport.test.js hlm-phase11-block-l-isolated-command-router.test.js
+        run: node --test hlm-phase11-block-l-browser-adapter.test.js hlm-phase11-block-l-service-transport.test.js hlm-phase11-block-l-isolated-command-router.test.js hlm-phase11-block-l-state-mapping-audit.test.js
       - name: Authenticated HTTP and WSGI contract
         run: |
           python hlm-phase11-block-l-http-endpoint.test.py
