@@ -1,0 +1,18 @@
+name: Mission 1644 Consent Settlement Isolation
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1644-*'
+      - '.github/workflows/mission-1644-consent-settlement-isolation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  consent-isolation-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-m1644-consent-settlement-isolation.test.js
