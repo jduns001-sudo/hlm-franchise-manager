@@ -53,6 +53,15 @@ class WSGIAcceptance(unittest.TestCase):
                             ({"csrf":"bad"},403)]:
             self.assertEqual(self.send(**kwargs)[0],code)
         self.assertEqual(self.events,[])
+    def test_no_implicit_cross_origin_cors_permission(self):
+        headers = []
+        body = json.dumps({"action":"review","franchise":"SYNTHETIC","revision":1,"seed":17}).encode()
+        env = {"REQUEST_METHOD":"POST","PATH_INFO":"/gm-review","wsgi.url_scheme":"https",
+               "CONTENT_LENGTH":str(len(body)),"wsgi.input":io.BytesIO(body),
+               "HTTP_ORIGIN":"https://evil.invalid","CONTENT_TYPE":"application/json"}
+        self.app(env,lambda status,values:headers.extend(values))
+        self.assertNotIn("Access-Control-Allow-Origin",dict(headers))
+
     def test_rejects_wrong_franchise(self):
         self.assertEqual(self.send(payload={"action":"review","franchise":"OTHER","revision":1,"seed":17})[0],403)
         self.assertEqual(self.events,[])
