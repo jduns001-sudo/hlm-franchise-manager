@@ -3,7 +3,7 @@ on:
   pull_request:
     paths:
       - 'hlm-phase11-m1640-*'
-      - '.github/workflows/mission-1640-browser-d1.yml'
+      - '.github/workflows/mission-1640-d1-continuity.yml'
   workflow_dispatch:
 permissions:
   contents: read
