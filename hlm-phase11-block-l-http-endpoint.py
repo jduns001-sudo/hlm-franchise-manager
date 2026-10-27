@@ -23,11 +23,11 @@ class ExperimentalGMReviewEndpoint:
         if headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/json":
             return 415, {"committed": False, "error": "content_type"}
         try:
+            if len(body) > 8192:
+                raise ValueError("request too large")
             payload = json.loads(body)
             if not isinstance(payload, dict):
                 raise ValueError("object required")
-            if len(body) > 8192:
-                raise ValueError("request too large")
             session = self.session_resolver(headers.get("Authorization"))
             if not session or not session.get("gm"):
                 return 401, {"committed": False, "error": "authentication"}
@@ -54,6 +54,8 @@ class ExperimentalGMReviewEndpoint:
                     review_id=payload["review_id"], action=action)
             if not isinstance(result, dict):
                 raise ValueError("invalid coordinator result")
-            return 200, {"committed": bool(result.get("committed", False)), **result}
+            if "committed" in result and type(result["committed"]) is not bool:
+                raise ValueError("invalid commit flag")
+            return 200, {**result, "committed": bool(result.get("committed", False))}
         except (KeyError, ValueError, TypeError):
             return 400, {"committed": False, "error": "invalid_request"}
