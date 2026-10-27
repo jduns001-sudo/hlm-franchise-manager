@@ -44,3 +44,11 @@ test("cancelled action cannot create settlement",async()=>{
  await assert.rejects(f.router.approve(),/No reviewed command/);
  assert.equal(f.calls.length,1);
 });
+
+test("missing or invalid deterministic seed never sends service command",async()=>{
+ for(const seed of [undefined,-1,1.5,"17",null]){
+  const f=fixture();f.change({seed});
+  await assert.rejects(f.router.review(),/Reviewed plan/);
+  assert.equal(f.calls.length,0);
+ }
+});
