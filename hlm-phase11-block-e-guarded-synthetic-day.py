@@ -2,12 +2,15 @@
 import copy
 import json
 import sqlite3
+import subprocess
+from pathlib import Path
 
 
 class GuardedSyntheticSeasonDay:
-    def __init__(self, lab):
+    def __init__(self, lab, source_backed=False):
         self._lab = lab
         self._db = lab._db
+        self._source_backed = source_backed
         self._db.execute("""CREATE TABLE IF NOT EXISTS block_e_lab_consumed_days (
             decision_id TEXT PRIMARY KEY NOT NULL,
             franchise_id TEXT NOT NULL REFERENCES block_a_lab_franchises(franchise_id),
@@ -17,7 +20,7 @@ class GuardedSyntheticSeasonDay:
         )""")
 
     def advance(self, *, gm, franchise, revision, decision_id, approved=False,
-                enabled=False, cancelled=False, declined=False, fail_at=None, **_untrusted):
+                enabled=False, cancelled=False, declined=False, fail_at=None, seed=0, **_untrusted):
         no_save = {"committed": False, "productionSaved": False}
         if not enabled or not approved or cancelled or declined:
             return dict(no_save, reason="approval-or-experiment-disabled")
@@ -42,9 +45,31 @@ class GuardedSyntheticSeasonDay:
             if not pending:
                 raise ValueError("no-scheduled-game")
             game = pending[0]
-            game["status"] = "final"
-            game["homeGoals"] = 2
-            game["awayGoals"] = 1
+            if self._source_backed:
+                if type(seed) is not int or seed < 0 or seed > 9007199254740991:
+                    raise ValueError("invalid-deterministic-seed")
+                input_data = {"gameId": game["id"], "homeTeamId": game["home"],
+                              "awayTeamId": game["away"], "seed": seed}
+                result = subprocess.run(
+                    ["node", str(Path(__file__).with_name("hlm-phase11-block-f-score-adapter.js"))],
+                    input=json.dumps(input_data), capture_output=True, text=True,
+                    timeout=10, check=True
+                )
+                score = json.loads(result.stdout)
+                if (score.get("gameId") != game["id"] or
+                    score.get("homeTeamId") != game["home"] or
+                    score.get("awayTeamId") != game["away"] or
+                    score.get("status") != "final" or
+                    type(score.get("homeGoals")) is not int or
+                    type(score.get("awayGoals")) is not int or
+                    score["homeGoals"] < 0 or score["awayGoals"] < 0 or
+                    score["homeGoals"] == score["awayGoals"]):
+                    raise ValueError("invalid-source-backed-result")
+                game.update(score)
+            else:
+                game["status"] = "final"
+                game["homeGoals"] = 2
+                game["awayGoals"] = 1
             season["day"] += 1
             season.setdefault("completedDayDecisions", []).append(decision_id)
             updated = self._db.execute(
@@ -64,7 +89,7 @@ class GuardedSyntheticSeasonDay:
                 raise RuntimeError("injected-decision")
             self._db.execute("COMMIT")
             return {"committed": True, "productionSaved": False, "revision": revision + 1}
-        except (ValueError, RuntimeError, sqlite3.IntegrityError, KeyError, TypeError) as exc:
+        except (ValueError, RuntimeError, sqlite3.IntegrityError, KeyError, TypeError, subprocess.SubprocessError) as exc:
             self._db.execute("ROLLBACK")
             return dict(no_save, reason=str(exc))
         except BaseException:

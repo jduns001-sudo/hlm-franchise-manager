@@ -1,0 +1,21 @@
+name: Phase 11 Block F Source-Backed Final
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-f-score-adapter.js'
+      - 'hlm-phase11-block-f-source-backed-final.test.py'
+      - 'hlm-phase11-block-e-guarded-synthetic-day.py'
+      - 'hlm-phase10-game-simulator.js'
+      - '.github/workflows/phase11-block-f-source-backed-final.yml'
+  workflow_dispatch:
+jobs:
+  source-backed-final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Source-backed deterministic final and shared SQLite acceptance
+        run: python3 hlm-phase11-block-f-source-backed-final.test.py -v
