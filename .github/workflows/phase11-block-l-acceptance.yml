@@ -30,6 +30,7 @@ jobs:
           python hlm-phase11-block-k-concurrent-settlement.test.py
           python hlm-phase11-block-l-real-sqlite-http.test.py
           python hlm-phase11-block-l-authoritative-binding.test.py
+          python hlm-phase11-block-l-sqlite-binding-resolver.test.py
   block-l-mobile-chromium:
     runs-on: ubuntu-latest
     steps:
