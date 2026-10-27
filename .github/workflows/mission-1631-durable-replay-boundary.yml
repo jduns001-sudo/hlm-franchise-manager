@@ -1,0 +1,16 @@
+name: Mission 1631 Durable Replay Boundary
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1631-*'
+      - '.github/workflows/mission-1631-durable-replay-boundary.yml'
+  workflow_dispatch:
+jobs:
+  durable-replay-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1631-durable-replay-boundary.test.js

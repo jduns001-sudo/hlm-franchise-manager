@@ -58,7 +58,8 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'unavailable review must not save');
  }
  const dock=page.locator('.gm-command-dock');
- assert.equal(await dock.locator('a').count(),8,'mobile GM dock exposes eight real franchise destinations');
+ assert.equal(await dock.locator('a').count(),9,'mobile GM dock exposes nine real franchise destinations');
+ assert.equal(await dock.getByRole('link',{name:'Trade planning'}).getAttribute('href'),'#gm-season-trade','trade planning remains an accessible read-only GM destination');
  assert.equal(await dock.getAttribute('aria-label'),'GM mobile command dock');
  await dock.getByRole('link',{name:'Roster'}).click();
  assert.equal(new URL(page.url()).hash,'#gm-roster');

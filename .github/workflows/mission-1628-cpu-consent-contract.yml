@@ -1,0 +1,16 @@
+name: Mission 1628 CPU Consent Contract
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1628-*'
+      - '.github/workflows/mission-1628-cpu-consent-contract.yml'
+  workflow_dispatch:
+jobs:
+  cpu-consent-contract-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node hlm-phase11-m1628-cpu-consent-contract.test.js

@@ -1,0 +1,31 @@
+name: Mission 1637 Local Atomic Trade Fixture
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-m1637-local-atomic-trade*'
+      - '.github/workflows/mission-1637-local-atomic-trade.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  atomic-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --ignore-scripts miniflare@3
+      - run: node --test hlm-phase11-m1637-local-atomic-trade.test.js
+  atomic-mobile:
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.56.1-noble
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: node hlm-phase11-m1637-local-atomic-trade.chromium.test.js
