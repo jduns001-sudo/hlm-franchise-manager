@@ -51,7 +51,19 @@ class GuardedSyntheticSeasonDay:
                     raise ValueError("source-backed-required")
                 if type(seed) is not int or seed < 0 or seed > 9007199254740991:
                     raise ValueError("invalid-deterministic-seed")
-                day_games = [g for g in pending if g.get("date") == game.get("date")]
+                # Earliest valid scheduled day, independent of fixture array order.
+                from datetime import date
+                dates = []
+                for scheduled in pending:
+                    raw_date = scheduled.get("date")
+                    if not isinstance(raw_date, str):
+                        raise ValueError("missing-scheduled-date")
+                    parsed = date.fromisoformat(raw_date)
+                    if parsed.isoformat() != raw_date:
+                        raise ValueError("invalid-scheduled-date")
+                    dates.append(raw_date)
+                selected_date = min(dates)
+                day_games = [g for g in pending if g["date"] == selected_date]
                 if len(day_games) < 1:
                     raise ValueError("no-scheduled-day")
                 teams = state["universe"]["teams"]
