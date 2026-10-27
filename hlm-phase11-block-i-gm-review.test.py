@@ -11,7 +11,7 @@ spec.loader.exec_module(prior)
 
 class ReviewedMultiDayAcceptance(prior.MultiDayStandingsContinuity):
     def reviewed(self):
-        return prior.previous.previous.coordinator.GuardedSyntheticSeasonDay(
+        return prior.previous.coordinator.GuardedSyntheticSeasonDay(
             self.lab, source_backed=True, multi_game=True, review_required=True)
 
     def approve(self, day, revision=1, seed=17, decision_id="SYNTHETIC-DAY-18"):
