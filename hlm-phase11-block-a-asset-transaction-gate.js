@@ -44,3 +44,31 @@ function inspectAssetTransaction(source,state,proposal){
  return Object.freeze({status:'blocked-pending-independent-authorization',issues:Object.freeze(issues.map(x=>Object.freeze(x))),details:JSON.parse(JSON.stringify(details)),gmApproved:false,cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false,experimental:true});
 }
 module.exports={inspectAssetTransaction};
+
+/** Isolated review coordinator. GM approval is recorded as review intent only. */
+function createAssetReviewSession(source,storage,key){
+ if(!storage||typeof storage.getItem!=='function'||typeof key!=='string'||!key||key==='hlm_front_office_v8')throw Error('Isolated storage required');
+ let baseline=storage.getItem(key),pending=null;
+ const blocked=code=>Object.freeze({status:'blocked',code,gmApproved:false,cpuConsentAuthenticated:false,settlementAuthorized:false,saved:false});
+ function reload(){baseline=storage.getItem(key);pending=null;return baseline?JSON.parse(baseline):null}
+ function review(proposal){
+  pending=null;
+  if(storage.getItem(key)!==baseline)return blocked('stale-review');
+  if(!baseline)return blocked('missing-save');
+  let state;try{state=JSON.parse(baseline)}catch{return blocked('invalid-save')}
+  const result=inspectAssetTransaction(source,state,proposal);
+  pending=JSON.stringify(proposal);
+  return result;
+ }
+ function decide(action){
+  if(!['approve','decline','cancel'].includes(action))throw Error('Explicit GM decision required');
+  if(!pending)return blocked('review-required');
+  const proposal=pending;pending=null;
+  if(storage.getItem(key)!==baseline)return blocked('stale-review');
+  if(action!=='approve')return blocked(action);
+  try{inspectAssetTransaction(source,JSON.parse(baseline),JSON.parse(proposal))}catch{return blocked('review-invalidated')}
+  return blocked('protected-cpu-authority-and-atomic-settlement-unavailable');
+ }
+ return Object.freeze({review,decide,reload});
+}
+module.exports.createAssetReviewSession=createAssetReviewSession;
