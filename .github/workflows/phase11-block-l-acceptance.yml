@@ -28,3 +28,4 @@ jobs:
         run: |
           python hlm-phase11-block-l-gm-review-bridge.test.py
           python hlm-phase11-block-k-concurrent-settlement.test.py
+          python hlm-phase11-block-l-real-sqlite-http.test.py
