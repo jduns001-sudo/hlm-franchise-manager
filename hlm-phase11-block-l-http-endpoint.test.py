@@ -52,5 +52,20 @@ class EndpointAcceptance(unittest.TestCase):
             self.assertEqual(self.request(body)[0],400)
         self.assertEqual(self.calls, [])
 
+    def test_oversized_json_rejected_before_parsing(self):
+        body = '{"action":"review","franchise":"SYNTHETIC","revision":1,"seed":17,"padding":"' + ("x" * 8192) + '"}'
+        self.assertEqual(self.request(body)[0], 400)
+        self.assertEqual(self.calls, [])
+
+    def test_coordinator_cannot_override_committed_flag(self):
+        class MalformedBridge:
+            def review(self, **kwargs):
+                return {"committed": "yes", "status": "pending"}
+        self.endpoint.bridge_factory = lambda session, franchise: MalformedBridge()
+        body = '{"action":"review","franchise":"SYNTHETIC","revision":1,"seed":17}'
+        status, result = self.request(body)
+        self.assertEqual(status, 400)
+        self.assertIs(result["committed"], False)
+
 if __name__ == "__main__":
     unittest.main()
