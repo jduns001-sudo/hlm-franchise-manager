@@ -25,6 +25,8 @@ on:
       - 'hlm-phase11-block-a-isolated-transaction-lab.test.js'
       - 'hlm-phase11-block-a-multiasset-continuity.test.js'
       - 'hlm-phase11-block-a-synthetic-linked-assets.test.js'
+      - 'hlm-phase11-block-a-isolated-persistence.sql'
+      - 'hlm-phase11-block-a-isolated-persistence.test.py'
       - '.github/workflows/phase11-block-a-source-assets.yml'
   workflow_dispatch:
 permissions:
@@ -39,3 +41,4 @@ jobs:
         with:
           node-version: '22'
       - run: node --test hlm-phase11-block-a-source-assets.test.js hlm-phase11-block-a-authoritative-assets.test.js hlm-phase11-block-a-asset-transaction-gate.test.js hlm-phase11-block-a-protected-settlement-boundary.test.js hlm-phase11-block-a-atomic-asset-preview.test.js hlm-phase11-block-a-asset-intent-contract.test.js hlm-phase11-block-a-service-intent-validation.test.js hlm-phase11-block-a-protected-service-request.test.js hlm-phase11-block-a-atomic-persistence-protocol.test.js hlm-phase11-block-a-authoritative-transaction-plan.test.js hlm-phase11-block-a-isolated-transaction-lab.test.js hlm-phase11-block-a-multiasset-continuity.test.js hlm-phase11-block-a-synthetic-linked-assets.test.js
+      - run: python3 hlm-phase11-block-a-isolated-persistence.test.py
