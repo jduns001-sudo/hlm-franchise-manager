@@ -72,3 +72,27 @@ function createAssetReviewSession(source,storage,key){
  return Object.freeze({review,decide,reload});
 }
 module.exports.createAssetReviewSession=createAssetReviewSession;
+
+/**
+ * Bridge to the existing protected CPU authority contract.
+ * Its fail-closed result is never converted into a settlement authorization.
+ */
+function inspectProtectedCpuConsent(state,tradeInput,revision,decision,options={}){
+ const {assess}=require('./hlm-phase11-trusted-cpu-consent-authority');
+ const result=assess(state,tradeInput,revision,decision,{
+  enabled:options.experimentalEnabled===true,
+  cancelled:options.cancelled===true,
+  declined:options.declined===true
+ });
+ return Object.freeze({
+  status:'protected-cpu-consent-unavailable',
+  authorityCode:result.code,
+  proposalDigest:result.proposalDigest,
+  independentlyAuthenticated:false,
+  atomicSettlementVerified:false,
+  settlementAuthorized:false,
+  saved:false,
+  experimental:true
+ });
+}
+module.exports.inspectProtectedCpuConsent=inspectProtectedCpuConsent;
