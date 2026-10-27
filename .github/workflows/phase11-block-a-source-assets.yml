@@ -1,0 +1,19 @@
+name: Phase 11 Block A Source-Backed Assets
+on:
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-a-source-assets.test.js'
+      - '.github/workflows/phase11-block-a-source-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-asset-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test hlm-phase11-block-a-source-assets.test.js
