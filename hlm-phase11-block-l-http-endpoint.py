@@ -7,7 +7,7 @@ This handler does not open a listener or touch production save paths.
 import json
 
 class ExperimentalGMReviewEndpoint:
-    def __init__(self, *, session_resolver, csrf_verifier, authorize, bridge_factory, origin):
+    def __init__(self, *, session_resolver, csrf_verifier, authorize, bridge_factory, origin, binding_verifier=None):
         if not origin.startswith("https://") or origin.endswith("/"):
             raise ValueError("Exact HTTPS origin required")
         self.session_resolver = session_resolver
@@ -15,6 +15,9 @@ class ExperimentalGMReviewEndpoint:
         self.authorize = authorize
         self.bridge_factory = bridge_factory
         self.origin = origin
+        if binding_verifier is not None and not callable(binding_verifier):
+            raise ValueError('Trusted binding verifier required')
+        self.binding_verifier = binding_verifier
 
     def handle(self, *, headers, body):
         # A hosting application must independently authenticate its bearer token.
@@ -45,6 +48,18 @@ class ExperimentalGMReviewEndpoint:
             action = payload.get("action")
             if action not in ("review", "recover", "approve", "decline"):
                 raise ValueError("invalid action")
+            # Opt-in authoritative binding check before any coordinator dispatch.
+            if self.binding_verifier is not None:
+                try:
+                    bound = self.binding_verifier(session=session, envelope=payload.get("server_binding"))
+                except (PermissionError, ValueError, TypeError, KeyError):
+                    return 403, {"committed": False, "error": "binding"}
+                if not isinstance(bound, dict) or bound.get("franchise") != franchise or bound.get("revision") != revision:
+                    return 403, {"committed": False, "error": "binding_mismatch"}
+                if action != "recover" and bound.get("seed") != seed:
+                    return 403, {"committed": False, "error": "binding_mismatch"}
+                if action in ("approve", "decline") and bound.get("decision_id") != payload.get("decision_id"):
+                    return 403, {"committed": False, "error": "binding_mismatch"}
             gm = session["gm"]
             bridge = self.bridge_factory(session, franchise)
             if action == "review":
