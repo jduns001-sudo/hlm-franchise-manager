@@ -35,3 +35,24 @@ function audit(universe, state) {
  });
 }
 module.exports={audit};
+
+/** Reconcile starter pick ownership against the canonical source, never a synthetic fixture. */
+function reconcileSourcePicks(universe,state){
+ const {teams,importSourcePicks}=require('./hlm-phase11-new-franchise');
+ const eligible=teams(universe);
+ const imported=importSourcePicks(universe,eligible);
+ const authoritative=new Map(imported.accepted.map(p=>[p.pickId,p]));
+ const issues=[],seen=new Set();
+ for(const p of state.assets?.draftPicks||[]){
+  const id=String(p.pickId??p.id);
+  if(seen.has(id)){issues.push({code:'duplicate-pick',id});continue;}
+  seen.add(id);
+  const src=authoritative.get(id);
+  if(!src){issues.push({code:'pick-not-in-canonical-source',id});continue;}
+  if(String(src.currentOwnerId)!==String(p.currentOwnerId))issues.push({code:'source-owner-mismatch',id});
+  if(String(src.originalTeamId)!==String(p.originalTeamId)||src.year!==p.year||src.round!==p.round||src.league!==p.league)issues.push({code:'pick-identity-mismatch',id});
+ }
+ for(const id of authoritative.keys())if(!seen.has(id))issues.push({code:'source-pick-not-imported',id});
+ return Object.freeze({status:issues.length?'blocked':'source-reconciled',sourceCount:authoritative.size,excludedSourceCount:imported.excludedCount,issues:Object.freeze(issues.map(x=>Object.freeze(x))),settlementAuthorized:false,saved:false});
+}
+module.exports.reconcileSourcePicks=reconcileSourcePicks;
