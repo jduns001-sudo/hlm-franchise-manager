@@ -3,6 +3,12 @@ import hashlib
 import json
 import sqlite3
 
+EVIDENCE_SCHEMA="""CREATE TABLE IF NOT EXISTS block_m_championship_settlements (
+ review_id TEXT PRIMARY KEY, franchise TEXT NOT NULL, owner_gm TEXT NOT NULL,
+ decision_id TEXT NOT NULL UNIQUE, source_revision INTEGER NOT NULL,
+ bracket_digest TEXT NOT NULL, status TEXT NOT NULL CHECK(status = 'approved-review-consumed')
+)"""
+
 SCHEMA="""CREATE TABLE IF NOT EXISTS block_m_championship_reviews (
  review_id TEXT PRIMARY KEY, franchise TEXT NOT NULL, owner_gm TEXT NOT NULL,
  revision INTEGER NOT NULL, bracket_digest TEXT NOT NULL, decision_id TEXT NOT NULL UNIQUE,
@@ -35,6 +41,7 @@ class GuardedChampionshipEvidence:
             if not bracket or bracket.get("status")!="complete" or not bracket.get("championTeamId"):
                 raise ValueError("missing completed bracket")
             self.db.execute(SCHEMA)
+            self.db.execute(EVIDENCE_SCHEMA)
             self.db.execute("INSERT INTO block_m_championship_reviews VALUES (?,?,?,?,?,?,'pending')",
                             (review_id,franchise,gm,revision,digest_bracket(bracket),decision_id))
             self.db.execute("COMMIT")
@@ -60,9 +67,12 @@ class GuardedChampionshipEvidence:
                 raise ValueError("unfinished regular season")
             changed=self.db.execute("UPDATE block_m_championship_reviews SET status='consumed' WHERE review_id=? AND status='pending'",(review_id,)).rowcount
             if changed!=1:raise ValueError("replayed-review")
+            self.db.execute("INSERT INTO block_m_championship_settlements VALUES (?,?,?,?,?,?,?)",
+                            (review_id,franchise,gm,decision_id,revision,review[3],"approved-review-consumed"))
             if fail_at=="before-commit":raise RuntimeError("injected-rollback")
             self.db.execute("COMMIT")
-            return {"committed":True,"productionSaved":False,"review_id":review_id,"status":"consumed"}
+            return {"committed":True,"productionSaved":False,"review_id":review_id,
+                    "status":"consumed","championshipVerified":False,"archiveEligible":False}
         except (ValueError,RuntimeError) as exc:
             self.db.execute("ROLLBACK")
             return dict(result,reason=str(exc))
@@ -74,5 +84,9 @@ class GuardedChampionshipEvidence:
         row=self.db.execute("SELECT owner_gm,revision,status FROM block_m_championship_reviews WHERE review_id=? AND franchise=?",(review_id,franchise)).fetchone()
         if not row or row[0]!=gm:raise PermissionError("review unavailable")
         current=self.db.execute("SELECT state_revision FROM block_a_lab_franchises WHERE franchise_id=?",(franchise,)).fetchone()
+        evidence=self.db.execute("SELECT decision_id,bracket_digest FROM block_m_championship_settlements WHERE review_id=? AND franchise=? AND owner_gm=?",
+                                 (review_id,franchise,gm)).fetchone()
+        if row[2]=="consumed" and evidence is None:raise RuntimeError("consumed review lacks durable evidence")
         return {"status":row[2] if row[2]=="consumed" else ("pending" if current and current[0]==row[1] else "stale"),
-                "review_id":review_id}
+                "review_id":review_id,"evidenceRecorded":evidence is not None,
+                "championshipVerified":False,"archiveEligible":False}
