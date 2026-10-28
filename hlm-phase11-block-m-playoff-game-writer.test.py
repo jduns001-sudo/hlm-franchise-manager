@@ -76,4 +76,17 @@ class PlayoffWriterAcceptance(unittest.TestCase):
   self.assertEqual(errors,[])
   self.assertEqual(sum(x["committed"] for x in results),1)
   self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_m_authoritative_playoff_game_settlements").fetchone()[0],1)
+ def test_wrapped_review_consumer_rejects_rotated_session(self):
+  # The callback name is not a security credential. This must fail closed.
+  self.db.execute("""CREATE TABLE block_m_playoff_reviews (
+   review_id TEXT PRIMARY KEY, franchise TEXT, session_id TEXT)""")
+  self.db.execute("INSERT INTO block_m_playoff_reviews VALUES (?,?,?)",("R1","F","OTHER-SESSION"))
+  def wrapped_review_consumer(*args):
+   return self.proof
+  self.writer.game_source=wrapped_review_consumer
+  before=self.db.total_changes
+  outcome=self.writer.record(**self.args,approved=True)
+  self.assertFalse(outcome["committed"])
+  self.assertEqual(self.db.execute(
+   "SELECT COUNT(*) FROM sqlite_master WHERE name='block_m_authoritative_playoff_game_settlements'").fetchone()[0],0)
 if __name__=="__main__":unittest.main()
