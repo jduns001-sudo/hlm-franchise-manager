@@ -37,6 +37,23 @@ class TrustedEnrollmentTests(unittest.TestCase):
                 module.enroll_trusted_franchise(self.db, **{**self.args, "trusted_source_resolver":source})
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_l_trusted_enrollments").fetchone()[0],0)
 
+    def test_browser_metadata_cannot_become_trusted_source(self):
+        browser_claim = dict(owner_gm="GM1", franchise="F1",
+                             browserSaveId="SAVE1", controlledTeamId="TEAM1",
+                             sourceDigest="trusted-digest")
+        # Browser state, including valid-looking save metadata, is not an
+        # independently authenticated host source.
+        for supplied in (None, lambda gm,franchise: None,
+                         lambda gm,franchise: dict(browser_claim, owner_gm="GM2"),
+                         lambda gm,franchise: dict(browser_claim, browserSaveId="OTHER"),
+                         lambda gm,franchise: dict(browser_claim, controlledTeamId="OTHER"),
+                         lambda gm,franchise: dict(browser_claim, sourceDigest="OTHER")):
+            with self.subTest(source=str(supplied)), self.assertRaises(PermissionError):
+                module.enroll_trusted_franchise(self.db, **{
+                    **self.args, "trusted_source_resolver": supplied})
+            self.assertEqual(self.db.execute(
+                "SELECT COUNT(*) FROM block_l_trusted_enrollments").fetchone()[0],0)
+
     def test_no_browser_attestation_and_invalid_fields(self):
         with self.assertRaises(PermissionError):
             module.enroll_trusted_franchise(self.db, **{**self.args, "attested_by":"browser"})
