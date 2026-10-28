@@ -26,7 +26,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#block-a-dashboard-summary').innerText(),/Roster-aware scores: Off by default/);
  const key=await page.evaluate(()=>Object.keys(localStorage).find(k=>k.startsWith('hlm-phase11-m1340-isolated-single-game')));
  assert.ok(key);
- const before=await page.evaluate(k=>localStorage.getItem(k),key);
+ let before=await page.evaluate(k=>localStorage.getItem(k),key);
  const toggleBefore=await page.evaluate(k=>localStorage.getItem(k),key);
  page.once('dialog',d=>d.dismiss());
  await page.locator('#gm-roster-scores').click();
@@ -55,6 +55,11 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.reload();
  await page.waitForFunction(()=>document.querySelector('#block-a-dashboard-summary')?.textContent.includes('GM enabled'),null,{timeout:30000});
  assert.equal(JSON.parse(await page.evaluate(k=>localStorage.getItem(k),key)).extensions.phase11ExperimentalRosterAwareScores,true,'experimental scoring preference survives reload');
+ page.once('dialog',d=>d.accept());
+ await page.locator('#gm-roster-scores').click();
+ await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k)||'null')?.extensions?.phase11ExperimentalRosterAwareScores===false,key,{timeout:30000});
+ before=await page.evaluate(k=>localStorage.getItem(k),key);
+ assert.match(await page.locator('#block-a-dashboard-summary').innerText(),/Roster-aware scores: Off by default/);
  const decision=page.locator('.gm-day-command');
  assert.equal(await decision.locator('button').count(),3,'mobile GM decision center exposes review, approve and decline');
  await decision.locator('#gm-day-command-review').click();
