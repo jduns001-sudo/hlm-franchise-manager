@@ -5,6 +5,7 @@ browser-loaded franchise and deliberately does not mount a live service.
 """
 import importlib.util
 import json
+import sqlite3
 from pathlib import Path
 
 ROOT=Path(__file__).parent
@@ -56,6 +57,31 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
                 self.db.execute("UPDATE block_l_trusted_enrollments SET "+column+"=? WHERE franchise=?",(original,"SYNTHETIC-F"))
                 self.assertEqual(self.snapshot_all(),before)
 
+    def test_reloaded_sqlite_enrollment_and_session_rotation_no_write(self):
+        status,issued=self.command("bind",seed=17)
+        self.assertEqual(status,200)
+        signed=issued["server_binding"]
+        before=self.snapshot_all()
+        # A separate SQLite connection sees the persisted host enrollment and review.
+        self.db.commit()
+        reloaded=sqlite3.connect(self.db.execute("PRAGMA database_list").fetchone()[2]) if self.db.execute("PRAGMA database_list").fetchone()[2] else None
+        if reloaded is not None:
+            try:
+                self.assertIsNotNone(resolver.resolve_authoritative_review(
+                    reloaded,self.gm["token"],"SYNTHETIC-F",require_enrollment=True))
+            finally:
+                reloaded.close()
+        original=self.binding._session_id
+        try:
+            self.binding._session_id=lambda session: "ROTATED-SESSION"
+            self.assertEqual(self.command("review",seed=17,server_binding=signed)[0],403)
+            self.assertEqual(self.snapshot_all(),before)
+        finally:
+            self.binding._session_id=original
+        self.db.execute("UPDATE block_l_authoritative_reviews SET revision=2 WHERE franchise='SYNTHETIC-F'")
+        self.assertEqual(self.command("review",seed=17,server_binding=signed)[0],403)
+        self.assertEqual(self.snapshot_all(),before)
+
     def test_authenticated_issue_review_approve_replay(self):
         status,issued=self.command("bind",seed=17)
         self.assertEqual(status,200)
@@ -103,7 +129,8 @@ def load_tests(loader, tests, pattern):
         AuthenticatedSQLiteBindingHTTP("test_authenticated_issue_review_approve_replay"),
         AuthenticatedSQLiteBindingHTTP("test_missing_forged_stale_and_other_gm_fail_without_write"),
         AuthenticatedSQLiteBindingHTTP("test_session_rotation_rejects_signed_review_without_write"),
-        AuthenticatedSQLiteBindingHTTP("test_enrollment_owner_save_and_team_mismatch_rejected_without_write")
+        AuthenticatedSQLiteBindingHTTP("test_enrollment_owner_save_and_team_mismatch_rejected_without_write"),
+        AuthenticatedSQLiteBindingHTTP("test_reloaded_sqlite_enrollment_and_session_rotation_no_write")
     ])
 
 if __name__=="__main__":
