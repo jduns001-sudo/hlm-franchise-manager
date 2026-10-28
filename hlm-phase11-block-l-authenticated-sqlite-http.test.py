@@ -140,6 +140,27 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
         self.assertEqual(recovered["status"],"pending")
         self.assertEqual(self.snapshot_all(),before)
 
+    def test_authority_revision_blocks_all_pending_commands_without_write(self):
+        status,issued=self.command("bind",seed=17)
+        self.assertEqual(status,200)
+        signed=issued["server_binding"]
+        status,review=self.command("review",seed=17,server_binding=signed)
+        self.assertEqual(status,200)
+        token=review["review_id"]
+        self.db.execute("UPDATE block_l_authoritative_reviews SET revision=revision+1 WHERE franchise='SYNTHETIC-F'")
+        before=self.snapshot_all()
+        for action,fields in (
+            ("review",dict(seed=17)),
+            ("approve",dict(seed=17,review_id=token,decision_id="SYNTHETIC-DAY-18")),
+            ("decline",dict(seed=17,review_id=token,decision_id="SYNTHETIC-DAY-18")),
+            ("recover",dict(review_id=token)),
+        ):
+            with self.subTest(action=action):
+                status,result=self.command(action,server_binding=signed,**fields)
+                self.assertEqual(status,403)
+                self.assertFalse(result["committed"])
+                self.assertEqual(self.snapshot_all(),before)
+
     def test_session_rotation_rejects_signed_review_without_write(self):
         status,issued=self.command("bind",seed=17)
         self.assertEqual(status,200)
@@ -172,6 +193,7 @@ def load_tests(loader, tests, pattern):
         AuthenticatedSQLiteBindingHTTP("test_missing_forged_stale_and_other_gm_fail_without_write"),
         AuthenticatedSQLiteBindingHTTP("test_session_rotation_rejects_signed_review_without_write"),
         AuthenticatedSQLiteBindingHTTP("test_rotated_session_blocks_approval_and_recovery_without_write"),
+        AuthenticatedSQLiteBindingHTTP("test_authority_revision_blocks_all_pending_commands_without_write"),
         AuthenticatedSQLiteBindingHTTP("test_enrollment_owner_save_and_team_mismatch_rejected_without_write"),
         AuthenticatedSQLiteBindingHTTP("test_reloaded_sqlite_enrollment_and_session_rotation_no_write")
     ])
