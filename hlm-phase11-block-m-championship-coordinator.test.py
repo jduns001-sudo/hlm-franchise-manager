@@ -3,6 +3,7 @@ import importlib.util
 import json
 import sqlite3
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 ROOT=Path(__file__).parent
@@ -68,4 +69,25 @@ class CoordinatorAcceptance(unittest.TestCase):
    other=verified.VerifiedChampionshipSettlement(second,trusted_playoff_validator=lambda s:{"verified":True,"championTeamId":"A"},enabled=True)
    self.assertFalse(other.commit(franchise="F",gm="GM",revision=1,review_id="R1",decision_id="D1",approved=True)["committed"])
   finally:second.close()
+ def test_simultaneous_independent_connections_exactly_once(self):
+  barrier=threading.Barrier(3)
+  outcomes=[]
+  errors=[]
+  def worker():
+   db=sqlite3.connect(self.path,isolation_level=None,timeout=3)
+   try:
+    service=verified.VerifiedChampionshipSettlement(db,enabled=True,trusted_playoff_validator=lambda state:{"verified":True,"championTeamId":"A"})
+    barrier.wait(timeout=5)
+    outcomes.append(service.commit(franchise="F",gm="GM",revision=1,review_id="R1",decision_id="D1",approved=True))
+   except BaseException as exc:errors.append(str(exc))
+   finally:db.close()
+  a=threading.Thread(target=worker);b=threading.Thread(target=worker)
+  a.start();b.start();barrier.wait(timeout=5)
+  a.join(timeout=15);b.join(timeout=15)
+  self.assertFalse(a.is_alive() or b.is_alive())
+  self.assertEqual(errors,[])
+  self.assertEqual(len(outcomes),2)
+  self.assertEqual(sum(bool(x["committed"]) for x in outcomes),1)
+  self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_m_verified_championships").fetchone()[0],1)
+  self.assertEqual(self.db.execute("SELECT status FROM block_m_championship_reviews").fetchone()[0],"consumed")
 if __name__=="__main__":unittest.main()
