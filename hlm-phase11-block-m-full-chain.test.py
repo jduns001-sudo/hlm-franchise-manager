@@ -7,6 +7,7 @@ import importlib.util
 import json
 import sqlite3
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 ROOT=Path(__file__).parent
@@ -93,4 +94,50 @@ class FullChain(unittest.TestCase):
   self.assertFalse(self.write()["committed"])
   self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_m_verified_championships").fetchone()[0] if self.db.execute("SELECT name FROM sqlite_master WHERE name='block_m_verified_championships'").fetchone() else 0,0)
   self.assertEqual(self.db.execute("SELECT state_revision FROM block_a_lab_franchises").fetchone()[0],1)
+ def test_tampered_final_and_expired_session_fail_closed(self):
+  self.prepare()
+  self.approve()
+  self.db.execute("UPDATE block_a_lab_franchises SET game_state_json=?",
+                  (json.dumps(dict(self.state,extensions={"phase10Playoffs":dict(self.bracket,championTeamId="B")})),))
+  self.assertFalse(self.settle()["committed"])
+  self.db.execute("UPDATE block_a_lab_franchises SET game_state_json=?",(json.dumps(self.state),))
+  self.session_id="EXPIRED-SESSION"
+  self.assertFalse(self.write()["committed"])
+  self.session_id="HOST-SESSION-1"
+  self.assertTrue(self.write()["committed"])
+  self.assertFalse(self.settle(fail_at="before-commit")["committed"])
+  self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_m_verified_championships").fetchone()[0],0)
+ def test_two_sqlite_writers_one_final_and_one_champion(self):
+  self.prepare()
+  self.approve()
+  barrier=threading.Barrier(3)
+  results=[]
+  errors=[]
+  def attempt():
+   db=sqlite3.connect(str(Path(self.tmp.name)/"isolated.db"),isolation_level=None,timeout=5)
+   def auth(s):
+    if s is not self.session:raise PermissionError("invalid-session")
+    return {"gm":"GM","session_id":"HOST-SESSION-1"}
+   def owner(g,f):return {"owner_gm":"GM","franchise":"F","revision":1}
+   review=review_mod.TrustedPlayoffReviewSettlement(db,session_verifier=auth,ownership_resolver=owner,enabled=True)
+   writer=writer_mod.GuardedPlayoffGameWriter(db,session_verifier=auth,ownership_resolver=owner,
+                     committed_game_verifier=review.consume_for_game_writer,enabled=True)
+   try:
+    barrier.wait(timeout=5)
+    results.append(writer.record(session=self.session,franchise="F",revision=1,game_id="P1",
+                                 review_id="PR1",decision_id="PD1",approved=True))
+   except BaseException as exc:errors.append(str(exc))
+   finally:db.close()
+  threads=[threading.Thread(target=attempt) for _ in range(2)]
+  for thread in threads:thread.start()
+  barrier.wait(timeout=5)
+  for thread in threads:thread.join(timeout=15)
+  self.assertFalse(any(thread.is_alive() for thread in threads))
+  self.assertEqual(errors,[])
+  self.assertEqual(sum(bool(x["committed"]) for x in results),1)
+  self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_m_authoritative_playoff_game_settlements").fetchone()[0],1)
+  self.assertTrue(self.reader.verify("P1",{})["authenticated"])
+  self.assertTrue(self.settle()["committed"])
+  self.assertFalse(self.settle()["committed"])
+  self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_m_verified_championships").fetchone()[0],1)
 if __name__=="__main__":unittest.main()
