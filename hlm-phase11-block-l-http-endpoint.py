@@ -64,17 +64,16 @@ class ExperimentalGMReviewEndpoint:
                     return 403, {"committed": False, "error": "binding_mismatch"}
                 return 200, {"committed": False, "server_binding": issued}
             # Mandatory authoritative binding check before any coordinator dispatch.
-            if True:
-                try:
-                    bound = self.binding_verifier(session=session, envelope=payload.get("server_binding"))
-                except (PermissionError, ValueError, TypeError, KeyError):
-                    return 403, {"committed": False, "error": "binding"}
-                if not isinstance(bound, dict) or bound.get("franchise") != franchise or bound.get("revision") != revision:
-                    return 403, {"committed": False, "error": "binding_mismatch"}
-                if action != "recover" and bound.get("seed") != seed:
-                    return 403, {"committed": False, "error": "binding_mismatch"}
-                if action in ("approve", "decline") and bound.get("decision_id") != payload.get("decision_id"):
-                    return 403, {"committed": False, "error": "binding_mismatch"}
+            try:
+                bound = self.binding_verifier(session=session, envelope=payload.get("server_binding"))
+            except (PermissionError, ValueError, TypeError, KeyError):
+                return 403, {"committed": False, "error": "binding"}
+            if not isinstance(bound, dict) or bound.get("franchise") != franchise or bound.get("revision") != revision:
+                return 403, {"committed": False, "error": "binding_mismatch"}
+            if action != "recover" and bound.get("seed") != seed:
+                return 403, {"committed": False, "error": "binding_mismatch"}
+            if action in ("approve", "decline") and bound.get("decision_id") != payload.get("decision_id"):
+                return 403, {"committed": False, "error": "binding_mismatch"}
             gm = session["gm"]
             bridge = self.bridge_factory(session, franchise)
             if action == "review":
