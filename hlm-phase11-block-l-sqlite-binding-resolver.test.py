@@ -58,5 +58,25 @@ class SQLiteAuthorityTests(unittest.TestCase):
         self.assertIsNone(resolver.resolve_authoritative_review(
             self.db,"GM1","F1",require_enrollment=True,
             trusted_source_resolver=fresh_source))
+    def test_real_host_mode_requires_fresh_independent_authority(self):
+        enrollment=load("block_l_host_gate_enrollment","hlm-phase11-block-l-trusted-enrollment.py")
+        self.db.execute(enrollment.SCHEMA)
+        self.db.execute("INSERT INTO block_l_trusted_enrollments VALUES (?,?,?,?,?,?)",
+                        ("F1","GM1","SAVE1","TEAM1","DIGEST-1","trusted-host"))
+        def valid_source(gm,franchise):
+            return dict(owner_gm="GM1",franchise="F1",browserSaveId="SAVE1",
+                        controlledTeamId="TEAM1",sourceDigest="DIGEST-1")
+        def stale_source(gm,franchise):
+            return dict(valid_source(gm,franchise),sourceDigest="DIGEST-2")
+        before=self.db.total_changes
+        options=dict(require_enrollment=True,require_trusted_host_source=True)
+        self.assertIsNone(resolver.resolve_authoritative_review(self.db,"GM1","F1",**options))
+        self.assertIsNone(resolver.resolve_authoritative_review(
+            self.db,"GM1","F1",trusted_source_resolver=lambda *_: None,**options))
+        self.assertIsNone(resolver.resolve_authoritative_review(
+            self.db,"GM1","F1",trusted_source_resolver=stale_source,**options))
+        self.assertIsNotNone(resolver.resolve_authoritative_review(
+            self.db,"GM1","F1",trusted_source_resolver=valid_source,**options))
+        self.assertEqual(self.db.total_changes,before)
 if __name__=="__main__":
     unittest.main()
