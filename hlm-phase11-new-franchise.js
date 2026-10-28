@@ -43,14 +43,27 @@ function importSourcePicks(universe,eligible){
  }
  return {accepted,excludedCount:excluded.length};
 }
-function build(universe,teamId,engine){
+// Only unique, source-backed permanent player IDs may supply positions.
+function positionIndex(roster){
+ const positions=new Map();
+ for(const p of (Array.isArray(roster)?roster:roster?.players||[])){
+  if(!p||p.id==null)continue;
+  const id=String(p.id),pos=String(p.pos||p.position||'').toUpperCase();
+  if(!['G','C','LW','RW','D','F'].includes(pos))continue;
+  if(!positions.has(id))positions.set(id,pos);
+  else if(positions.get(id)!==pos)positions.set(id,null);
+ }
+ return positions;
+}
+function build(universe,teamId,engine,positionRoster=null){
  const eligible=teams(universe);if(!eligible.some(t=>String(t.id)===String(teamId)))throw Error('Select an active NHL franchise');
  if(!engine||typeof engine.createGameStateEnvelope!=='function'||typeof engine.generateRoundRobinSchedule!=='function'||typeof engine.validateGameStateEnvelope!=='function')throw Error('Validated Phase 10 engine required');
- const roster=universe.players.filter(p=>p&&!p.retired&&p.status!==-1&&eligible.some(t=>String(t.id)===String(p.teamId))).map(p=>({id:p.id,name:p.name||[p.first,p.last].filter(Boolean).join(' '),teamId:p.teamId,position:p.position||p.pos||null,overall:Number(p.ovr)||null,potential:p.potential??null}));
+ const positions=positionIndex(positionRoster);
+ const roster=universe.players.filter(p=>p&&!p.retired&&p.status!==-1&&eligible.some(t=>String(t.id)===String(p.teamId))).map(p=>({id:p.id,name:p.name||[p.first,p.last].filter(Boolean).join(' '),teamId:p.teamId,position:positions.has(String(p.id))?positions.get(String(p.id)):(p.position||p.pos||null),overall:Number(p.ovr)||null,potential:p.potential??null}));
  const sourcePicks=importSourcePicks(universe,eligible);
  const state=engine.createGameStateEnvelope({meta:{saveId:'isolated-new-franchise',controlledTeamId:eligible.find(t=>String(t.id)===String(teamId)).id,currentDate:'2026-10-20'},teams:eligible,players:roster,draftPicks:sourcePicks.accepted,games:engine.generateRoundRobinSchedule(eligible,'2026-10-20',2),extensions:{phase11ExperimentalRosterAwareScores:false}});
  if(!engine.validateGameStateEnvelope(state).valid||!state.activity.games.length)throw Error('Invalid starter GameState');
  return state;
 }
-return {teams,build,importSourcePicks};
+return {teams,build,importSourcePicks,positionIndex};
 });

@@ -31,3 +31,16 @@ assert.throws(()=>teams(duplicate),/Duplicate canonical NHL/);
 const spoof={teams:[{id:207,name:'Chicoutimi',abbr:'CHI'}],players:[{id:1,teamId:207,status:0}]};
 assert.equal(teams(spoof).length,0);
 console.log('Mission 1382: shipped universe canonical 32, collision exclusions and ambiguous duplicate rejection passed');
+
+// Position source is keyed by permanent ID, never the source roster's team.
+const positionIndex=require('./hlm-phase11-new-franchise').positionIndex;
+assert.equal(positionIndex([{id:10,pos:'G',teamId:3}]).get('10'),'G');
+assert.equal(positionIndex([{id:10,pos:'G'},{id:'10',pos:'D'}]).get('10'),null);
+assert.equal(positionIndex([{id:10,pos:'G'},{id:'10',pos:'D'},{id:10,pos:'G'}]).get('10'),null);
+assert.equal(positionIndex([{id:10,pos:'G'}]).has('11'),false);
+const verified=build(universe,5,engine,[{id:'10',teamId:3,pos:'G'},{id:'11',teamId:5,pos:'D'}]);
+assert.equal(verified.universe.players.find(p=>p.id===10).position,'G');
+assert.equal(verified.universe.players.find(p=>p.id===10).teamId,5);
+assert.equal(verified.universe.players.find(p=>p.id===11).teamId,3);
+assert.equal(build(universe,5,engine,[{id:10,pos:'G'},{id:10,pos:'D'}]).universe.players.find(p=>p.id===10).position,null);
+console.log('Position source: ID match, conflict rejection, missing position, stale team ownership passed');
