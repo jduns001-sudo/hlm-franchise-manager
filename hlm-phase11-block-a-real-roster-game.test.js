@@ -34,7 +34,9 @@ const ready=reloaded.load();assert.equal(ready.extensions.phase11ExperimentalRos
 const prior=storage.getItem(reloaded.key);
 assert.throws(()=>reloaded.advance(game.id,1370,false),/approval/);
 assert.equal(storage.getItem(reloaded.key),prior,'declined simulation never saves');
+const stale=create(engine,storage);
 const result=reloaded.advance(game.id,1370,true);
+assert.throws(()=>stale.advance(game.id,1370,true),/changed|reload/,'stale second tab must not overwrite the accepted result');
 assert.equal(result.result.experimentalRosterAware,true);
 assert.equal(result.result.official,false);
 assert.equal(result.state.activity.games.find(g=>String(g.id)===String(game.id)).status,'final');
