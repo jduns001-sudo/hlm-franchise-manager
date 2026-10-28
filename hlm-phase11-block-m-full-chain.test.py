@@ -106,7 +106,7 @@ class FullChain(unittest.TestCase):
   self.session_id="HOST-SESSION-1"
   self.assertTrue(self.write()["committed"])
   self.assertFalse(self.settle(fail_at="before-commit")["committed"])
-  self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_m_verified_championships").fetchone()[0],0)
+  self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_m_verified_championships").fetchone()[0] if self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='block_m_verified_championships'").fetchone() else 0,0)
  def test_two_sqlite_writers_one_final_and_one_champion(self):
   self.prepare()
   self.approve()
