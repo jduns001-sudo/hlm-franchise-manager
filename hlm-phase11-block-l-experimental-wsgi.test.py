@@ -25,10 +25,13 @@ class WSGIAcceptance(unittest.TestCase):
             session_resolver=lambda token: {"gm":{"token":"trusted"},"franchise":"SYNTHETIC"} if token=="Bearer valid" else None,
             csrf_verifier=lambda session,token:token=="valid-csrf",
             authorize=lambda session,franchise:session["franchise"]==franchise,
-            bridge_factory=lambda session,franchise:Bridge())
+            bridge_factory=lambda session,franchise:Bridge(),
+            binding_issuer=lambda *,session,franchise: {"binding":{"franchise":franchise,"revision":1,"seed":17},"signature":"fixture"},
+            binding_verifier=lambda *,session,envelope: {"franchise":"SYNTHETIC","revision":1,"seed":17} if envelope=={"fixture":"signed"} else (_ for _ in ()).throw(PermissionError("missing")))
         self.app=module.create_experimental_wsgi_app(**self.kwargs)
     def send(self, *, method="POST",scheme="https",origin="https://jduns001-sudo.github.io",token="Bearer valid",csrf="valid-csrf",path="/gm-review",payload=None):
         payload=payload or {"action":"review","franchise":"SYNTHETIC","revision":1,"seed":17}
+        payload={**payload,"server_binding":{"fixture":"signed"}}
         body=json.dumps(payload).encode()
         env={"REQUEST_METHOD":method,"PATH_INFO":path,"wsgi.url_scheme":scheme,
             "CONTENT_LENGTH":str(len(body)),"wsgi.input":io.BytesIO(body),
@@ -42,6 +45,12 @@ class WSGIAcceptance(unittest.TestCase):
             module.create_experimental_wsgi_app()
         with self.assertRaises(ValueError):
             module.create_experimental_wsgi_app(enabled=True,origin="https://example.invalid")
+    def test_enabled_service_requires_binding_dependencies(self):
+        with self.assertRaises(ValueError):
+            module.create_experimental_wsgi_app(**{**self.kwargs,"binding_verifier":None})
+        with self.assertRaises(ValueError):
+            module.create_experimental_wsgi_app(**{**self.kwargs,"binding_issuer":None})
+
     def test_review_and_trusted_identity(self):
         status,result=self.send(payload={"action":"review","gm":"attacker","franchise":"SYNTHETIC","revision":1,"seed":17})
         self.assertEqual(status,200)
