@@ -32,12 +32,12 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
             authoritative_resolver=lambda gm,franchise:resolver.resolve_authoritative_review(self.db,gm,franchise))
         self.app=wsgi.create_experimental_wsgi_app(
             enabled=True,origin="https://jduns001-sudo.github.io",
-            session_resolver=lambda bearer: {"gm":self.gm,"franchise":"SYNTHETIC-F"}
+            session_resolver=lambda bearer: {"gm":self.gm,"franchise":"SYNTHETIC-F","session_id":"isolated-session"}
                 if bearer=="Bearer valid" else None,
             csrf_verifier=lambda session,token:token=="csrf-valid",
             authorize=lambda session,franchise:franchise==session["franchise"],
             bridge_factory=lambda session,franchise:bridge.GMReviewSimulationBridge(self.coordinator),
-            binding_issuer=lambda *,session,franchise:self.binding.issue(session={"gm":session["gm"]["token"]},franchise=franchise),
+            binding_issuer=lambda *,session,franchise:self.binding.issue(session={"gm":session["gm"]["token"],"session_id":session["session_id"]},franchise=franchise),
             binding_verifier=lambda *,session,envelope:self.binding.verify(session={"gm":session["gm"]["token"]},envelope=envelope))
     def command(self,action,**fields):
         return super().command(action,**fields)
@@ -57,6 +57,19 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
         self.assertFalse(self.command("approve",seed=17,review_id=token,
             decision_id="SYNTHETIC-DAY-18",server_binding=signed)[1]["committed"])
         self.assertEqual(self.snapshot_all(),before)
+    def test_session_rotation_rejects_signed_review_without_write(self):
+        status,issued=self.command("bind",seed=17)
+        self.assertEqual(status,200)
+        signed=issued["server_binding"]
+        before=self.snapshot_all()
+        original=self.binding._clock
+        try:
+            self.binding._clock=lambda: original()+301
+            self.assertEqual(self.command("review",seed=17,server_binding=signed)[0],403)
+            self.assertEqual(self.snapshot_all(),before)
+        finally:
+            self.binding._clock=original
+
     def test_missing_forged_stale_and_other_gm_fail_without_write(self):
         status,issued=self.command("bind",seed=17)
         self.assertEqual(status,200)
