@@ -29,7 +29,9 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
             ("SYNTHETIC-F",self.gm["token"],"ISOLATED-SAVE","TEAM-1","GAME-1",
              "BASELINE-1",json.dumps(["P1","P2"]),"PLAN-1","SYNTHETIC-DAY-18",1,17))
         enrollment.enroll_trusted_franchise(self.db, principal=self.gm["token"], franchise="SYNTHETIC-F",
-            save_id="ISOLATED-SAVE", team_id="TEAM-1", source_digest="TRUSTED-FIXTURE-DIGEST", attested_by="trusted-host")
+            save_id="ISOLATED-SAVE", team_id="TEAM-1", source_digest="TRUSTED-FIXTURE-DIGEST", attested_by="trusted-host",
+            trusted_source_resolver=lambda gm,franchise: dict(owner_gm=self.gm["token"], franchise="SYNTHETIC-F",
+                browserSaveId="ISOLATED-SAVE", controlledTeamId="TEAM-1", sourceDigest="TRUSTED-FIXTURE-DIGEST"))
         self.binding=binding.IsolatedReviewBinding(
             secret=b"server-only-secret-key-32-bytes-minimum",
             authoritative_resolver=lambda gm,franchise:resolver.resolve_authoritative_review(self.db,gm,franchise,require_enrollment=True))
