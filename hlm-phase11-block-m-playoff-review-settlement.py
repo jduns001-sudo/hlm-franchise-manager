@@ -56,7 +56,7 @@ class TrustedPlayoffReviewSettlement:
             self._current(franchise,revision,game_id,game)
             self.db.execute(SCHEMA)
             final=canonical(game)
-            self.db.execute("INSERT INTO block_m_playoff_reviews VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            self.db.execute("INSERT INTO block_m_playoff_reviews VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (review_id,franchise,identity["gm"],identity["session_id"],revision,game_id,final,
                  hashlib.sha256(final.encode()).hexdigest(),None,"pending"))
             self.db.execute("COMMIT")
