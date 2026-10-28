@@ -25,9 +25,11 @@ class RealSQLiteHTTPAcceptance(prior.ConcurrentSettlementAcceptance):
             session_resolver=lambda bearer: {"gm":self.gm,"franchise":"SYNTHETIC-F"} if bearer=="Bearer valid" else None,
             csrf_verifier=lambda session,token:token=="csrf-valid",
             authorize=lambda session,franchise:franchise==session["franchise"],
-            bridge_factory=lambda session,franchise:bridge.GMReviewSimulationBridge(self.coordinator))
+            bridge_factory=lambda session,franchise:bridge.GMReviewSimulationBridge(self.coordinator),
+            binding_issuer=lambda *,session,franchise: {"binding":{"franchise":franchise,"revision":1,"seed":17},"signature":"isolated-fixture"},
+            binding_verifier=lambda *,session,envelope: {"franchise":"SYNTHETIC-F","revision":1,"seed":17,"decision_id":"SYNTHETIC-DAY-18"} if envelope=={"isolated":"fixture"} else (_ for _ in ()).throw(PermissionError("missing")))
     def command(self,action,**fields):
-        body=json.dumps({"action":action,"franchise":"SYNTHETIC-F","revision":1,**fields}).encode()
+        body=json.dumps({"action":action,"franchise":"SYNTHETIC-F","revision":1,"server_binding":{"isolated":"fixture"},**fields}).encode()
         env={"PATH_INFO":"/gm-review","REQUEST_METHOD":"POST","wsgi.url_scheme":"https",
              "CONTENT_LENGTH":str(len(body)),"wsgi.input":io.BytesIO(body),
              "HTTP_ORIGIN":"https://jduns001-sudo.github.io",
