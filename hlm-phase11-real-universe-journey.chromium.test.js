@@ -15,6 +15,15 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#output').innerText(),/No isolated save loaded/);
  page.once('dialog',d=>d.accept());await page.locator('#new-franchise').click();
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining:'),null,{timeout:30000});
+ const nav=page.locator('#block-a-navigation');
+ assert.equal(await nav.count(),1,'mobile navigation available');
+ await nav.locator('summary').click();
+ assert.equal(await nav.locator('a[href="#gm-roster"]').isVisible(),true,'roster navigation is touch-accessible');
+ assert.equal(await nav.locator('a[href="#season-dashboard"]').isVisible(),true,'standings navigation is touch-accessible');
+ assert.match(await page.locator('#block-a-dashboard-summary').innerText(),/Pittsburgh.*Completed team games: 0.*Roster-aware scores: Off by default/);
+ await page.reload();
+ await page.waitForFunction(()=>document.querySelector('#block-a-dashboard-summary')?.textContent.includes('Pittsburgh'),null,{timeout:30000});
+ assert.match(await page.locator('#block-a-dashboard-summary').innerText(),/Roster-aware scores: Off by default/);
  const key=await page.evaluate(()=>Object.keys(localStorage).find(k=>k.startsWith('hlm-phase11-m1340-isolated-single-game')));
  assert.ok(key);
  const before=await page.evaluate(k=>localStorage.getItem(k),key);
