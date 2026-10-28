@@ -123,6 +123,35 @@ class RealSQLiteHTTPAcceptance(prior.ConcurrentSettlementAcceptance):
         self.assertTrue(self.command("approve",seed=17,review_id=token,
                                      decision_id="SYNTHETIC-DAY-18")[1]["committed"])
 
+    def test_http_approval_is_atomic_across_failure_retry_and_second_connection(self):
+        token=self.command("review",seed=17)[1]["review_id"]
+        second_connection,other=self._second_connection()
+        try:
+            before=self.snapshot_all()
+            original=self.coordinator.advance
+            try:
+                self.coordinator.advance=lambda **kw:original(**kw,fail_at="decision")
+                status,failed=self.command("approve",seed=17,review_id=token,
+                                           decision_id="SYNTHETIC-DAY-18")
+                self.assertEqual(status,200)
+                self.assertFalse(failed["committed"])
+                self.assertEqual(self.snapshot_all(),before)
+            finally:
+                self.coordinator.advance=original
+            self.assertEqual(self.command("recover",review_id=token)[1]["status"],"pending")
+            status,settled=self.command("approve",seed=17,review_id=token,
+                                        decision_id="SYNTHETIC-DAY-18")
+            self.assertEqual(status,200)
+            self.assertTrue(settled["committed"])
+            after=self.snapshot_all()
+            self.assertFalse(other.advance(gm=self.gm,franchise="SYNTHETIC-F",
+                revision=1,seed=17,decision_id="SYNTHETIC-DAY-18",
+                approved=True,enabled=True,review_id=token)["committed"])
+            self.assertEqual(self.snapshot_all(),after)
+            self.assertEqual(self.command("recover",review_id=token)[1]["status"],"consumed")
+        finally:
+            second_connection.close()
+
     def test_invalid_seed_cannot_mutate_reviewed_state(self):
         token=self.command("review",seed=17)[1]["review_id"]
         before=self.snapshot_all()
