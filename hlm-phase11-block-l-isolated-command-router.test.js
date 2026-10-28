@@ -52,3 +52,44 @@ test("missing or invalid deterministic seed never sends service command",async()
   assert.equal(f.calls.length,0);
  }
 });
+
+test("GM authority is rechecked after asynchronous service response",async()=>{
+ let release,session={authenticated:true,gm:"GM1",franchise:"SYNTHETIC-F"},calls=[];
+ const router=createIsolatedCommandRouter({enabled:true,
+  snapshot:async()=>({...initial}),identity:async()=>({...session}),
+  adapter:{review:async request=>{calls.push(request);return new Promise(resolve=>{release=resolve})},
+   approve:async()=>{throw Error("must not approve")}}});
+ const pending=router.review();
+ await new Promise(resolve=>setImmediate(resolve));
+ session={authenticated:true,gm:"GM2",franchise:"SYNTHETIC-F"};
+ release({review_id:"R1",committed:false});
+ await assert.rejects(pending,/mismatch|Stale/);
+ await assert.rejects(router.approve(),/mismatch|No reviewed command/);
+ assert.equal(calls.length,1);
+});
+test("rejected or cancelled review never dispatches an approval after reload",async()=>{
+ const f=fixture();
+ await f.router.review();
+ f.router.clear();
+ await assert.rejects(f.router.recover(),/No reviewed command/);
+ await assert.rejects(f.router.approve(),/No reviewed command/);
+ assert.deepEqual(f.calls.map(x=>x.action),["review"]);
+ const restored=createIsolatedCommandRouter({enabled:true,
+  snapshot:async()=>({...initial}),identity:async()=>({authenticated:true,gm:"GM1",franchise:"SYNTHETIC-F"}),
+  adapter:{approve:async()=>{throw Error("unexpected settlement")}}});
+ await assert.rejects(restored.approve(),/No reviewed command/);
+});
+test("concurrent review and approval cannot overlap service dispatch",async()=>{
+ let release,actions=[];
+ const router=createIsolatedCommandRouter({enabled:true,
+  snapshot:async()=>({...initial}),identity:async()=>({authenticated:true,gm:"GM1",franchise:"SYNTHETIC-F"}),
+  adapter:{review:async()=>{actions.push("review");return new Promise(resolve=>{release=resolve})},
+   approve:async()=>{actions.push("approve");return {committed:true}}}});
+ const pending=router.review();
+ await new Promise(resolve=>setImmediate(resolve));
+ await assert.rejects(router.approve(),/pending/);
+ release({review_id:"R1",committed:false});
+ await pending;
+ assert.equal((await router.approve()).committed,true);
+ assert.deepEqual(actions,["review","approve"]);
+});
