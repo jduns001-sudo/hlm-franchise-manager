@@ -38,7 +38,7 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
             authorize=lambda session,franchise:franchise==session["franchise"],
             bridge_factory=lambda session,franchise:bridge.GMReviewSimulationBridge(self.coordinator),
             binding_issuer=lambda *,session,franchise:self.binding.issue(session={"gm":session["gm"]["token"],"session_id":session["session_id"]},franchise=franchise),
-            binding_verifier=lambda *,session,envelope:self.binding.verify(session={"gm":session["gm"]["token"]},envelope=envelope))
+            binding_verifier=lambda *,session,envelope:self.binding.verify(session={"gm":session["gm"]["token"],"session_id":session["session_id"]},envelope=envelope))
     def command(self,action,**fields):
         return super().command(action,**fields)
     def test_authenticated_issue_review_approve_replay(self):
@@ -86,7 +86,8 @@ def load_tests(loader, tests, pattern):
     import unittest
     return unittest.TestSuite([
         AuthenticatedSQLiteBindingHTTP("test_authenticated_issue_review_approve_replay"),
-        AuthenticatedSQLiteBindingHTTP("test_missing_forged_stale_and_other_gm_fail_without_write")
+        AuthenticatedSQLiteBindingHTTP("test_missing_forged_stale_and_other_gm_fail_without_write"),
+        AuthenticatedSQLiteBindingHTTP("test_session_rotation_rejects_signed_review_without_write")
     ])
 
 if __name__=="__main__":
