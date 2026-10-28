@@ -27,24 +27,24 @@ class SQLiteAuthorityTests(unittest.TestCase):
         self.db.close()
     def test_authorized_issue_and_read_only_verification(self):
         before=self.db.total_changes
-        token=self.service.issue(session={"gm":"GM1"},franchise="F1")
-        self.assertEqual(self.service.verify(session={"gm":"GM1"},envelope=token)["playerIds"],["P1","P2"])
+        token=self.service.issue(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},franchise="F1")
+        self.assertEqual(self.service.verify(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},envelope=token)["playerIds"],["P1","P2"])
         self.assertEqual(self.db.total_changes,before)
     def test_wrong_owner_cannot_issue(self):
         with self.assertRaises(PermissionError):
-            self.service.issue(session={"gm":"GM2"},franchise="F1")
+            self.service.issue(session={"gm":"GM2","session_id":"TRUSTED-SESSION-2"},franchise="F1")
     def test_stale_review_rejected_after_authoritative_revision(self):
-        token=self.service.issue(session={"gm":"GM1"},franchise="F1")
+        token=self.service.issue(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},franchise="F1")
         self.db.execute("UPDATE block_l_authoritative_reviews SET revision=2 WHERE franchise='F1'")
         with self.assertRaises(PermissionError):
-            self.service.verify(session={"gm":"GM1"},envelope=token)
+            self.service.verify(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},envelope=token)
     def test_altered_plan_and_players_rejected(self):
         for column,value in (("plan_id","PLAN2"),("player_ids_json",json.dumps(["P3"]))):
             with self.subTest(column=column):
-                token=self.service.issue(session={"gm":"GM1"},franchise="F1")
+                token=self.service.issue(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},franchise="F1")
                 self.db.execute("UPDATE block_l_authoritative_reviews SET "+column+"=? WHERE franchise='F1'",(value,))
                 with self.assertRaises(PermissionError):
-                    self.service.verify(session={"gm":"GM1"},envelope=token)
+                    self.service.verify(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},envelope=token)
                 self.db.execute("UPDATE block_l_authoritative_reviews SET "+column+"=? WHERE franchise='F1'",
                     ("PLAN1" if column=="plan_id" else json.dumps(["P1","P2"]),))
 if __name__=="__main__":
