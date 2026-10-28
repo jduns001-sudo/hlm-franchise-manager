@@ -29,6 +29,7 @@ jobs:
       - name: SQLite review and concurrent settlement regression
         run: |
           python hlm-phase11-block-m-playoff-game-writer.test.py
+          python hlm-phase11-block-m-trusted-playoff-decision-authority.test.py
           python hlm-phase11-block-m-sqlite-end-to-end.test.py
           python hlm-phase11-block-m-sqlite-playoff-provenance.test.py
           python hlm-phase11-block-m-championship-coordinator.test.py
