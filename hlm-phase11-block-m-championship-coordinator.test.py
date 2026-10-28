@@ -42,6 +42,10 @@ class CoordinatorAcceptance(unittest.TestCase):
   self.assertTrue(self.call()["committed"])
   self.assertFalse(self.call()["committed"])
   self.db.close();self.db=sqlite3.connect(self.path,isolation_level=None)
+  # Recovery must use a newly bound host and settlement, never a closed handle.
+  self.service=verified.VerifiedChampionshipSettlement(self.db,trusted_playoff_validator=lambda s:{"verified":False},enabled=True)
+  self.host.settlement=self.service
+  self.service.validate=self.host.playoff_proof
   self.assertEqual(self.host.recover(session=self.session,franchise="F",review_id="R1")["record"]["championTeamId"],"A")
   self.assertFalse(self.host.recover(session=self.session,franchise="F",review_id="R1")["archiveEligible"])
  def test_forged_session_fabricated_provenance_and_stale_revision(self):
