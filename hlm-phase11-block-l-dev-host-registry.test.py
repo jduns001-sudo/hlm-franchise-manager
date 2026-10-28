@@ -54,6 +54,54 @@ class DevelopmentHostRegistryTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.enroll()
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_l_trusted_enrollments").fetchone()[0],0)
+    def test_concurrent_enrollment_file_backed_conflict_and_no_write(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=str(Path(folder)/"concurrent.sqlite")
+            first=sqlite3.connect(path,timeout=2)
+            second=sqlite3.connect(path,timeout=2)
+            try:
+                first.execute(enrollment.SCHEMA)
+                host=registry.DevelopmentHostRegistry(first,enabled=True)
+                host.provision(franchise="F1",owner_gm="GM1",save_id="SAVE1",
+                               team_id="TEAM1",source_digest="DIGEST1")
+                resolver=host.enrollment_source(session=self.session)
+                args=dict(principal="GM1",franchise="F1",save_id="SAVE1",
+                          team_id="TEAM1",source_digest="DIGEST1",
+                          attested_by="trusted-host",trusted_source_resolver=resolver)
+                self.assertTrue(enrollment.enroll_trusted_franchise(first,**args))
+                self.assertFalse(enrollment.enroll_trusted_franchise(second,**args))
+                before=second.total_changes
+                with self.assertRaises(PermissionError):
+                    enrollment.enroll_trusted_franchise(second,**{**args,"save_id":"FORGED"})
+                self.assertEqual(second.total_changes,before)
+                self.assertEqual(second.execute(
+                    "SELECT COUNT(*) FROM block_l_trusted_enrollments").fetchone()[0],1)
+            finally:
+                second.close()
+                first.close()
+
+    def test_registry_revision_invalidates_signed_review_without_write(self):
+        self.enroll()
+        def authoritative(gm,franchise):
+            try:
+                x=self.host.resolve(session={"gm":gm,"session_id":"HOST"},franchise=franchise)
+            except PermissionError:
+                return None
+            return dict(x,gameId="GAME1",browserBaseline="BASE1",playerIds=["P1"],
+                        plan_id="PLAN1",decision_id="DAY1",revision=1,seed=17)
+        signer=binding.IsolatedReviewBinding(
+            secret=b"dev-host-only-secret-key-at-least-32-bytes",
+            authoritative_resolver=authoritative,clock=lambda:1000,ttl_seconds=60)
+        signed=signer.issue(session=self.session,franchise="F1")
+        self.assertEqual(signer.verify(session=self.session,envelope=signed)["revision"],1)
+        self.host.rotate(franchise="F1",expected_revision=0,source_digest="DIGEST2")
+        before=self.db.total_changes
+        with self.assertRaises(PermissionError):
+            signer.verify(session=self.session,envelope=signed)
+        with self.assertRaises(PermissionError):
+            signer.verify(session={"gm":"GM1","session_id":"ROTATED"},envelope=signed)
+        self.assertEqual(self.db.total_changes,before)
+
     def test_file_reopen_and_session_bound_signed_review(self):
         self.enroll()
         with tempfile.TemporaryDirectory() as folder:
