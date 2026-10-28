@@ -19,6 +19,7 @@ binding=load("block_l_dev_binding","hlm-phase11-block-l-authoritative-binding.py
 class DevelopmentHostRegistryTests(unittest.TestCase):
     def setUp(self):
         self.db=sqlite3.connect(":memory:")
+        self.db.execute(enrollment.SCHEMA)
         self.host=registry.DevelopmentHostRegistry(self.db,enabled=True)
         self.host.provision(franchise="F1",owner_gm="GM1",save_id="SAVE1",
                             team_id="TEAM1",source_digest="DIGEST1")
