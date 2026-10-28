@@ -47,5 +47,16 @@ class SQLiteAuthorityTests(unittest.TestCase):
                     self.service.verify(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},envelope=token)
                 self.db.execute("UPDATE block_l_authoritative_reviews SET "+column+"=? WHERE franchise='F1'",
                     ("PLAN1" if column=="plan_id" else json.dumps(["P1","P2"]),))
+    def test_enrolled_digest_must_match_fresh_host_source(self):
+        enrollment=load("block_l_enrollment_digest","hlm-phase11-block-l-trusted-enrollment.py")
+        self.db.execute(enrollment.SCHEMA)
+        self.db.execute("INSERT INTO block_l_trusted_enrollments VALUES (?,?,?,?,?,?)",
+                        ("F1","GM1","SAVE1","TEAM1","DIGEST-OLD","trusted-host"))
+        def fresh_source(gm,franchise):
+            return dict(owner_gm=gm,franchise=franchise,browserSaveId="SAVE1",
+                        controlledTeamId="TEAM1",sourceDigest="DIGEST-NEW")
+        self.assertIsNone(resolver.resolve_authoritative_review(
+            self.db,"GM1","F1",require_enrollment=True,
+            trusted_source_resolver=fresh_source))
 if __name__=="__main__":
     unittest.main()
