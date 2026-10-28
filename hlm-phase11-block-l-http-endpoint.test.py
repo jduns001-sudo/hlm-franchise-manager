@@ -26,11 +26,26 @@ class EndpointAcceptance(unittest.TestCase):
             csrf_verifier=lambda session, token: token == "csrf-valid",
             authorize=lambda session, franchise: franchise == session["franchise"],
             bridge_factory=lambda session, franchise: Bridge(),
-            origin="https://jduns001-sudo.github.io")
+            origin="https://jduns001-sudo.github.io",
+            binding_verifier=lambda *,session,envelope: {"franchise":"SYNTHETIC","revision":1,"seed":17,"decision_id":"D1"} if envelope=={"fixture":"signed"} else (_ for _ in ()).throw(PermissionError("missing")))
         self.headers = {"Origin": "https://jduns001-sudo.github.io", "Content-Type": "application/json", "Authorization": "Bearer valid", "X-CSRF-Token": "csrf-valid"}
 
     def request(self, body, headers=None):
+        import json
+        try:
+            data=json.loads(body)
+            if isinstance(data,dict) and "server_binding" not in data:
+                data["server_binding"]={"fixture":"signed"}
+                body=json.dumps(data)
+        except (ValueError,TypeError):
+            pass
         return self.endpoint.handle(headers=headers or self.headers, body=body)
+
+    def test_endpoint_cannot_start_without_binding_verifier(self):
+        with self.assertRaises(ValueError):
+            mod.ExperimentalGMReviewEndpoint(session_resolver=lambda _:None,
+                csrf_verifier=lambda *_:False, authorize=lambda *_:False,
+                bridge_factory=lambda *_:None, origin="https://example.invalid")
 
     def test_decline_and_approve_use_trusted_gm(self):
         body = '{"action":"decline","gm":"ATTACKER","franchise":"SYNTHETIC","revision":1,"seed":17,"decision_id":"D1","review_id":"R1"}'
@@ -83,7 +98,7 @@ class EndpointAcceptance(unittest.TestCase):
             if envelope == {"signed":"trusted"} else (_ for _ in ()).throw(PermissionError("invalid")))
         request = {"action":"approve","franchise":"SYNTHETIC","revision":1,
                    "seed":17,"decision_id":"D1","review_id":"R1"}
-        self.assertEqual(self.request(json.dumps(request))[0],403)
+        self.assertEqual(self.endpoint.handle(headers=self.headers,body=json.dumps(request))[0],403)
         self.assertEqual(self.calls,[])
         request["server_binding"]={"signed":"forged"}
         self.assertEqual(self.request(json.dumps(request))[0],403)
