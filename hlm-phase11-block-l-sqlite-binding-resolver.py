@@ -21,7 +21,7 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS block_l_authoritative_reviews (
  seed INTEGER NOT NULL
 )"""
 
-def resolve_authoritative_review(connection, gm, franchise, *, require_enrollment=False):
+def resolve_authoritative_review(connection, gm, franchise, *, require_enrollment=False, trusted_source_resolver=None):
     if not isinstance(connection, sqlite3.Connection):
         raise TypeError("Trusted SQLite connection required")
     if not isinstance(gm, str) or not gm or not isinstance(franchise, str) or not franchise:
@@ -44,6 +44,18 @@ def resolve_authoritative_review(connection, gm, franchise, *, require_enrollmen
             return None
         if trusted is None or trusted["browserSaveId"] != save or trusted["controlledTeamId"] != team:
             return None
+        if trusted_source_resolver is not None:
+            if not callable(trusted_source_resolver):
+                return None
+            try:
+                current=trusted_source_resolver(gm,franchise)
+            except Exception:
+                return None
+            if (not isinstance(current,dict) or current.get("owner_gm")!=gm or
+                current.get("franchise")!=franchise or current.get("browserSaveId")!=save or
+                current.get("controlledTeamId")!=team or
+                current.get("sourceDigest")!=trusted["sourceDigest"]):
+                return None
     try:
         players = json.loads(players_json)
     except (ValueError, TypeError):
