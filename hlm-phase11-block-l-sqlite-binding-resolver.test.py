@@ -78,5 +78,41 @@ class SQLiteAuthorityTests(unittest.TestCase):
         self.assertIsNotNone(resolver.resolve_authoritative_review(
             self.db,"GM1","F1",trusted_source_resolver=valid_source,**options))
         self.assertEqual(self.db.total_changes,before)
+    def test_separately_controlled_host_authority_binding_lifecycle(self):
+        enrollment=load("block_l_adapter_contract_enrollment","hlm-phase11-block-l-trusted-enrollment.py")
+        self.db.execute(enrollment.SCHEMA)
+        self.db.execute("INSERT INTO block_l_trusted_enrollments VALUES (?,?,?,?,?,?)",
+                        ("F1","GM1","SAVE1","TEAM1","DIGEST-A","trusted-host"))
+        # Host-only authority fixture is independent of SQLite enrollment and browser claims.
+        host={"owner_gm":"GM1","franchise":"F1","browserSaveId":"SAVE1",
+              "controlledTeamId":"TEAM1","sourceDigest":"DIGEST-A"}
+        def host_source(gm,franchise):
+            return dict(host) if (gm,franchise)==("GM1","F1") else None
+        def resolve(gm,franchise):
+            return resolver.resolve_authoritative_review(
+                self.db,gm,franchise,require_enrollment=True,
+                require_trusted_host_source=True,trusted_source_resolver=host_source)
+        secured=binding.IsolatedReviewBinding(secret=b"host-contract-key"*3,
+                                               authoritative_resolver=resolve)
+        session={"gm":"GM1","session_id":"HOST-SESSION-A"}
+        before=self.db.total_changes
+        signed=secured.issue(session=session,franchise="F1")
+        self.assertEqual(secured.verify(session=session,envelope=signed)["browserSaveId"],"SAVE1")
+        with self.assertRaises(PermissionError):
+            secured.issue(session={"gm":"OTHER","session_id":"HOST-SESSION-A"},franchise="F1")
+        with self.assertRaises(PermissionError):
+            secured.verify(session={"gm":"GM1","session_id":"HOST-SESSION-B"},envelope=signed)
+        for field,value in (("owner_gm","OTHER"),("browserSaveId","OTHER-SAVE"),
+                            ("controlledTeamId","OTHER-TEAM"),("sourceDigest","DIGEST-B")):
+            original=host[field]
+            host[field]=value
+            with self.subTest(field=field):
+                with self.assertRaises(PermissionError):
+                    secured.verify(session=session,envelope=signed)
+            host[field]=original
+        host.clear()
+        with self.assertRaises(PermissionError):
+            secured.verify(session=session,envelope=signed)
+        self.assertEqual(self.db.total_changes,before)
 if __name__=="__main__":
     unittest.main()
