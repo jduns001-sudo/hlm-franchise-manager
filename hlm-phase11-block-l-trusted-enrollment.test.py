@@ -14,7 +14,9 @@ class TrustedEnrollmentTests(unittest.TestCase):
         self.db.execute(module.SCHEMA)
         self.args = dict(principal="GM1", franchise="F1", save_id="SAVE1",
                          team_id="TEAM1", source_digest="trusted-digest",
-                         attested_by="trusted-host")
+                         attested_by="trusted-host",
+                         trusted_source_resolver=lambda gm,franchise: dict(owner_gm="GM1",franchise="F1",
+                             browserSaveId="SAVE1",controlledTeamId="TEAM1",sourceDigest="trusted-digest"))
     def tearDown(self):
         self.db.close()
     def test_enroll_idempotent_and_owner_isolated(self):
@@ -28,6 +30,13 @@ class TrustedEnrollmentTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(PermissionError):
                 module.enroll_trusted_franchise(self.db, **{**self.args, key:value})
         self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_l_trusted_enrollments").fetchone()[0], 1)
+    def test_missing_or_conflicting_host_source_fails_without_enrollment(self):
+        for source in (None, lambda gm,franchise: None,
+                       lambda gm,franchise: {**self.args, "owner_gm":"OTHER"}):
+            with self.subTest(source=str(source)), self.assertRaises(PermissionError):
+                module.enroll_trusted_franchise(self.db, **{**self.args, "trusted_source_resolver":source})
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM block_l_trusted_enrollments").fetchone()[0],0)
+
     def test_no_browser_attestation_and_invalid_fields(self):
         with self.assertRaises(PermissionError):
             module.enroll_trusted_franchise(self.db, **{**self.args, "attested_by":"browser"})
