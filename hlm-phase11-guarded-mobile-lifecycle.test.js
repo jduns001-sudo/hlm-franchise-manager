@@ -18,4 +18,29 @@ r=guard.review('playoffs');assert.equal(guard.approve(r.reviewSequence).seeds[0]
 state.extensions.phase10Playoffs={status:'active'};r=guard.review('playoff-game');guard.approve(r.reviewSequence);assert.deepEqual(calls[1],['game',1350,true]);
 state.extensions.phase10Playoffs={status:'complete',championTeamId:1};r=guard.review('archive',{seasonId:'2026-27'});guard.approve(r.reviewSequence);assert.deepEqual(calls[2],['archive','2026-27',true]);
 assert.equal(calls.length,3);
+
+// Playoff-game decline and replay must not mutate series wins or persisted finals.
+const playoffHistory=[];
+let seriesWins=0;
+const guardedPlayoffManager={
+ peek:()=>state,
+ advancePlayoff:()=>{seriesWins++;playoffHistory.push({gameId:'PO-'+seriesWins});return {result:playoffHistory.at(-1)}},
+ startPlayoffs:()=>{throw Error('unexpected playoff start')},
+ archiveSeason:()=>{throw Error('unexpected archive')}
+};
+state.extensions.phase10Playoffs={status:'active'};
+const playoffGuard=create(guardedPlayoffManager,storage,key);
+const beforeDecline=JSON.stringify({seriesWins,playoffHistory});
+const declinedGame=playoffGuard.review('playoff-game');
+assert.equal(playoffGuard.decline(declinedGame.reviewSequence).saved,false);
+assert.throws(()=>playoffGuard.approve(declinedGame.reviewSequence),/Stale/);
+assert.equal(JSON.stringify({seriesWins,playoffHistory}),beforeDecline);
+const approvedGame=playoffGuard.review('playoff-game');
+assert.equal(playoffGuard.approve(approvedGame.reviewSequence).result.gameId,'PO-1');
+const afterApproval=JSON.stringify({seriesWins,playoffHistory});
+assert.throws(()=>playoffGuard.approve(approvedGame.reviewSequence),/Stale/);
+assert.equal(JSON.stringify({seriesWins,playoffHistory}),afterApproval);
+assert.equal(seriesWins,1);
+assert.deepEqual(playoffHistory,[{gameId:'PO-1'}]);
+
 console.log('Mobile lifecycle one-time GM review, stale, decline and existing-manager delegation passed');
