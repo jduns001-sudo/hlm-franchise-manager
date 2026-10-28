@@ -59,12 +59,16 @@ class GuardedPlayoffGameWriter:
             game=matches[0]
             # A real Block M review consumer must match the authenticated
             # session that originally prepared the review, not merely the GM.
-            if getattr(self.game_source,"__name__",None)=="consume_for_game_writer":
+            review_table=self.db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='block_m_playoff_reviews'").fetchone()
+            if review_table:
                 binding=self.db.execute(
                     "SELECT session_id FROM block_m_playoff_reviews WHERE review_id=? AND franchise=?",
                     (review_id,franchise)).fetchone()
                 if not binding or binding[0]!=identity["session_id"]:
                     raise ValueError("stale-or-forged-review-session")
+            elif getattr(self.game_source,"__name__",None)=="consume_for_game_writer":
+                raise ValueError("trusted-review-table-required")
             source=self.game_source(gm,franchise,review_id,decision_id,game_id,revision)
             if (not isinstance(source,dict) or source.get("authenticated") is not True or
                 source.get("approvedByGM") is not True or source.get("committed") is not True or
