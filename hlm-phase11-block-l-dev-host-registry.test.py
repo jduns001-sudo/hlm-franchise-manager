@@ -80,6 +80,46 @@ class DevelopmentHostRegistryTests(unittest.TestCase):
                 second.close()
                 first.close()
 
+    def test_duplicate_provisioning_preserves_original_identity(self):
+        original=self.host.resolve(session=self.session,franchise="F1")
+        before=self.db.total_changes
+        for owner,save in (("GM1","SAVE1"),("GM2","SAVE2")):
+            with self.subTest(owner=owner),self.assertRaises(sqlite3.IntegrityError):
+                self.host.provision(franchise="F1",owner_gm=owner,save_id=save,
+                                    team_id="TEAM1",source_digest="DIGEST1")
+        self.assertEqual(self.db.total_changes,before)
+        self.assertEqual(self.host.resolve(session=self.session,franchise="F1"),original)
+        with self.assertRaises(PermissionError):
+            self.host.resolve(session={"gm":"GM2","session_id":"S2"},franchise="F1")
+
+    def test_reopen_after_rejected_lifecycle_operations(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=str(Path(folder)/"lifecycle.sqlite")
+            connection=sqlite3.connect(path)
+            try:
+                connection.execute(enrollment.SCHEMA)
+                host=registry.DevelopmentHostRegistry(connection,enabled=True)
+                host.provision(franchise="F1",owner_gm="GM1",save_id="SAVE1",
+                               team_id="TEAM1",source_digest="DIGEST1")
+                before=connection.total_changes
+                with self.assertRaises(sqlite3.IntegrityError):
+                    host.provision(franchise="F1",owner_gm="GM2",save_id="SAVE2",
+                                   team_id="TEAM2",source_digest="FORGED")
+                with self.assertRaises(PermissionError):
+                    host.rotate(franchise="F1",expected_revision=99,source_digest="FORGED")
+                self.assertEqual(connection.total_changes,before)
+            finally:
+                connection.close()
+            reopened=sqlite3.connect(path)
+            try:
+                host=registry.DevelopmentHostRegistry(reopened,enabled=True)
+                self.assertEqual(host.resolve(session=self.session,franchise="F1")["browserSaveId"],"SAVE1")
+                self.assertEqual(reopened.execute(
+                    "SELECT revision,source_digest FROM block_l_dev_host_franchises WHERE franchise='F1'"
+                ).fetchone(),(0,"DIGEST1"))
+            finally:
+                reopened.close()
+
     def test_registry_revision_invalidates_signed_review_without_write(self):
         self.enroll()
         def authoritative(gm,franchise):
