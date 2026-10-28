@@ -5,6 +5,12 @@ It never infers ownership from browser state and never writes game state.
 """
 import json
 import sqlite3
+import importlib.util
+from pathlib import Path
+
+_spec = importlib.util.spec_from_file_location("block_l_trusted_enrollment", Path(__file__).with_name("hlm-phase11-block-l-trusted-enrollment.py"))
+_enrollment = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_enrollment)
 
 SCHEMA = """CREATE TABLE IF NOT EXISTS block_l_authoritative_reviews (
  franchise TEXT PRIMARY KEY, owner_gm TEXT NOT NULL,
@@ -15,7 +21,7 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS block_l_authoritative_reviews (
  seed INTEGER NOT NULL
 )"""
 
-def resolve_authoritative_review(connection, gm, franchise):
+def resolve_authoritative_review(connection, gm, franchise, *, require_enrollment=False):
     if not isinstance(connection, sqlite3.Connection):
         raise TypeError("Trusted SQLite connection required")
     if not isinstance(gm, str) or not gm or not isinstance(franchise, str) or not franchise:
@@ -31,6 +37,13 @@ def resolve_authoritative_review(connection, gm, franchise):
     if row is None:
         return None
     owner, save, team, game, baseline, players_json, plan, decision, revision, seed = row
+    if require_enrollment:
+        try:
+            trusted = _enrollment.resolve_trusted_enrollment(connection, principal=gm, franchise=franchise)
+        except sqlite3.OperationalError:
+            return None
+        if trusted is None or trusted["browserSaveId"] != save or trusted["controlledTeamId"] != team:
+            return None
     try:
         players = json.loads(players_json)
     except (ValueError, TypeError):
