@@ -16,7 +16,7 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS block_l_trusted_enrollments (
 )"""
 
 def enroll_trusted_franchise(connection, *, principal, franchise, save_id,
-                            team_id, source_digest, attested_by):
+                            team_id, source_digest, attested_by, trusted_source_resolver=None):
     if not isinstance(connection, sqlite3.Connection):
         raise TypeError("Trusted SQLite connection required")
     fields = (principal, franchise, save_id, team_id, source_digest, attested_by)
@@ -24,6 +24,13 @@ def enroll_trusted_franchise(connection, *, principal, franchise, save_id,
         raise ValueError("Complete trusted enrollment required")
     if attested_by != "trusted-host":
         raise PermissionError("Host attestation required")
+    if not callable(trusted_source_resolver):
+        raise PermissionError("Independent trusted source resolver required")
+    authoritative = trusted_source_resolver(principal, franchise)
+    if not isinstance(authoritative, dict) or any(authoritative.get(k) != v for k, v in (
+            ("owner_gm", principal), ("franchise", franchise), ("browserSaveId", save_id),
+            ("controlledTeamId", team_id), ("sourceDigest", source_digest))):
+        raise PermissionError("Trusted source ownership or save identity mismatch")
     # An existing identity must never be reassigned by an enrollment replay.
     connection.execute(SCHEMA)
     with connection:
