@@ -4,6 +4,7 @@ on:
     paths:
       - 'hlm-phase11-real-universe-journey.test.js'
       - 'hlm-phase11-block-a-navigation.test.js'
+      - 'hlm-phase11-block-a-real-roster-game.test.js'
       - 'hlm-phase11-isolated-single-game.html'
       - 'hlm-phase11-real-universe-journey.chromium.test.js'
       - '.github/workflows/mission-1412-real-universe-acceptance.yml'
@@ -20,6 +21,7 @@ jobs:
         with:
           node-version: '22'
       - run: node hlm-phase11-block-a-navigation.test.js
+      - run: node hlm-phase11-block-a-real-roster-game.test.js
       - run: node hlm-phase11-real-universe-journey.test.js
 
   real-universe-mobile:
