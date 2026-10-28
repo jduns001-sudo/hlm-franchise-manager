@@ -27,6 +27,11 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const key=await page.evaluate(()=>Object.keys(localStorage).find(k=>k.startsWith('hlm-phase11-m1340-isolated-single-game')));
  assert.ok(key);
  const before=await page.evaluate(k=>localStorage.getItem(k),key);
+ const toggleBefore=await page.evaluate(k=>localStorage.getItem(k),key);
+ page.once('dialog',d=>d.dismiss());
+ await page.locator('#gm-roster-scores').click();
+ assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),toggleBefore,'cancelled roster-aware opt-in must not save');
+ assert.match(await page.locator('#block-a-dashboard-summary').innerText(),/Roster-aware scores: Off by default/);
  const decision=page.locator('.gm-day-command');
  assert.equal(await decision.locator('button').count(),3,'mobile GM decision center exposes review, approve and decline');
  await decision.locator('#gm-day-command-review').click();
