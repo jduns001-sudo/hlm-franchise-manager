@@ -112,6 +112,34 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
         self.assertFalse(self.command("approve",seed=17,review_id=token,
             decision_id="SYNTHETIC-DAY-18",server_binding=signed)[1]["committed"])
         self.assertEqual(self.snapshot_all(),before)
+    def test_rotated_session_blocks_approval_and_recovery_without_write(self):
+        status,issued=self.command("bind",seed=17)
+        self.assertEqual(status,200)
+        signed=issued["server_binding"]
+        status,review=self.command("review",seed=17,server_binding=signed)
+        self.assertEqual(status,200)
+        token=review["review_id"]
+        before=self.snapshot_all()
+        original=self.binding._session_id
+        try:
+            self.binding._session_id=lambda session: "ROTATED-SESSION"
+            for action,fields in (
+                ("approve",dict(seed=17,review_id=token,decision_id="SYNTHETIC-DAY-18")),
+                ("decline",dict(seed=17,review_id=token,decision_id="SYNTHETIC-DAY-18")),
+                ("recover",dict(review_id=token)),
+            ):
+                with self.subTest(action=action):
+                    status,result=self.command(action,server_binding=signed,**fields)
+                    self.assertEqual(status,403)
+                    self.assertFalse(result["committed"])
+                    self.assertEqual(self.snapshot_all(),before)
+        finally:
+            self.binding._session_id=original
+        status,recovered=self.command("recover",review_id=token,server_binding=signed)
+        self.assertEqual(status,200)
+        self.assertEqual(recovered["status"],"pending")
+        self.assertEqual(self.snapshot_all(),before)
+
     def test_session_rotation_rejects_signed_review_without_write(self):
         status,issued=self.command("bind",seed=17)
         self.assertEqual(status,200)
@@ -143,6 +171,7 @@ def load_tests(loader, tests, pattern):
         AuthenticatedSQLiteBindingHTTP("test_authenticated_issue_review_approve_replay"),
         AuthenticatedSQLiteBindingHTTP("test_missing_forged_stale_and_other_gm_fail_without_write"),
         AuthenticatedSQLiteBindingHTTP("test_session_rotation_rejects_signed_review_without_write"),
+        AuthenticatedSQLiteBindingHTTP("test_rotated_session_blocks_approval_and_recovery_without_write"),
         AuthenticatedSQLiteBindingHTTP("test_enrollment_owner_save_and_team_mismatch_rejected_without_write"),
         AuthenticatedSQLiteBindingHTTP("test_reloaded_sqlite_enrollment_and_session_rotation_no_write")
     ])
