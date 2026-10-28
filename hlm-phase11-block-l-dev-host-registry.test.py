@@ -80,6 +80,72 @@ class DevelopmentHostRegistryTests(unittest.TestCase):
                 second.close()
                 first.close()
 
+    def test_overlapping_connections_cannot_replace_provisioned_identity(self):
+        import threading
+        with tempfile.TemporaryDirectory() as folder:
+            path=str(Path(folder)/"overlap.sqlite")
+            initial=sqlite3.connect(path)
+            registry.DevelopmentHostRegistry(initial,enabled=True)
+            initial.close()
+            ready=threading.Event()
+            release=threading.Event()
+            results=[]
+            errors=[]
+            def first_writer():
+                db=sqlite3.connect(path,timeout=3)
+                try:
+                    db.execute("BEGIN IMMEDIATE")
+                    db.execute("INSERT INTO block_l_dev_host_franchises VALUES (?,?,?,?,?,0)",
+                               ("F1","GM1","SAVE1","TEAM1","DIGEST1"))
+                    ready.set()
+                    if not release.wait(3):
+                        raise AssertionError("Second writer did not reach barrier")
+                    db.commit()
+                    results.append("first-committed")
+                except Exception as exc:
+                    errors.append(exc)
+                    db.rollback()
+                finally:
+                    ready.set()
+                    db.close()
+            def second_writer():
+                db=sqlite3.connect(path,timeout=3)
+                try:
+                    if not ready.wait(3):
+                        raise AssertionError("First writer did not reach barrier")
+                    release.set()
+                    host=registry.DevelopmentHostRegistry(db,enabled=True)
+                    try:
+                        host.provision(franchise="F1",owner_gm="GM2",save_id="SAVE2",
+                                       team_id="TEAM2",source_digest="FORGED")
+                    except sqlite3.IntegrityError:
+                        results.append("duplicate-rejected")
+                    else:
+                        errors.append(AssertionError("Conflicting owner was provisioned"))
+                except Exception as exc:
+                    errors.append(exc)
+                finally:
+                    release.set()
+                    db.close()
+            a=threading.Thread(target=first_writer)
+            b=threading.Thread(target=second_writer)
+            a.start()
+            b.start()
+            a.join(5)
+            b.join(5)
+            self.assertFalse(a.is_alive() or b.is_alive(), "Concurrent workers did not finish")
+            self.assertFalse(errors, repr(errors))
+            self.assertCountEqual(results,["first-committed","duplicate-rejected"])
+            reopened=sqlite3.connect(path)
+            try:
+                self.assertEqual(reopened.execute(
+                    "SELECT owner_gm,browser_save_id,revision FROM block_l_dev_host_franchises WHERE franchise='F1'"
+                ).fetchone(),("GM1","SAVE1",0))
+                self.assertEqual(reopened.execute(
+                    "SELECT COUNT(*) FROM block_l_dev_host_franchises").fetchone()[0],1)
+            finally:
+                reopened.close()
+
     def test_duplicate_provisioning_preserves_original_identity(self):
         original=self.host.resolve(session=self.session,franchise="F1")
         before=self.db.total_changes
