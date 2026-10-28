@@ -57,6 +57,14 @@ class GuardedPlayoffGameWriter:
             if len(matches)!=1 or matches[0].get("status")!="final":
                 raise ValueError("unique-committed-final-required")
             game=matches[0]
+            # A real Block M review consumer must match the authenticated
+            # session that originally prepared the review, not merely the GM.
+            if getattr(self.game_source,"__name__",None)=="consume_for_game_writer":
+                binding=self.db.execute(
+                    "SELECT session_id FROM block_m_playoff_reviews WHERE review_id=? AND franchise=?",
+                    (review_id,franchise)).fetchone()
+                if not binding or binding[0]!=identity["session_id"]:
+                    raise ValueError("stale-or-forged-review-session")
             source=self.game_source(gm,franchise,review_id,decision_id,game_id,revision)
             if (not isinstance(source,dict) or source.get("authenticated") is not True or
                 source.get("approvedByGM") is not True or source.get("committed") is not True or
