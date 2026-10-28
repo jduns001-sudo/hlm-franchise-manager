@@ -28,6 +28,7 @@ jobs:
           python hlm-phase11-block-l-experimental-wsgi.test.py
       - name: SQLite review and concurrent settlement regression
         run: |
+          python hlm-phase11-block-m-verified-championship.test.py
           python hlm-phase11-block-m-authenticated-championship.test.py
           python hlm-phase11-block-m-championship-ledger.test.py
           python hlm-phase11-block-l-gm-review-bridge.test.py
