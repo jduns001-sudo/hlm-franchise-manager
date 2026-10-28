@@ -21,7 +21,9 @@ SCHEMA = """CREATE TABLE IF NOT EXISTS block_l_authoritative_reviews (
  seed INTEGER NOT NULL
 )"""
 
-def resolve_authoritative_review(connection, gm, franchise, *, require_enrollment=False, trusted_source_resolver=None):
+def resolve_authoritative_review(connection, gm, franchise, *, require_enrollment=False, trusted_source_resolver=None, require_trusted_host_source=False):
+    if require_trusted_host_source is True and (require_enrollment is not True or not callable(trusted_source_resolver)):
+        return None
     if not isinstance(connection, sqlite3.Connection):
         raise TypeError("Trusted SQLite connection required")
     if not isinstance(gm, str) or not gm or not isinstance(franchise, str) or not franchise:
