@@ -56,6 +56,37 @@ class MultiDayStandingsContinuity(previous.MultiGameStandingsAcceptance):
         day._db=self.db
         self.assertEqual(self.snapshot_all(),before)
 
+    def test_committed_finals_and_standings_survive_reopen_without_history_invention(self):
+        day=self.multiday()
+        for revision,decision in ((1,"SYNTHETIC-DAY-18"),(2,"SYNTHETIC-DAY-19")):
+            self.assertTrue(day.advance(**dict(self.day_request,revision=revision,
+                                               decision_id=decision))["committed"])
+        before_revision,before_state=self.state()
+        finals={g["id"]:dict(g) for g in before_state["season"]["games"]
+                if g["status"]=="final"}
+        standings=before_state["season"]["standings"]
+        self.assertEqual(before_revision,3)
+        self.assertEqual(before_state["history"],self.original["history"])
+        self.assertEqual(before_state["assets"],self.original["assets"])
+        self.db.close()
+        self.db=sqlite3.connect(self.path,isolation_level=None)
+        self.db.execute("PRAGMA foreign_keys=ON")
+        self.lab._db=self.db
+        day._db=self.db
+        after_revision,after_state=self.state()
+        self.assertEqual(after_revision,before_revision)
+        self.assertEqual({g["id"]:g for g in after_state["season"]["games"]
+                          if g["status"]=="final"},finals)
+        self.assertEqual(after_state["season"]["standings"],standings)
+        self.assertEqual(after_state["season"]["completedDayDecisions"],
+                         ["SYNTHETIC-DAY-18","SYNTHETIC-DAY-19"])
+        self.assertEqual(after_state["history"],self.original["history"])
+        self.assertEqual(after_state["assets"],self.original["assets"])
+        snapshot=self.snapshot_all()
+        self.assertFalse(day.advance(**dict(self.day_request,revision=2,
+                                            decision_id="SYNTHETIC-DAY-19"))["committed"])
+        self.assertEqual(self.snapshot_all(),snapshot)
+
     def test_second_day_cancellation_failure_and_stale_no_save(self):
         day=self.multiday()
         self.assertTrue(day.advance(**self.day_request)["committed"])
