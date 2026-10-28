@@ -1,0 +1,62 @@
+name: Phase 11 Block L Experimental Service Acceptance
+on:
+  push:
+    branches:
+      - experiment/phase11-block-l-review-simulation-integration
+  pull_request:
+    paths:
+      - 'hlm-phase11-block-l-*'
+      - '.github/workflows/phase11-block-l-acceptance.yml'
+jobs:
+  block-l-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Browser adapter and HTTPS transport
+        run: node --test hlm-phase11-block-l-browser-adapter.test.js hlm-phase11-block-l-service-transport.test.js hlm-phase11-block-l-isolated-command-router.test.js hlm-phase11-block-l-state-mapping-audit.test.js
+      - name: Block M authoritative season snapshot projection
+        run: node --test hlm-phase11-block-m-season-snapshot.test.js hlm-phase11-block-m-lifecycle-readiness.test.js hlm-phase11-block-m-strict-playoff-replay.test.js
+      - name: Authenticated HTTP and WSGI contract
+        run: |
+          python hlm-phase11-block-l-http-endpoint.test.py
+          python hlm-phase11-block-l-experimental-wsgi.test.py
+      - name: SQLite review and concurrent settlement regression
+        run: |
+          python hlm-phase11-block-m-full-chain.test.py
+          python hlm-phase11-block-m-playoff-review-settlement.test.py
+          python hlm-phase11-block-m-playoff-game-writer.test.py
+          python hlm-phase11-block-m-trusted-playoff-decision-authority.test.py
+          python hlm-phase11-block-m-sqlite-end-to-end.test.py
+          python hlm-phase11-block-m-sqlite-playoff-provenance.test.py
+          python hlm-phase11-block-m-championship-coordinator.test.py
+          python hlm-phase11-block-m-verified-championship.test.py
+          python hlm-phase11-block-m-authenticated-championship.test.py
+          python hlm-phase11-block-m-championship-ledger.test.py
+          python hlm-phase11-block-l-gm-review-bridge.test.py
+          python hlm-phase11-block-h-multiday-continuity.test.py
+          python hlm-phase11-block-k-concurrent-settlement.test.py
+          python hlm-phase11-block-l-real-sqlite-http.test.py
+          python hlm-phase11-block-l-authoritative-binding.test.py
+          python hlm-phase11-block-l-sqlite-binding-resolver.test.py
+          python hlm-phase11-block-l-authenticated-sqlite-http.test.py
+          python hlm-phase11-block-l-trusted-enrollment.test.py
+          python hlm-phase11-block-l-dev-host-registry.test.py
+  block-l-mobile-chromium:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser test dependencies
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Mobile GM command adapter acceptance
+        run: node hlm-phase11-block-l-mobile.chromium.test.js

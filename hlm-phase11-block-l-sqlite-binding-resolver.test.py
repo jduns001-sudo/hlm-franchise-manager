@@ -1,0 +1,118 @@
+"""SQLite authority resolver regression. Temporary in-memory synthetic fixture only."""
+import importlib.util
+import json
+import sqlite3
+import unittest
+from pathlib import Path
+
+def load(name, filename):
+    spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(filename))
+    mod=importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+resolver=load("block_l_sqlite_resolver","hlm-phase11-block-l-sqlite-binding-resolver.py")
+binding=load("block_l_binding","hlm-phase11-block-l-authoritative-binding.py")
+
+class SQLiteAuthorityTests(unittest.TestCase):
+    def setUp(self):
+        self.db=sqlite3.connect(":memory:")
+        self.db.execute(resolver.SCHEMA)
+        self.db.execute("""INSERT INTO block_l_authoritative_reviews VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            ("F1","GM1","SAVE1","TEAM1","GAME1","BASE1",json.dumps(["P1","P2"]),
+             "PLAN1","DEC1",1,17))
+        self.service=binding.IsolatedReviewBinding(secret=b"k"*32,
+            authoritative_resolver=lambda gm,franchise:resolver.resolve_authoritative_review(self.db,gm,franchise))
+    def tearDown(self):
+        self.db.close()
+    def test_authorized_issue_and_read_only_verification(self):
+        before=self.db.total_changes
+        token=self.service.issue(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},franchise="F1")
+        self.assertEqual(self.service.verify(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},envelope=token)["playerIds"],["P1","P2"])
+        self.assertEqual(self.db.total_changes,before)
+    def test_wrong_owner_cannot_issue(self):
+        with self.assertRaises(PermissionError):
+            self.service.issue(session={"gm":"GM2","session_id":"TRUSTED-SESSION-2"},franchise="F1")
+    def test_stale_review_rejected_after_authoritative_revision(self):
+        token=self.service.issue(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},franchise="F1")
+        self.db.execute("UPDATE block_l_authoritative_reviews SET revision=2 WHERE franchise='F1'")
+        with self.assertRaises(PermissionError):
+            self.service.verify(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},envelope=token)
+    def test_altered_plan_and_players_rejected(self):
+        for column,value in (("plan_id","PLAN2"),("player_ids_json",json.dumps(["P3"]))):
+            with self.subTest(column=column):
+                token=self.service.issue(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},franchise="F1")
+                self.db.execute("UPDATE block_l_authoritative_reviews SET "+column+"=? WHERE franchise='F1'",(value,))
+                with self.assertRaises(PermissionError):
+                    self.service.verify(session={"gm":"GM1","session_id":"TRUSTED-SESSION-1"},envelope=token)
+                self.db.execute("UPDATE block_l_authoritative_reviews SET "+column+"=? WHERE franchise='F1'",
+                    ("PLAN1" if column=="plan_id" else json.dumps(["P1","P2"]),))
+    def test_enrolled_digest_must_match_fresh_host_source(self):
+        enrollment=load("block_l_enrollment_digest","hlm-phase11-block-l-trusted-enrollment.py")
+        self.db.execute(enrollment.SCHEMA)
+        self.db.execute("INSERT INTO block_l_trusted_enrollments VALUES (?,?,?,?,?,?)",
+                        ("F1","GM1","SAVE1","TEAM1","DIGEST-OLD","trusted-host"))
+        def fresh_source(gm,franchise):
+            return dict(owner_gm=gm,franchise=franchise,browserSaveId="SAVE1",
+                        controlledTeamId="TEAM1",sourceDigest="DIGEST-NEW")
+        self.assertIsNone(resolver.resolve_authoritative_review(
+            self.db,"GM1","F1",require_enrollment=True,
+            trusted_source_resolver=fresh_source))
+    def test_real_host_mode_requires_fresh_independent_authority(self):
+        enrollment=load("block_l_host_gate_enrollment","hlm-phase11-block-l-trusted-enrollment.py")
+        self.db.execute(enrollment.SCHEMA)
+        self.db.execute("INSERT INTO block_l_trusted_enrollments VALUES (?,?,?,?,?,?)",
+                        ("F1","GM1","SAVE1","TEAM1","DIGEST-1","trusted-host"))
+        def valid_source(gm,franchise):
+            return dict(owner_gm="GM1",franchise="F1",browserSaveId="SAVE1",
+                        controlledTeamId="TEAM1",sourceDigest="DIGEST-1")
+        def stale_source(gm,franchise):
+            return dict(valid_source(gm,franchise),sourceDigest="DIGEST-2")
+        before=self.db.total_changes
+        options=dict(require_enrollment=True,require_trusted_host_source=True)
+        self.assertIsNone(resolver.resolve_authoritative_review(self.db,"GM1","F1",**options))
+        self.assertIsNone(resolver.resolve_authoritative_review(
+            self.db,"GM1","F1",trusted_source_resolver=lambda *_: None,**options))
+        self.assertIsNone(resolver.resolve_authoritative_review(
+            self.db,"GM1","F1",trusted_source_resolver=stale_source,**options))
+        self.assertIsNotNone(resolver.resolve_authoritative_review(
+            self.db,"GM1","F1",trusted_source_resolver=valid_source,**options))
+        self.assertEqual(self.db.total_changes,before)
+    def test_separately_controlled_host_authority_binding_lifecycle(self):
+        enrollment=load("block_l_adapter_contract_enrollment","hlm-phase11-block-l-trusted-enrollment.py")
+        self.db.execute(enrollment.SCHEMA)
+        self.db.execute("INSERT INTO block_l_trusted_enrollments VALUES (?,?,?,?,?,?)",
+                        ("F1","GM1","SAVE1","TEAM1","DIGEST-A","trusted-host"))
+        # Host-only authority fixture is independent of SQLite enrollment and browser claims.
+        host={"owner_gm":"GM1","franchise":"F1","browserSaveId":"SAVE1",
+              "controlledTeamId":"TEAM1","sourceDigest":"DIGEST-A"}
+        def host_source(gm,franchise):
+            return dict(host) if (gm,franchise)==("GM1","F1") else None
+        def resolve(gm,franchise):
+            return resolver.resolve_authoritative_review(
+                self.db,gm,franchise,require_enrollment=True,
+                require_trusted_host_source=True,trusted_source_resolver=host_source)
+        secured=binding.IsolatedReviewBinding(secret=b"host-contract-key"*3,
+                                               authoritative_resolver=resolve)
+        session={"gm":"GM1","session_id":"HOST-SESSION-A"}
+        before=self.db.total_changes
+        signed=secured.issue(session=session,franchise="F1")
+        self.assertEqual(secured.verify(session=session,envelope=signed)["browserSaveId"],"SAVE1")
+        with self.assertRaises(PermissionError):
+            secured.issue(session={"gm":"OTHER","session_id":"HOST-SESSION-A"},franchise="F1")
+        with self.assertRaises(PermissionError):
+            secured.verify(session={"gm":"GM1","session_id":"HOST-SESSION-B"},envelope=signed)
+        for field,value in (("owner_gm","OTHER"),("browserSaveId","OTHER-SAVE"),
+                            ("controlledTeamId","OTHER-TEAM"),("sourceDigest","DIGEST-B")):
+            original=host[field]
+            host[field]=value
+            with self.subTest(field=field):
+                with self.assertRaises(PermissionError):
+                    secured.verify(session=session,envelope=signed)
+            host[field]=original
+        host.clear()
+        with self.assertRaises(PermissionError):
+            secured.verify(session=session,envelope=signed)
+        self.assertEqual(self.db.total_changes,before)
+if __name__=="__main__":
+    unittest.main()
