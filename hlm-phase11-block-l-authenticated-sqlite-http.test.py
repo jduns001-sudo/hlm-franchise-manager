@@ -6,6 +6,7 @@ browser-loaded franchise and deliberately does not mount a live service.
 import importlib.util
 import json
 import sqlite3
+import tempfile
 from pathlib import Path
 
 ROOT=Path(__file__).parent
@@ -62,15 +63,28 @@ class AuthenticatedSQLiteBindingHTTP(prior.RealSQLiteHTTPAcceptance):
         self.assertEqual(status,200)
         signed=issued["server_binding"]
         before=self.snapshot_all()
-        # A separate SQLite connection sees the persisted host enrollment and review.
-        self.db.commit()
-        reloaded=sqlite3.connect(self.db.execute("PRAGMA database_list").fetchone()[2]) if self.db.execute("PRAGMA database_list").fetchone()[2] else None
-        if reloaded is not None:
+        # Persist a genuine SQLite file, close it, and reopen independently.
+        with tempfile.TemporaryDirectory(prefix="block-l-reload-") as directory:
+            filename=str(Path(directory)/"authority.sqlite3")
+            disk=sqlite3.connect(filename)
             try:
-                self.assertIsNotNone(resolver.resolve_authoritative_review(
-                    reloaded,self.gm["token"],"SYNTHETIC-F",require_enrollment=True))
+                self.db.commit()
+                self.db.backup(disk)
+                disk.commit()
             finally:
-                reloaded.close()
+                disk.close()
+            reopened=sqlite3.connect(filename)
+            try:
+                trusted=resolver.resolve_authoritative_review(
+                    reopened,self.gm["token"],"SYNTHETIC-F",require_enrollment=True)
+                self.assertIsNotNone(trusted)
+                self.assertEqual(trusted["browserSaveId"],"ISOLATED-SAVE")
+                self.assertEqual(trusted["controlledTeamId"],"TEAM-1")
+                self.assertIsNone(resolver.resolve_authoritative_review(
+                    reopened,"OTHER-GM","SYNTHETIC-F",require_enrollment=True))
+                self.assertEqual(reopened.total_changes,0)
+            finally:
+                reopened.close()
         original=self.binding._session_id
         try:
             self.binding._session_id=lambda session: "ROTATED-SESSION"
