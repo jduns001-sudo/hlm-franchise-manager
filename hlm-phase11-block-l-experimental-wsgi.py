@@ -19,6 +19,8 @@ def create_experimental_wsgi_app(*, enabled=False, session_resolver=None,
         raise RuntimeError("Block L experimental service is disabled")
     if not all(callable(x) for x in (session_resolver, csrf_verifier, authorize, bridge_factory)):
         raise ValueError("Trusted host dependencies required")
+    if not callable(binding_verifier) or not callable(binding_issuer):
+        raise ValueError("Signed authoritative binding issuer and verifier required")
     endpoint = endpoint_module.ExperimentalGMReviewEndpoint(
         session_resolver=session_resolver, csrf_verifier=csrf_verifier,
         authorize=authorize, bridge_factory=bridge_factory, origin=origin,
