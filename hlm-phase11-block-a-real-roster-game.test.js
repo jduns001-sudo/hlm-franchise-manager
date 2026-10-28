@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const universe=require('./hlm-universe.json');
+const positionRoster=require('./hlm-roster-2026.json');
 const {build,teams}=require('./hlm-phase11-new-franchise');
 const gameState=require('./hlm-game-state');
 const schedule=require('./hlm-phase10-season-schedule');
@@ -15,7 +16,7 @@ const {createBrowserFranchiseSaveStore}=require('./hlm-phase10-browser-storage')
 const {create}=require('./hlm-phase11-isolated-single-game');
 const engine={...gameState,...schedule,applyScheduledGame,simulateNextDay,calculateStandings,createBrowserFranchiseSaveStore,startSeasonPlayoffs,simulateNextPlayoffGame,finalizeChampionshipSeason,completeOffseasonAndStartSeason};
 const owner=teams(universe).find(t=>t.abbr==='PIT');assert.ok(owner);
-const state=build(universe,owner.id,engine);
+const state=build(universe,owner.id,engine,positionRoster);
 const memory=new Map([['hlm_front_office_v8','PRODUCTION_SENTINEL']]);
 const storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
 const gm=create(engine,storage);gm.stage(state,true);
