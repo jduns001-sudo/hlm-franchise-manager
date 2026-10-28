@@ -15,7 +15,7 @@ class ExperimentalGMReviewEndpoint:
         self.authorize = authorize
         self.bridge_factory = bridge_factory
         self.origin = origin
-        if binding_verifier is not None and not callable(binding_verifier):
+        if not callable(binding_verifier):
             raise ValueError('Trusted binding verifier required')
         self.binding_verifier = binding_verifier
         if binding_issuer is not None and not callable(binding_issuer):
@@ -63,8 +63,8 @@ class ExperimentalGMReviewEndpoint:
                 if issued["binding"].get("revision") != revision or issued["binding"].get("seed") != seed:
                     return 403, {"committed": False, "error": "binding_mismatch"}
                 return 200, {"committed": False, "server_binding": issued}
-            # Opt-in authoritative binding check before any coordinator dispatch.
-            if self.binding_verifier is not None:
+            # Mandatory authoritative binding check before any coordinator dispatch.
+            if True:
                 try:
                     bound = self.binding_verifier(session=session, envelope=payload.get("server_binding"))
                 except (PermissionError, ValueError, TypeError, KeyError):
