@@ -11,6 +11,7 @@ spec.loader.exec_module(module)
 class TrustedEnrollmentTests(unittest.TestCase):
     def setUp(self):
         self.db = sqlite3.connect(":memory:")
+        self.db.execute(module.SCHEMA)
         self.args = dict(principal="GM1", franchise="F1", save_id="SAVE1",
                          team_id="TEAM1", source_digest="trusted-digest",
                          attested_by="trusted-host")
