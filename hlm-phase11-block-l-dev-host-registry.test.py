@@ -87,7 +87,7 @@ class DevelopmentHostRegistryTests(unittest.TestCase):
                 x=self.host.resolve(session={"gm":gm,"session_id":"HOST"},franchise=franchise)
             except PermissionError:
                 return None
-            return dict(x,gameId="GAME1",browserBaseline="BASE1",playerIds=["P1"],
+            return dict(x,gameId="GAME1",browserBaseline=x["sourceDigest"],playerIds=["P1"],
                         plan_id="PLAN1",decision_id="DAY1",revision=1,seed=17)
         signer=binding.IsolatedReviewBinding(
             secret=b"dev-host-only-secret-key-at-least-32-bytes",
