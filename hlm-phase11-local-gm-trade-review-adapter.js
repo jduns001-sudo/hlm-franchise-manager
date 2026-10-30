@@ -14,6 +14,17 @@ async function renderAuthenticatedLocalTradeReview({
       bridgeResult.record?.decision !== 'accepted') {
     throw new Error('Authenticated and verified consent required');
   }
+  const record = bridgeResult.record;
+  if (typeof envelope.proposalDigest !== 'string' ||
+      record.proposalDigest !== envelope.proposalDigest ||
+      record.stateRevision !== envelope.stateRevision ||
+      record.controlledTeamId !== envelope.controlledTeamId ||
+      record.receivingTeamId !== envelope.teamId ||
+      record.decisionId !== envelope.decisionId ||
+      record.expiresAt !== envelope.expiresAt ||
+      record.source !== 'receiving-team-authority') {
+    throw new Error('Consent record does not match the signed envelope');
+  }
   const source = await resolveAuthoritativeReview(envelope.proposalId, envelope.stateRevision);
   if (!source || source.proposalId !== envelope.proposalId ||
       source.stateRevision !== envelope.stateRevision ||
