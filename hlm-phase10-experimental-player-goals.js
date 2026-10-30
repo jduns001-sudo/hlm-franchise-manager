@@ -13,7 +13,14 @@ function buildExperimentalGoalEvents(state,game,seed=1){
   if(!skaters.length&&goals>0)throw new Error('No eligible scoring players for team '+teamId);
   const sorted=skaters.slice().sort((a,b)=>String(a.id).localeCompare(String(b.id)));
   for(let i=0;i<goals;i++){
-   const index=(seed+i*7+Number(teamId||0))%sorted.length;
+   // Preserve legacy numeric-ID attribution; hash nonnumeric IDs deterministically.
+   const numericTeamId=Number(teamId||0);
+   let teamOffset=numericTeamId;
+   if(!Number.isFinite(numericTeamId)){
+    teamOffset=0;
+    for(const char of String(teamId))teamOffset=(Math.imul(teamOffset,31)+char.charCodeAt(0))>>>0;
+   }
+   const index=(seed+i*7+teamOffset)%sorted.length;
    events.push({gameId:game.id,teamId,playerId:sorted[index].id,type:'goal',sequence:i+1,experimental:true});
   }
  }
