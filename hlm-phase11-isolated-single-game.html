@@ -271,7 +271,37 @@ let reviewedDay=null;
 $('gm-game-day-review').addEventListener('click',()=>{try{pendingGameDaySkaters=manager.reviewGameDaySkaters($('game').value);$('gm-game-day-approve').disabled=false;$('gm-game-day-approval-status').textContent='Reviewed '+pendingGameDaySkaters.playerIds.length+' skaters for game '+pendingGameDaySkaters.gameId+'. Human GM approval required. No save yet.'}catch(e){pendingGameDaySkaters=null;$('gm-game-day-approve').disabled=true;$('gm-game-day-approval-status').textContent=e.message}});
 $('gm-game-day-approve').addEventListener('click',async()=>{if(!pendingGameDaySkaters)return;if(!confirm('Human GM: approve reviewed skaters for game '+pendingGameDaySkaters.gameId+'?'))return;try{const result=await locked(()=>manager.approveReviewedGameDaySkaters(pendingGameDaySkaters,true));pendingGameDaySkaters=null;refresh();$('gm-game-day-approval-status').textContent='GM approved game-day skaters for '+result.gameId+'. Official simulation remains authoritative.'}catch(e){pendingGameDaySkaters=null;$('gm-game-day-approve').disabled=true;$('gm-game-day-approval-status').textContent=e.message}});
 $('day-review').addEventListener('click',()=>{try{reviewedDay=manager.reviewNextDay();$('day-report').textContent='Next isolated day: '+reviewedDay.fromDate+' to '+reviewedDay.toDate+'; games: '+reviewedDay.games+'. Approval required.\nScheduled matchups (not predictions):\n'+(reviewedDay.matchups.map(g=>String(g.date)+' | '+teamNameForReview(g.homeTeamId)+' vs '+teamNameForReview(g.awayTeamId)+(g.controlledTeamInvolved?' | YOUR FRANCHISE | roster '+g.readiness.rosterPlayers+' | unresolved injuries '+g.readiness.unresolvedInjuries+' | approved goalie '+(g.readiness.approvedGoalieId??'none')+(g.readiness.goalieNeedsReview?' (REVIEW NEEDED)':'')+' | approved skaters '+g.readiness.approvedSkaters+(g.readiness.skatersNeedReview?' (REVIEW NEEDED)':'')+' | experimental '+(g.readiness.experimentalEnabled?'ON':'OFF'):'')).join('\n')||'No games today.');$('day-approve').disabled=false}catch(e){reviewedDay=null;$('day-report').textContent=e.message}});
-$('day-approve').addEventListener('click',async()=>{if(!reviewedDay)return;if(!confirm('Human GM: approve isolated franchise day '+reviewedDay.toDate+' with '+reviewedDay.games+' games? This persists only the isolated save.'))return;try{const result=await locked(()=>{const current=manager.reviewNextDay();if(current.fromDate!==reviewedDay.fromDate||current.toDate!==reviewedDay.toDate||current.games!==reviewedDay.games||JSON.stringify(current.matchups)!==JSON.stringify(reviewedDay.matchups))throw Error('Reviewed day changed; review again');return manager.advanceNextDay(1341,true)});refresh();reviewedDay=null;$('day-report').textContent='Persisted isolated day '+result.toDate+'; '+result.results.length+' games. Standings updated.'}catch(e){reviewedDay=null;$('day-approve').disabled=true;$('day-report').textContent=e.message}});
+// Opt-in, session-only diagnostics. No save data or gameplay decisions are recorded.
+function beginDayPerformance(){
+ try{if(sessionStorage.getItem('hlm_phase11_day_perf_diagnostics')!=='1')return null;}catch(_){return null;}
+ const now=()=>{try{return performance.now();}catch(_){return null;}};
+ const started=now();let phase=null,phaseStart=null;
+ const emit=(event,stage,elapsedMs)=>{try{console.info('[HLM day performance]',{event,stage,elapsedMs});}catch(_){}};
+ emit('start','total',null);
+ return {
+  start(stage){phase=stage;phaseStart=now();emit('start',stage,null);},
+  end(){if(phase===null)return;const end=now();emit('end',phase,end===null||phaseStart===null?null:Math.max(0,end-phaseStart));phase=null;},
+  finish(outcome){this.end();const end=now();emit(outcome,'total',end===null||started===null?null:Math.max(0,end-started));}
+ };
+}
+$('day-approve').addEventListener('click',async()=>{
+ if(!reviewedDay)return;
+ if(!confirm('Human GM: approve isolated franchise day '+reviewedDay.toDate+' with '+reviewedDay.games+' games? This persists only the isolated save.'))return;
+ const perf=beginDayPerformance();let outcome='error';
+ try{
+  perf?.start('lock_wait');
+  const result=await locked(()=>{
+   perf?.end();perf?.start('review_validation');
+   try{const current=manager.reviewNextDay();if(current.fromDate!==reviewedDay.fromDate||current.toDate!==reviewedDay.toDate||current.games!==reviewedDay.games||JSON.stringify(current.matchups)!==JSON.stringify(reviewedDay.matchups))throw Error('Reviewed day changed; review again');}finally{perf?.end();}
+   perf?.start('advance_and_persist');
+   try{return manager.advanceNextDay(1341,true);}finally{perf?.end();}
+  });
+  perf?.start('ui_refresh');try{refresh();}finally{perf?.end();}
+  reviewedDay=null;$('day-report').textContent='Persisted isolated day '+result.toDate+'; '+result.results.length+' games. Standings updated.';
+  outcome='complete';
+ }catch(e){reviewedDay=null;$('day-approve').disabled=true;$('day-report').textContent=e.message}
+ finally{perf?.finish(outcome);}
+});
 $('gm-upcoming-readiness-board').addEventListener('click',()=>{const actions=$('gm-upcoming-review-actions');actions.replaceChildren();try{const rows=window.HLMGMUpcomingReadinessBoard.build(manager.peek());$('gm-upcoming-readiness-report').textContent=window.HLMGMUpcomingReadinessBoard.render(rows);for(const row of rows){const button=document.createElement('button');button.type='button';button.textContent='Review '+row.date+' '+(row.homeGame?'home':'away')+' vs '+(row.homeGame?row.away:row.home);button.dataset.gameId=row.gameId;button.addEventListener('click',()=>{try{const state=manager.peek();const owner=String(state?.meta?.controlledTeamId??'');const game=(state?.activity?.games||[]).find(g=>String(g.id)===row.gameId&&g.status==='scheduled'&&(String(g.homeTeamId)===owner||String(g.awayTeamId)===owner));if(!game)throw Error('Matchup changed or completed. Refresh the board before reviewing.');const option=Array.from($('gm-upcoming-game-select').options).find(o=>o.value===row.gameId);if(!option)throw Error('Matchup no longer appears in the upcoming GM game selector.');$('gm-upcoming-game-select').value=row.gameId;$('gm-upcoming-game-open').click();const status=$('gm-upcoming-game-open-status').textContent;if(!status.startsWith('Selected GM game'))throw Error(status);$('gm-upcoming-review-action-status').textContent='Opened '+row.gameId+' for human GM review. No approval, simulation or save occurred.';}catch(e){$('gm-upcoming-review-action-status').textContent='Review blocked: '+e.message}});actions.append(button)}}catch(e){$('gm-upcoming-readiness-report').textContent=e.message;$('gm-upcoming-review-action-status').textContent='Upcoming review unavailable.'}});
 const workspaceStatus=$('gm-workspace-status');
 function syncGameWorkspace(){const available=!$('gm-selected-game-preview').disabled;$('gm-workspace-day-handoff').disabled=$('day-review').disabled;$('gm-workspace-prepare').disabled=!available||$('gm-game-day-review').disabled;$('gm-workspace-preview').disabled=!available;$('gm-workspace-review').disabled=!available||$('gm-game-day-review').disabled;$('gm-workspace-approve').disabled=$('gm-game-day-approve').disabled;$('gm-workspace-decline').disabled=!pendingGameDaySkaters&&$('gm-game-day-approve').disabled;}

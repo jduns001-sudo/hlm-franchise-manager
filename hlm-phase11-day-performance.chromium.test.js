@@ -1,0 +1,56 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+const {chromium}=require('playwright');
+const file='hlm-phase11-isolated-single-game.html',key='hlm-phase11-m1340-isolated-single-game-v1';
+const flag='hlm_phase11_day_perf_diagnostics',lock='hlm-phase11-m1340-isolated-single-game-lock';
+const server=http.createServer((req,res)=>{const name=(req.url||'/').split('?')[0].slice(1);if(!/^[\w.-]+$/.test(name))return res.writeHead(404).end();fs.readFile(path.join(__dirname,name),(e,b)=>{if(e)return res.writeHead(404).end();res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':name.endsWith('.json')?'application/json':'text/html');res.end(b)})});
+(async()=>{
+ await new Promise(ok=>server.listen(0,'127.0.0.1',ok));let browser;
+ try{
+  browser=await chromium.launch();const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+  await context.addInitScript(()=>{window.__dayPerf=[];const info=console.info;console.info=function(tag,event){if(tag==='[HLM day performance]')window.__dayPerf.push(event);return info.apply(this,arguments)}});
+  const errors=[];context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));
+  const url='http://127.0.0.1:'+server.address().port+'/'+file;
+  const page=await context.newPage();await page.goto(url);
+  assert.equal(await page.evaluate(()=>typeof navigator.locks.request),'function','native Web Locks');
+  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
+  const state={schemaVersion:1,meta:{saveId:'a6-focused',createdAt:null,updatedAt:null,controlledTeamId:1,currentDate:'2026-10-18'},universe:{players:[],teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],leagues:[],prospects:[],staff:[]},assets:{contracts:[],draftPicks:[]},activity:{transactions:[],games:[19,20,21].map(d=>({id:'g'+d,date:'2026-10-'+d,homeTeamId:1,awayTeamId:2,status:'scheduled'})),injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{},extensions:{}};
+  await page.locator('#file').setInputFiles({name:'a6.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
+  page.once('dialog',d=>d.accept());await page.locator('#import').click();
+  await page.waitForFunction(()=>document.querySelector('#output').textContent.includes('Scheduled games remaining: 3'));
+  const saved=p=>p.evaluate(k=>localStorage.getItem(k),key);
+  const events=p=>p.evaluate(()=>window.__dayPerf);
+  const approve=async p=>{p.once('dialog',d=>d.accept());await p.locator('#day-approve').click()};
+  const complete=p=>p.waitForFunction(()=>document.querySelector('#day-report').textContent.includes('Persisted isolated day'));
+  let before=await saved(page);
+  await page.locator('#day-review').click();assert.equal(await saved(page),before);
+  page.once('dialog',d=>d.dismiss());await page.locator('#day-approve').click();assert.equal(await saved(page),before);assert.deepEqual(await events(page),[]);
+  await approve(page);await complete(page);assert.notEqual(await saved(page),before);assert.deepEqual(await events(page),[],'default-off approved day has no diagnostics');
+  await page.evaluate(k=>sessionStorage.setItem(k,'1'),flag);await page.reload();
+  assert.equal(await page.evaluate(k=>sessionStorage.getItem(k),flag),'1');assert.deepEqual(await events(page),[],'reload emits no approval diagnostics');
+  before=await saved(page);await page.locator('#gm-day-command-review').click();await page.locator('#gm-day-command-decline').click();assert.equal(await saved(page),before);assert.deepEqual(await events(page),[]);
+  await page.locator('#day-review').click();page.once('dialog',d=>d.dismiss());await page.locator('#day-approve').click();assert.equal(await saved(page),before);assert.deepEqual(await events(page),[]);
+  const stale=await context.newPage();await stale.goto(url);await stale.evaluate(k=>sessionStorage.setItem(k,'1'),flag);await stale.locator('#day-review').click();
+  await approve(page);await complete(page);const after=await saved(page);assert.notEqual(after,before);
+  const records=await events(page);assert.deepEqual(records.filter(e=>e.event==='end').map(e=>e.stage),['lock_wait','review_validation','advance_and_persist','ui_refresh']);assert.equal(records.at(-1).event,'complete');
+  assert.ok(records.every(e=>Object.keys(e).sort().join(',')==='elapsedMs,event,stage'));
+  assert.ok(records.filter(e=>e.elapsedMs!==null).every(e=>Number.isFinite(e.elapsedMs)&&e.elapsedMs>=0));
+  await approve(stale);await stale.waitForFunction(()=>window.__dayPerf.some(e=>e.event==='error'));assert.equal(await saved(stale),after,'stale tab cannot save');assert.match(await stale.locator('#day-report').innerText(),/changed|reload/i);
+  await page.reload();assert.equal(await saved(page),after,'reload preserves approved save');assert.deepEqual(await events(page),[]);
+  // Interrupt an approved operation while its native exclusive lock is waiting.
+  const holder=await context.newPage();await holder.goto(url);
+  await holder.evaluate(name=>{window.__held=false;navigator.locks.request(name,()=>{window.__held=true;return new Promise(resolve=>{window.__release=resolve})})},lock);
+  await holder.waitForFunction(()=>window.__held);
+  await page.locator('#day-review').click();await approve(page);
+  await page.waitForFunction(()=>window.__dayPerf.some(e=>e.stage==='lock_wait'&&e.event==='start'));
+  assert.equal(await saved(page),after,'waiting lock cannot write');assert.equal((await events(page)).some(e=>e.stage==='advance_and_persist'),false);
+  await page.close();await holder.evaluate(()=>window.__release());
+  const recovered=await context.newPage();await recovered.goto(url);assert.equal(await saved(recovered),after,'interrupted lock wait cannot save');
+  assert.equal(await recovered.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
+  assert.equal(await recovered.evaluate(k=>sessionStorage.getItem(k),flag),null,'diagnostic opt-in does not leak to independent tabs');
+  assert.equal(after.includes('day_perf_diagnostics'),false);assert.equal(after.includes('elapsedMs'),false);
+  assert.deepEqual(errors,[]);
+  console.log('PASS A6 mobile Chromium: default-off and enabled one-day saves, timing phases, review/decline/cancel no-save, native lock waiting, stale tab rejection, interrupted wait, reload, production isolation. No full-season run.');
+  console.log('Enabled-day timings: '+JSON.stringify(records));
+ }finally{if(browser)await browser.close();await new Promise(ok=>server.close(ok))}
+})().catch(e=>{console.error(e);process.exitCode=1});
