@@ -1,10 +1,12 @@
 'use strict';
 const crypto = require('node:crypto');
 const http = require('node:http');
+const {renderAuthenticatedLocalTradeReview} = require('./hlm-phase11-local-gm-trade-review-adapter');
 
 const SESSION_PATH = '/v1/session';
 const CONSENT_PATH = '/v1/consent';
 const BRIDGE_PATH = '/v1/bridge';
+const REVIEW_PATH = '/v1/review';
 const SESSION_COOKIE = '__Host-hlm_exp_cpu_session';
 const DEFAULT_SESSION_TTL_MS = 10 * 60 * 1000;
 const MAX_BODY_BYTES = 8192;
@@ -133,6 +135,7 @@ function createLocalCpuConsentGateway({
   authority,
   bridge,
   resolveAuthoritativeProposal,
+  resolveAuthoritativeReview,
   developmentPage,
   now = () => Date.now(),
   sessionTtlMs = DEFAULT_SESSION_TTL_MS,
@@ -156,6 +159,10 @@ function createLocalCpuConsentGateway({
       (resolveAuthoritativeProposal && typeof resolveAuthoritativeProposal !== 'function') ||
       Boolean(bridge) !== Boolean(resolveAuthoritativeProposal)) {
     throw new TypeError('Bridge review and authoritative proposal resolver must be configured together');
+  }
+  if (resolveAuthoritativeReview !== undefined &&
+      (typeof resolveAuthoritativeReview !== 'function' || !bridge || !resolveAuthoritativeProposal)) {
+    throw new TypeError('Review requires trusted bridge and source-backed resolvers');
   }
   if (developmentPage !== undefined && typeof developmentPage !== 'string') {
     throw new TypeError('Development page must be trusted HTML text');
@@ -262,7 +269,7 @@ function createLocalCpuConsentGateway({
     }
     if (!requestOriginAllowed(request)) return rejectRequest(response, 403, 'invalid-origin');
     if (request.method !== 'POST' ||
-        ![SESSION_PATH, CONSENT_PATH, BRIDGE_PATH].includes(request.url)) {
+        ![SESSION_PATH, CONSENT_PATH, BRIDGE_PATH, REVIEW_PATH].includes(request.url)) {
       return rejectRequest(response, 404, 'not-found');
     }
     if (request.headers['sec-fetch-site'] !== undefined &&
@@ -300,7 +307,8 @@ function createLocalCpuConsentGateway({
       });
     }
 
-    if (request.url === BRIDGE_PATH && !bridge) {
+    if ((request.url === BRIDGE_PATH && !bridge) ||
+        (request.url === REVIEW_PATH && !resolveAuthoritativeReview)) {
       return rejectRequest(response, 404, 'not-found');
     }
 
@@ -398,6 +406,18 @@ function createLocalCpuConsentGateway({
           : 'receiving-consent-bridge-rejected';
         return send(response, 409, {error: code}, session);
       }
+      if (request.url === REVIEW_PATH) {
+        const html = await renderAuthenticatedLocalTradeReview({
+          authenticatedSession: true,
+          bridgeResult: result,
+          envelope: body.envelope,
+          resolveAuthoritativeReview
+        });
+        if (controller.signal.aborted || response.destroyed) return;
+        return send(response, 200, {
+          html, saved: false, settlementAuthorized: false, experimental: true
+        }, session);
+      }
       return send(response, 200, {
         status: result.status,
         decision: result.decision,
@@ -439,7 +459,8 @@ function createLocalCpuConsentGateway({
       port: actualPort,
       sessionPath: SESSION_PATH,
       consentPath: CONSENT_PATH,
-      bridgePath: bridge ? BRIDGE_PATH : null
+      bridgePath: bridge ? BRIDGE_PATH : null,
+      reviewPath: resolveAuthoritativeReview ? REVIEW_PATH : null
     });
   }
 
