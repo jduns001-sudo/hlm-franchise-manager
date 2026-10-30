@@ -204,14 +204,16 @@ test('revision change during policy evaluation fails the durable revision guard'
   const server = await authority.start();
   const response = await post(server, {proposalId: PROPOSAL_ID, expectedRevision: REVISION});
   assert.equal(response.status, 409);
-  assert.equal((await response.json()).error, 'replayed-or-stale');
+  assert.equal((await response.json()).error, 'stale-authoritative-revision');
 });
 
 test('replays and concurrent requests have exactly one accepted issuance', async t => {
   const paths = tempPaths();
   t.after(() => fs.rmSync(paths.directory, {recursive: true, force: true}));
+  let policyCalls = 0;
   const authority = createAuthority(paths, {
     async evaluate() {
+      policyCalls++;
       await new Promise(resolve => setTimeout(resolve, 15));
       return 'accepted';
     }
@@ -221,10 +223,13 @@ test('replays and concurrent requests have exactly one accepted issuance', async
   const server = await authority.start();
   const attempts = await Promise.all(Array.from({length: 8}, () =>
     post(server, {proposalId: PROPOSAL_ID, expectedRevision: REVISION})));
-  assert.equal(attempts.filter(response => response.status === 200).length, 1);
-  assert.equal(attempts.filter(response => response.status === 409).length, 7);
+  assert.ok(attempts.every(response => response.status === 200));
+  const envelopes = await Promise.all(attempts.map(response => response.json()));
+  assert.ok(envelopes.every(envelope => JSON.stringify(envelope) === JSON.stringify(envelopes[0])));
+  assert.equal(policyCalls, 1);
   const replay = await post(server, {proposalId: PROPOSAL_ID, expectedRevision: REVISION});
-  assert.equal(replay.status, 409);
+  assert.equal(replay.status, 200);
+  assert.deepEqual(await replay.json(), envelopes[0]);
 });
 
 test('restart preserves signing identity, authoritative proposal, and replay history', async t => {
@@ -246,8 +251,8 @@ test('restart preserves signing identity, authoritative proposal, and replay his
   assert.equal(second.keyId, keyId);
   assert.equal(verifyEnvelope(firstEnvelope, second.publicKey), true);
   const replay = await post(second, {proposalId: PROPOSAL_ID, expectedRevision: REVISION});
-  assert.equal(replay.status, 409);
-  assert.equal((await replay.json()).error, 'replayed-or-stale');
+  assert.equal(replay.status, 200);
+  assert.deepEqual(await replay.json(), firstEnvelope);
   assert.equal(fs.statSync(paths.privateKeyPath).mode & 0o777, 0o600);
   assert.equal(fs.statSync(paths.databasePath).mode & 0o777, 0o600);
 });
