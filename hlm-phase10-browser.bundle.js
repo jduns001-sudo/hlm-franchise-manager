@@ -186,6 +186,12 @@ function applyScheduledGame(state, gameId, seed, options={}) {
         input.experimentalVerifiedSkaterAverage=Math.round(eligible.reduce((total,p)=>total+(p.overall??p.ovr),0)/eligible.length);
         input.experimentalVerifiedSkaterSide=side;
       }
+      const opponentTeamId=side==='home'?game.awayTeamId:game.homeTeamId;
+      const opponentSkaters=nextState.universe.players.filter(p=>String(p.teamId)===String(opponentTeamId)&&['C','LW','RW','D','F'].includes(String(p.position||'').toUpperCase())&&Number.isSafeInteger(p.overall??p.ovr)&&(p.overall??p.ovr)>=1&&(p.overall??p.ovr)<=99&&!(nextState.activity.injuries||[]).some(i=>String(i.playerId)===String(p.id)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false));
+      if(opponentSkaters.length>=3){
+        input.experimentalOpponentVerifiedSkaterAverage=Math.round(opponentSkaters.reduce((total,p)=>total+(p.overall??p.ovr),0)/opponentSkaters.length);
+        input.experimentalOpponentVerifiedSkaterSide=side==='home'?'away':'home';
+      }
     }
   }
   const result=simulateGameScore(input);
@@ -252,7 +258,9 @@ function simulateGameScore(input) {
   const {gameId, homeTeamId, awayTeamId, seed} = input;
   const rating=input.experimentalApprovedGoalieOverall;
   const skaterAverage=input.experimentalVerifiedSkaterAverage;
+  const opponentSkaterAverage=input.experimentalOpponentVerifiedSkaterAverage;
   if(skaterAverage!==undefined&&(!Number.isSafeInteger(skaterAverage)||skaterAverage<1||skaterAverage>99||!['home','away'].includes(input.experimentalVerifiedSkaterSide)||rating===undefined))throw Error('Invalid experimental verified skater average or side');
+  if(opponentSkaterAverage!==undefined&&(!Number.isSafeInteger(opponentSkaterAverage)||opponentSkaterAverage<1||opponentSkaterAverage>99||!['home','away'].includes(input.experimentalOpponentVerifiedSkaterSide)||input.experimentalOpponentVerifiedSkaterSide===input.experimentalVerifiedSkaterSide||rating===undefined))throw Error('Invalid experimental opponent skater average or side');
   if(rating!==undefined&&(!Number.isSafeInteger(rating)||rating<1||rating>99||!['home','away'].includes(input.experimentalApprovedGoalieSide)))throw Error('Invalid experimental approved goalie rating or side');
   if (gameId == null || homeTeamId == null || awayTeamId == null ||
       String(homeTeamId) === String(awayTeamId) ||
@@ -281,6 +289,11 @@ function simulateGameScore(input) {
     // One bounded team-level scoring effect from healthy, rated roster skaters; no invented player statistics.
     const shift=skaterAverage>=85?1:skaterAverage<=65?-1:0;
     if(input.experimentalVerifiedSkaterSide==='home')adjustedHome=Math.max(0,adjustedHome+shift);
+    else adjustedAway=Math.max(0,adjustedAway+shift);
+  }
+  if(opponentSkaterAverage!==undefined){
+    const shift=opponentSkaterAverage>=85?1:opponentSkaterAverage<=65?-1:0;
+    if(input.experimentalOpponentVerifiedSkaterSide==='home')adjustedHome=Math.max(0,adjustedHome+shift);
     else adjustedAway=Math.max(0,adjustedAway+shift);
   }
   const experimentalOvertime=rating!==undefined&&adjustedHome===adjustedAway;

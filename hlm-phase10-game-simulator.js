@@ -9,7 +9,9 @@ function simulateGameScore(input) {
   const {gameId, homeTeamId, awayTeamId, seed} = input;
   const rating=input.experimentalApprovedGoalieOverall;
   const skaterAverage=input.experimentalVerifiedSkaterAverage;
+  const opponentSkaterAverage=input.experimentalOpponentVerifiedSkaterAverage;
   if(skaterAverage!==undefined&&(!Number.isSafeInteger(skaterAverage)||skaterAverage<1||skaterAverage>99||!['home','away'].includes(input.experimentalVerifiedSkaterSide)||rating===undefined))throw Error('Invalid experimental verified skater average or side');
+  if(opponentSkaterAverage!==undefined&&(!Number.isSafeInteger(opponentSkaterAverage)||opponentSkaterAverage<1||opponentSkaterAverage>99||!['home','away'].includes(input.experimentalOpponentVerifiedSkaterSide)||input.experimentalOpponentVerifiedSkaterSide===input.experimentalVerifiedSkaterSide||rating===undefined))throw Error('Invalid experimental opponent skater average or side');
   if(rating!==undefined&&(!Number.isSafeInteger(rating)||rating<1||rating>99||!['home','away'].includes(input.experimentalApprovedGoalieSide)))throw Error('Invalid experimental approved goalie rating or side');
   if (gameId == null || homeTeamId == null || awayTeamId == null ||
       String(homeTeamId) === String(awayTeamId) ||
@@ -38,6 +40,11 @@ function simulateGameScore(input) {
     // One bounded team-level scoring effect from healthy, rated roster skaters; no invented player statistics.
     const shift=skaterAverage>=85?1:skaterAverage<=65?-1:0;
     if(input.experimentalVerifiedSkaterSide==='home')adjustedHome=Math.max(0,adjustedHome+shift);
+    else adjustedAway=Math.max(0,adjustedAway+shift);
+  }
+  if(opponentSkaterAverage!==undefined){
+    const shift=opponentSkaterAverage>=85?1:opponentSkaterAverage<=65?-1:0;
+    if(input.experimentalOpponentVerifiedSkaterSide==='home')adjustedHome=Math.max(0,adjustedHome+shift);
     else adjustedAway=Math.max(0,adjustedAway+shift);
   }
   const experimentalOvertime=rating!==undefined&&adjustedHome===adjustedAway;

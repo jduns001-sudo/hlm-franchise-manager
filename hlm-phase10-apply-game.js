@@ -53,6 +53,12 @@ function applyScheduledGame(state, gameId, seed, options={}) {
         input.experimentalVerifiedSkaterAverage=Math.round(eligible.reduce((total,p)=>total+(p.overall??p.ovr),0)/eligible.length);
         input.experimentalVerifiedSkaterSide=side;
       }
+      const opponentTeamId=side==='home'?game.awayTeamId:game.homeTeamId;
+      const opponentSkaters=nextState.universe.players.filter(p=>String(p.teamId)===String(opponentTeamId)&&['C','LW','RW','D','F'].includes(String(p.position||'').toUpperCase())&&Number.isSafeInteger(p.overall??p.ovr)&&(p.overall??p.ovr)>=1&&(p.overall??p.ovr)<=99&&!(nextState.activity.injuries||[]).some(i=>String(i.playerId)===String(p.id)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false));
+      if(opponentSkaters.length>=3){
+        input.experimentalOpponentVerifiedSkaterAverage=Math.round(opponentSkaters.reduce((total,p)=>total+(p.overall??p.ovr),0)/opponentSkaters.length);
+        input.experimentalOpponentVerifiedSkaterSide=side==='home'?'away':'home';
+      }
     }
   }
   const result=simulateGameScore(input);
