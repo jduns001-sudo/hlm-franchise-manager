@@ -96,7 +96,7 @@ function create(engine,storage,boxScores=null){
    const entry=entries.find(e=>String(e.gameId)===String(g.id)&&String(e.teamId)===String(teamId));
    return Object.freeze({gameId:g.id,date:g.date,homeTeamId:g.homeTeamId,awayTeamId:g.awayTeamId,homeGoals:g.homeGoals??null,awayGoals:g.awayGoals??null,approvedPlayerIds:Object.freeze(entry?[...entry.playerIds]:[]),planAvailable:!!entry,actualParticipationVerified:false,experimentalResult:g.experimentalRosterAware===true&&g.official===false});
   });
-  const next=state.activity?.games?.filter(g=>g.status==='scheduled'&&(String(g.homeTeamId)===String(teamId)||String(g.awayTeamId)===String(teamId))).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')))[0]||null;
+  const next=state.activity?.games?.filter(g=>g.status==='scheduled'&&(String(g.homeTeamId)===String(teamId)||String(g.awayTeamId)===String(teamId))).sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||String(a.id).localeCompare(String(b.id)))[0]||null;
   const approval=state.extensions?.phase11GmGameDaySkaterApproval;
   const nextApproved=!!next&&String(approval?.gameId)===String(next.id)&&String(approval?.teamId)===String(teamId);
   return Object.freeze({teamId,recent:Object.freeze(recent),nextGameId:next?.id??null,nextGameDate:next?.date??null,nextApproved,needsGameDayReview:!!next&&!nextApproved,source:'human-gm-approved-plans',actualParticipationVerified:false});

@@ -56,5 +56,14 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#season-dashboard').innerText(),/Standings:/);
  assert.equal(await page.locator('#day-review').isDisabled(),true);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
- console.log('Mobile GM-approved two-day progression, decline, reload, no double game and production isolation passed');
+ const tiePage=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
+ await tiePage.goto(url+'/hlm-phase11-isolated-single-game.html');
+ const tieState={...state,meta:{...state.meta,saveId:'same-day-order',currentDate:'2026-10-18'},universe:{...state.universe,teams:[...state.universe.teams,{id:3,name:'Rival'}]},activity:{...state.activity,games:[{id:'z-game',date:'2026-10-19',homeTeamId:1,awayTeamId:2,status:'scheduled'},{id:'a-game',date:'2026-10-19',homeTeamId:1,awayTeamId:3,status:'scheduled'}]}};
+ await tiePage.locator('#file').setInputFiles({name:'same-day.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(tieState))});
+ tiePage.once('dialog',d=>d.accept());await tiePage.locator('#import').click();
+ await tiePage.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining: 2'));
+ assert.equal(await tiePage.locator('#game').inputValue(),'a-game','dashboard and game selector use the same-date game ID tie-breaker');
+ assert.match(await tiePage.locator('#season-dashboard').innerText(),/Next GM game: 2026-10-19 \| Owner vs Rival/);
+ assert.match(await tiePage.locator('#gm-next-decision-brief').innerText(),/Next game: a-game/,'GM Inbox must select the same deterministic next matchup');
+ console.log('Mobile GM-approved progression, no-save approvals, reload, production isolation and deterministic same-day GM matchup ordering passed');
 }finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});
