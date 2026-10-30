@@ -1,4 +1,5 @@
 'use strict';
+const {eligibleExperimentalSkaters}=require('./hlm-phase11-unified-box-scores');
 /**
  * Deterministic experimental goal attribution for simulated games.
  * Derived synthetic events, never historical NHL player statistics.
@@ -8,8 +9,7 @@ function buildExperimentalGoalEvents(state,game,seed=1){
     game.homeGoals<0||game.awayGoals<0||!Number.isSafeInteger(seed)||seed<0)throw new TypeError('Valid final game and seed required');
  const events=[];
  for(const [teamId,goals] of [[game.homeTeamId,game.homeGoals],[game.awayTeamId,game.awayGoals]]){
-  const skaters=state.universe.players.filter(p=>String(p.teamId)===String(teamId)&&
-   ['C','LW','RW','D'].includes(p.position)&&Number.isFinite(Number(p.ovr)));
+  const skaters=eligibleExperimentalSkaters(state,teamId);
   if(!skaters.length&&goals>0)throw new Error('No eligible scoring players for team '+teamId);
   const sorted=skaters.slice().sort((a,b)=>String(a.id).localeCompare(String(b.id)));
   for(let i=0;i<goals;i++){

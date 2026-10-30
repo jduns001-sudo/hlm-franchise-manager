@@ -11,7 +11,7 @@ function buildUnifiedBoxScores(state,games,goalEvents,seed=1){
   const sides=[['home',game.homeTeamId,game.homeGoals],['away',game.awayTeamId,game.awayGoals]];
   const rows={};const eventKeys=new Set();
   for(const [side,teamId,goals] of sides){
-   const skaters=state.universe.players.filter(p=>String(p.teamId)===String(teamId)&&['C','LW','RW','D'].includes(p.position)).sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+   const skaters=eligibleExperimentalSkaters(state,teamId);
    const goalies=state.universe.players.filter(p=>String(p.teamId)===String(teamId)&&p.position==='G').sort((a,b)=>String(a.id).localeCompare(String(b.id)));
    if(!skaters.length||!goalies.length)throw Error('Missing roster participants');
    const players=skaters.map(p=>({playerId:p.id,goals:0,assists:0,shots:0,points:0}));
@@ -54,6 +54,22 @@ function buildUnifiedBoxScores(state,games,goalEvents,seed=1){
  }
  return output;
 }
+function eligibleExperimentalSkaters(state,teamId){
+ if(!Array.isArray(state?.universe?.players))throw Error('Valid player roster required');
+ const injured=id=>(state.activity?.injuries||[]).some(i=>String(i.playerId)===String(id)&&!['resolved','recovered'].includes(String(i.status||'').toLowerCase())&&i.active!==false);
+ const eligible=state.universe.players.filter(p=>String(p.teamId)===String(teamId)&&['C','LW','RW','D','F'].includes(String(p.position||'').toUpperCase())&&!injured(p.id));
+ const controlled=String(state.meta?.controlledTeamId)===String(teamId),plan=state.extensions?.phase11GmApprovedSkaters;
+ if(!controlled||plan==null)return eligible.sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+ if(String(plan.teamId)!==String(teamId)||!Array.isArray(plan.playerIds)||plan.playerIds.length<3||new Set(plan.playerIds.map(String)).size!==plan.playerIds.length)throw Error('Invalid GM-approved skater participation plan');
+ const ids=new Set(plan.playerIds.map(String));
+ const selected=eligible.filter(p=>ids.has(String(p.id)));
+ if(selected.length!==ids.size)throw Error('GM-approved skater is unavailable, injured, or no longer eligible');
+ for(const p of selected){
+  const rating=p.overall??p.ovr;
+  if(!Number.isSafeInteger(rating)||rating<1||rating>99)throw Error('Rated GM-approved skater required');
+ }
+ return selected.sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+}
 /** Aggregate immutable game reports, keeping playoff and season boundaries separate. */
 function aggregateUnifiedBoxScores(boxScores){
  const seasons=new Map();const games=new Set();
@@ -89,5 +105,5 @@ function aggregateUnifiedBoxScores(boxScores){
   experimental:true,official:false
  })).sort((a,b)=>a.season.localeCompare(b.season)||a.kind.localeCompare(b.kind));
 }
-return {buildUnifiedBoxScores,aggregateUnifiedBoxScores};
+return {buildUnifiedBoxScores,aggregateUnifiedBoxScores,eligibleExperimentalSkaters};
 });

@@ -1,8 +1,9 @@
 /* Mission 1360: synthetic attribution for already-finalized authoritative isolated games. */
-(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMIsolatedBoxScores=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+(function(root,factory){const boxScores=typeof module==='object'&&module.exports?require('./hlm-phase11-unified-box-scores'):root.HLMUnifiedBoxScores;const api=factory(boxScores);if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMIsolatedBoxScores=api;})(typeof globalThis!=='undefined'?globalThis:this,function(boxScores){
 'use strict';
 function append(before,after,build,seed=1){
  if(typeof build!=='function')throw Error('Existing unified box-score builder required');
+ if(typeof boxScores?.eligibleExperimentalSkaters!=='function')throw Error('Existing player eligibility selector required');
  const finals=state=>{
   const regular=(state.activity?.games||[]).filter(g=>g.status==='final');
   const rounds=state.extensions?.phase10Playoffs?.rounds||[];
@@ -36,7 +37,8 @@ function append(before,after,build,seed=1){
  const events=[];
  for(const g of games)for(const [teamId,count] of [[g.homeTeamId,g.homeGoals],[g.awayTeamId,g.awayGoals]]){
   if(!Number.isSafeInteger(count)||count<0)throw Error('Invalid authoritative game goals');
-  const skaters=after.universe.players.filter(p=>String(p.teamId)===String(teamId)&&['C','LW','RW','D'].includes(p.position)).sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+  const skaters=boxScores.eligibleExperimentalSkaters(after,teamId);
+  if(!skaters.length&&count>0)throw Error('No eligible scoring players for team '+teamId);
   for(let i=0;i<count;i++)events.push({gameId:g.id,teamId,playerId:skaters[(seed+i)%skaters.length].id,sequence:i+1});
  }
  const next=build(after,games,events,seed);
