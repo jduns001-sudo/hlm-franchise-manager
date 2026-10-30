@@ -10,14 +10,14 @@ const state=createGameStateEnvelope({meta:{controlledTeamId:1,currentDate:'2026-
 state.extensions.phase11GmGoaliePlan={teamId:1,playerId:11};
 const seed=1372,opts={experimentalRosterAware:true};
 const baseline=applyScheduledGame(state,'g1',seed);
-const roster=applyScheduledGame(state,'g1',seed,opts);
+assert.throws(()=>applyScheduledGame(state,'g1',seed,opts),/Explicit GM-approved skater participation required/,'unapproved experimental scoring must be rejected');
 const approved=JSON.parse(JSON.stringify(state));approved.extensions.phase11GmApprovedSkaters={teamId:1,playerIds:[12,13,14]};
 const result=applyScheduledGame(approved,'g1',seed,opts);
 assert.equal(result.result.homeGoals,baseline.result.homeGoals+1);
 assert.equal(result.result.official,false);
 assert.deepEqual(applyScheduledGame(approved,'g1',seed,opts).result,result.result);
 assert.equal(applyScheduledGame(approved,'g1',seed).result.homeGoals,baseline.result.homeGoals);
-assert.equal(roster.result.homeGoals,baseline.result.homeGoals,'unapproved low-rated roster skater lowers aggregate; approved high-rated selection changes result');
+assert.equal(applyScheduledGame(state,'g1',seed).result.homeGoals,baseline.result.homeGoals,'default-off scoring remains unchanged without skater approval');
 const strongOpponent=JSON.parse(JSON.stringify(approved));
 const weakOpponent=JSON.parse(JSON.stringify(approved));for(const p of weakOpponent.universe.players.filter(p=>p.teamId===2&&p.position!=='G'))p.overall=50;
 const strongOpponentResult=applyScheduledGame(strongOpponent,'g1',seed,opts).result;
