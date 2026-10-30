@@ -7,6 +7,7 @@ function fixture() {
   const envelope = {
     proposalId: 'p-1', stateRevision: 'r-1',
     controlledTeamId: 'HOME', teamId: 'AWAY',
+    proposalDigest: 'a'.repeat(64), decisionId: 'decision-1',
     expiresAt: new Date(Date.now() + 60000).toISOString()
   };
   const source = {
@@ -20,7 +21,10 @@ function fixture() {
     saved: false,
     settlementAuthorized: false,
     experimental: true,
-    record: {decision: 'accepted'}
+    record: {decision: 'accepted', source: 'receiving-team-authority',
+      proposalDigest: envelope.proposalDigest, stateRevision: envelope.stateRevision,
+      controlledTeamId: envelope.controlledTeamId, receivingTeamId: envelope.teamId,
+      decisionId: envelope.decisionId, expiresAt: envelope.expiresAt}
   };
   return {
     authenticatedSession: true, envelope, bridgeResult,
@@ -70,4 +74,10 @@ test('rejects resolver absence and expired consent', async () => {
   const expired = fixture();
   expired.envelope.expiresAt = new Date(Date.now() - 1000).toISOString();
   await assert.rejects(renderAuthenticatedLocalTradeReview(expired));
+});
+
+test('rejects mismatched verified record binding', async () => {
+  const input = fixture();
+  input.bridgeResult.record.proposalDigest = 'b'.repeat(64);
+  await assert.rejects(renderAuthenticatedLocalTradeReview(input));
 });
