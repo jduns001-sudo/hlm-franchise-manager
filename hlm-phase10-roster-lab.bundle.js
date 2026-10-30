@@ -382,23 +382,11 @@ function applyScheduledGame(state, gameId, seed, options={}) {
       if(!Number.isSafeInteger(rating)||rating<1||rating>99)throw Error('Rated goalie required for experimental roster-aware simulation');
       input.experimentalApprovedGoalieOverall=rating;
       input.experimentalApprovedGoalieSide=side;
-      // Only the controlled team's current, healthy, rated roster skaters participate.
-      // Require three eligible skaters to avoid claiming lineup influence from incomplete rosters.
-      const healthy=nextState.universe.players.filter(p=>String(p.teamId)===String(plan.teamId)&&['C','LW','RW','D','F'].includes(String(p.position||'').toUpperCase())&&!(nextState.activity.injuries||[]).some(i=>String(i.playerId)===String(p.id)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false));
       const approved=nextState.extensions?.phase11GmApprovedSkaters;
-      let candidates=healthy;
-      if(approved!==undefined){
-        if(!approved||String(approved.teamId)!==String(plan.teamId)||!Array.isArray(approved.playerIds)||approved.playerIds.length<3||new Set(approved.playerIds.map(String)).size!==approved.playerIds.length)throw Error('Invalid GM-approved skater participation plan');
-        const ids=new Set(approved.playerIds.map(String));
-        candidates=healthy.filter(p=>ids.has(String(p.id)));
-        if(candidates.length!==ids.size)throw Error('Approved skater is not eligible or is injured');
-      }
-      const eligible=candidates.filter(p=>Number.isSafeInteger(p.overall??p.ovr)&&(p.overall??p.ovr)>=1&&(p.overall??p.ovr)<=99);
-      if(approved!==undefined&&eligible.length!==candidates.length)throw Error('Approved skater rating is unavailable');
-      if(eligible.length>=3){
-        input.experimentalVerifiedSkaterAverage=Math.round(eligible.reduce((total,p)=>total+(p.overall??p.ovr),0)/eligible.length);
-        input.experimentalVerifiedSkaterSide=side;
-      }
+      if(!approved)throw Error('Explicit GM-approved skater participation required for experimental roster-aware simulation');
+      const eligible=require('./hlm-phase11-unified-box-scores').eligibleExperimentalSkaters(nextState,plan.teamId);
+      input.experimentalVerifiedSkaterAverage=Math.round(eligible.reduce((total,p)=>total+(p.overall??p.ovr),0)/eligible.length);
+      input.experimentalVerifiedSkaterSide=side;
       const opponentTeamId=side==='home'?game.awayTeamId:game.homeTeamId;
       const opponentSkaters=nextState.universe.players.filter(p=>String(p.teamId)===String(opponentTeamId)&&['C','LW','RW','D','F'].includes(String(p.position||'').toUpperCase())&&Number.isSafeInteger(p.overall??p.ovr)&&(p.overall??p.ovr)>=1&&(p.overall??p.ovr)<=99&&!(nextState.activity.injuries||[]).some(i=>String(i.playerId)===String(p.id)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false));
       if(opponentSkaters.length>=3){
@@ -1195,6 +1183,9 @@ function buildUnifiedBoxScores(state,games,goalEvents,seed=1){
   if(game.status!=='final')throw Error('Final game required');
   const id=String(game.id);
   if(seen.has(id))throw Error('Duplicate game');seen.add(id);
+  const goaliePlan=state.extensions?.phase11GmGoaliePlan;
+  const controlledTeamId=state.meta?.controlledTeamId;
+  if(goaliePlan!=null&&[game.homeTeamId,game.awayTeamId].some(id=>String(id)===String(controlledTeamId))&&String(goaliePlan.teamId)!==String(controlledTeamId))throw Error('GM goalie plan does not match controlled team');
   const sides=[['home',game.homeTeamId,game.homeGoals],['away',game.awayTeamId,game.awayGoals]];
   const rows={};const eventKeys=new Set();
   for(const [side,teamId,goals] of sides){
@@ -1219,7 +1210,7 @@ function buildUnifiedBoxScores(state,games,goalEvents,seed=1){
    const extra=6+(seed+id.length+String(teamId).length)%7;
    for(let i=0;i<extra;i++)players[(seed+i)%players.length].shots++;
    for(const p of players)p.points=p.goals+p.assists;
-   const plan=state.extensions?.phase11GmGoaliePlan;
+   const plan=goaliePlan;
    let selected=goalies[0];
    if(plan&&String(plan.teamId)===String(teamId)&&String(state.meta?.controlledTeamId)===String(teamId)){
     const matches=goalies.filter(p=>String(p.id)===String(plan.playerId));

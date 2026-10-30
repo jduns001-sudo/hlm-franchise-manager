@@ -27,6 +27,9 @@ const attributionBox=buildUnifiedBoxScores(attributionState,[attributionGame],at
 assert.deepEqual(attributionBox.home.players.map(p=>p.playerId),[100,102,103],
  'controlled-team synthetic player stats must exclude unapproved and injured skaters');
 assert(attributionBox.home.players.every(p=>p.goals+p.assists+p.shots>=0));
+const mismatchedGoaliePlan=JSON.parse(JSON.stringify(attributionState));
+mismatchedGoaliePlan.extensions.phase11GmGoaliePlan={teamId:2,playerId:205};
+assert.throws(()=>buildUnifiedBoxScores(mismatchedGoaliePlan,[attributionGame],attributionEvents,7),/does not match controlled team/);
 const storage=new Map([['hlm_front_office_v8','PRODUCTION_SENTINEL']]);
 const adapter={read:k=>storage.has(k)?storage.get(k):null,write:(k,v)=>storage.set(k,v),remove:k=>storage.delete(k)};
 const store=createIsolatedSeasonStore(adapter,{key:'hlm-phase11-isolated-season-m1357'});

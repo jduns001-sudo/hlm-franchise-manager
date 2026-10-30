@@ -1,6 +1,7 @@
 'use strict';
 const {validateGameStateEnvelope}=require('./hlm-game-state');
 const {simulateGameScore}=require('./hlm-phase10-game-simulator');
+const {eligibleExperimentalSkaters}=require('./hlm-phase11-unified-box-scores');
 
 /**
  * Apply one deterministic game result to a cloned save.
@@ -36,23 +37,11 @@ function applyScheduledGame(state, gameId, seed, options={}) {
       if(!Number.isSafeInteger(rating)||rating<1||rating>99)throw Error('Rated goalie required for experimental roster-aware simulation');
       input.experimentalApprovedGoalieOverall=rating;
       input.experimentalApprovedGoalieSide=side;
-      // Only the controlled team's current, healthy, rated roster skaters participate.
-      // Require three eligible skaters to avoid claiming lineup influence from incomplete rosters.
-      const healthy=nextState.universe.players.filter(p=>String(p.teamId)===String(plan.teamId)&&['C','LW','RW','D','F'].includes(String(p.position||'').toUpperCase())&&!(nextState.activity.injuries||[]).some(i=>String(i.playerId)===String(p.id)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false));
       const approved=nextState.extensions?.phase11GmApprovedSkaters;
-      let candidates=healthy;
-      if(approved!==undefined){
-        if(!approved||String(approved.teamId)!==String(plan.teamId)||!Array.isArray(approved.playerIds)||approved.playerIds.length<3||new Set(approved.playerIds.map(String)).size!==approved.playerIds.length)throw Error('Invalid GM-approved skater participation plan');
-        const ids=new Set(approved.playerIds.map(String));
-        candidates=healthy.filter(p=>ids.has(String(p.id)));
-        if(candidates.length!==ids.size)throw Error('Approved skater is not eligible or is injured');
-      }
-      const eligible=candidates.filter(p=>Number.isSafeInteger(p.overall??p.ovr)&&(p.overall??p.ovr)>=1&&(p.overall??p.ovr)<=99);
-      if(approved!==undefined&&eligible.length!==candidates.length)throw Error('Approved skater rating is unavailable');
-      if(eligible.length>=3){
-        input.experimentalVerifiedSkaterAverage=Math.round(eligible.reduce((total,p)=>total+(p.overall??p.ovr),0)/eligible.length);
-        input.experimentalVerifiedSkaterSide=side;
-      }
+      if(!approved)throw Error('Explicit GM-approved skater participation required for experimental roster-aware simulation');
+      const eligible=eligibleExperimentalSkaters(nextState,plan.teamId);
+      input.experimentalVerifiedSkaterAverage=Math.round(eligible.reduce((total,p)=>total+(p.overall??p.ovr),0)/eligible.length);
+      input.experimentalVerifiedSkaterSide=side;
       const opponentTeamId=side==='home'?game.awayTeamId:game.homeTeamId;
       const opponentSkaters=nextState.universe.players.filter(p=>String(p.teamId)===String(opponentTeamId)&&['C','LW','RW','D','F'].includes(String(p.position||'').toUpperCase())&&Number.isSafeInteger(p.overall??p.ovr)&&(p.overall??p.ovr)>=1&&(p.overall??p.ovr)<=99&&!(nextState.activity.injuries||[]).some(i=>String(i.playerId)===String(p.id)&&i.status!=='resolved'&&i.status!=='recovered'&&i.active!==false));
       if(opponentSkaters.length>=3){

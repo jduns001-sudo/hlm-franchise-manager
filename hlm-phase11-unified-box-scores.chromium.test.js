@@ -22,8 +22,9 @@ const server=http.createServer((req,res)=>{
 });
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- const browser=await chromium.launch();
+ let browser;
  try{
+  browser=await chromium.launch();
   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
   await page.goto('http://127.0.0.1:'+server.address().port);
   const generated=await page.evaluate(()=>{
@@ -64,5 +65,8 @@ const server=http.createServer((req,res)=>{
   assert.equal(restored.data.history.length,2);
   assert.equal(await page.locator('#stats').isVisible(),true);
   console.log('Mobile Chromium approved-lineup stats, bundle reload, production isolation, and regular/playoff separation passed');
- }finally{await browser.close();await new Promise(resolve=>server.close(resolve));}
+ }finally{
+  try{if(browser)await browser.close();}
+  finally{await new Promise(resolve=>server.close(resolve));}
+ }
 })().catch(error=>{console.error(error);process.exitCode=1});

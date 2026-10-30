@@ -8,6 +8,9 @@ function buildUnifiedBoxScores(state,games,goalEvents,seed=1){
   if(game.status!=='final')throw Error('Final game required');
   const id=String(game.id);
   if(seen.has(id))throw Error('Duplicate game');seen.add(id);
+  const goaliePlan=state.extensions?.phase11GmGoaliePlan;
+  const controlledTeamId=state.meta?.controlledTeamId;
+  if(goaliePlan!=null&&[game.homeTeamId,game.awayTeamId].some(id=>String(id)===String(controlledTeamId))&&String(goaliePlan.teamId)!==String(controlledTeamId))throw Error('GM goalie plan does not match controlled team');
   const sides=[['home',game.homeTeamId,game.homeGoals],['away',game.awayTeamId,game.awayGoals]];
   const rows={};const eventKeys=new Set();
   for(const [side,teamId,goals] of sides){
@@ -32,7 +35,7 @@ function buildUnifiedBoxScores(state,games,goalEvents,seed=1){
    const extra=6+(seed+id.length+String(teamId).length)%7;
    for(let i=0;i<extra;i++)players[(seed+i)%players.length].shots++;
    for(const p of players)p.points=p.goals+p.assists;
-   const plan=state.extensions?.phase11GmGoaliePlan;
+   const plan=goaliePlan;
    let selected=goalies[0];
    if(plan&&String(plan.teamId)===String(teamId)&&String(state.meta?.controlledTeamId)===String(teamId)){
     const matches=goalies.filter(p=>String(p.id)===String(plan.playerId));
