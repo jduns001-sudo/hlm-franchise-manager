@@ -116,8 +116,14 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.locator('#day-review').click();
  page.once('dialog',d=>d.dismiss());await page.locator('#day-approve').click();
  assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),before,'decline must not write');
+ assert.equal(await page.evaluate(()=>window.__HLM_A6_DAY_TIMINGS),undefined,'A-6 default off does not record timings');
+ await page.evaluate(()=>{window.__HLM_A6_DAY_TIMING_ENABLED=true});
  page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();
  await page.waitForFunction(()=>document.querySelector('#day-report')?.textContent.includes('Persisted isolated day'),null,{timeout:30000});
+ const a6Timing=await page.evaluate(()=>window.__HLM_A6_DAY_TIMINGS);
+ assert.deepEqual(a6Timing.map(x=>x.stage),['approved-day-locked','approved-day-refresh'],'two stages measured only after approval');
+ assert.ok(a6Timing.every(x=>Number.isFinite(x.elapsedMs)&&x.elapsedMs>=0),'timings finite and nonnegative');
+ assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL','A-6 does not modify production save');
  const after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
  assert.equal(after.activity.games.length,initial.activity.games.length,'retain real schedule');
  assert.ok(after.activity.games.some(g=>g.status==='final'));
