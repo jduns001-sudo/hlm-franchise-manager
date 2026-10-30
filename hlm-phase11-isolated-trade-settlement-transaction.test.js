@@ -167,6 +167,46 @@ test('atomic repository rejects a race after consent verification and before com
   assert.equal(repository.commits, 0);
 });
 
+test('approved request can recover its receipt after a commit response is lost', async () => {
+  const repository = memoryAtomicRepository();
+  const receiptByDecision = new Map();
+  let attempts = 0;
+  const wrapped = {
+    ...repository,
+    async commitTradeAtomically(request) {
+      attempts++;
+      if (receiptByDecision.has(request.decisionId)) {
+        return {
+          committed: true,
+          replayed: true,
+          receipt: receiptByDecision.get(request.decisionId)
+        };
+      }
+      const committed = await repository.commitTradeAtomically(request);
+      assert.equal(committed, true);
+      const receipt = {
+        decisionId: request.decisionId,
+        key: request.key,
+        proposalDigest: request.proposalDigest,
+        receivingTeamId: request.receivingTeamId,
+        expectedRevision: request.expectedRevision
+      };
+      receiptByDecision.set(request.decisionId, receipt);
+      throw new Error('Simulated lost commit response');
+    }
+  };
+  const session = createSession(wrapped);
+  await session.review(proposal(), await consentEnvelope(repository));
+  await assert.rejects(session.decide('approve'), /lost commit response/);
+  const recovered = await session.decide('approve');
+  assert.equal(recovered.status, 'isolated-trade-candidate-committed');
+  assert.equal(recovered.replayed, true);
+  assert.deepEqual(recovered.receipt, receiptByDecision.get('consent-1'));
+  assert.equal(repository.commits, 1);
+  assert.equal(repository.state().activity.transactions.length, 1);
+  assert.equal(attempts, 2);
+});
+
 test('receiving consent must bind approval, recipient, digest, and revision', async () => {
   const repository = memoryAtomicRepository();
   const envelope = await consentEnvelope(repository, {teamId: 'A'});

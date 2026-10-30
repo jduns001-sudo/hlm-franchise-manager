@@ -7,8 +7,6 @@ const path = require('node:path');
 const {DatabaseSync} = require('node:sqlite');
 const {evaluateTradeEligibility} = require('./hlm-phase11-trade-financial-eligibility');
 const {evaluateTradeRestrictions} = require('./hlm-phase11-trade-restrictions');
-const {createD1ConsentLedger} = require('./hlm-phase11-d1-consent-ledger');
-const {evaluateCpuConsent} = require('./hlm-phase11-protected-cpu-consent-contract');
 const {DIGEST_SCHEMA, canonicalProposalDigestInput} = require('./hlm-phase11-trade-proposal-digest');
 
 const SCHEMA = 'hlm-local-cpu-consent-v1';
@@ -151,32 +149,6 @@ function loadOrCreateKeyPair(privateKeyPath) {
   return pair;
 }
 
-function createD1SqliteAdapter(database) {
-  return Object.freeze({
-    prepare(sql) {
-      return Object.freeze({
-        bind(...args) {
-          return Object.freeze({sql, args});
-        }
-      });
-    },
-    async batch(statements) {
-      database.exec('BEGIN IMMEDIATE');
-      try {
-        const results = statements.map(({sql, args}) => {
-          const result = database.prepare(sql).run(...args);
-          return {success: true, meta: {changes: Number(result.changes)}};
-        });
-        database.exec('COMMIT');
-        return results;
-      } catch (error) {
-        database.exec('ROLLBACK');
-        throw error;
-      }
-    }
-  });
-}
-
 function readJsonBody(request) {
   return new Promise((resolve, reject) => {
     let size = 0;
@@ -243,7 +215,7 @@ function createLocalCpuConsentAuthority({
   }
   assertPrivateFile(databasePath);
   const database = new DatabaseSync(databasePath);
-  database.exec('PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;');
+  database.exec('PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;');
   database.exec(fs.readFileSync(path.join(__dirname, 'hlm-phase11-d1-consent-ledger.sql'), 'utf8'));
   database.exec(`
     CREATE TABLE IF NOT EXISTS authoritative_cpu_proposals (
@@ -257,14 +229,23 @@ function createLocalCpuConsentAuthority({
     );
     CREATE UNIQUE INDEX IF NOT EXISTS consumed_cpu_proposal_revision
       ON consumed_cpu_decisions(proposal_digest, team_id, state_revision);
+    CREATE TABLE IF NOT EXISTS issued_cpu_consents (
+      proposal_id TEXT NOT NULL,
+      state_revision TEXT NOT NULL,
+      proposal_digest TEXT NOT NULL,
+      envelope_json TEXT NOT NULL,
+      PRIMARY KEY (proposal_id, state_revision)
+    );
   `);
   const keyPair = loadOrCreateKeyPair(privateKeyPath);
-  const apiToken = crypto.randomBytes(32).toString('base64url');
+  const privateKeyDer = keyPair.privateKey.export({type: 'pkcs8', format: 'der'});
+  const apiToken = crypto.createHmac('sha256', privateKeyDer)
+    .update('hlm-local-cpu-consent-api-token-v1').digest('base64url');
   const publicDer = keyPair.publicKey.export({type: 'spki', format: 'der'});
   const keyId = crypto.createHash('sha256').update(publicDer).digest('hex').slice(0, 24);
-  const ledger = createD1ConsentLedger(createD1SqliteAdapter(database));
   let server = null;
   let closed = false;
+  const inFlight = new Map();
 
   function registerAuthoritativeProposal({proposalId, state, proposal, stateRevision} = {}) {
     if (closed) throw new Error('Authority is closed');
@@ -283,6 +264,22 @@ function createLocalCpuConsentAuthority({
 
     database.exec('BEGIN IMMEDIATE');
     try {
+      const priorSource = database.prepare(`
+        SELECT state_revision, state_json, proposal_json
+        FROM authoritative_cpu_proposals WHERE proposal_id = ?
+      `).get(proposalId);
+      if (priorSource && priorSource.state_revision === stateRevision &&
+          (priorSource.state_json !== canonicalJson(canonicalState) ||
+           priorSource.proposal_json !== canonicalJson(canonicalProposal))) {
+        throw new Error('Conflicting authoritative binding for proposal revision');
+      }
+      const priorIssuance = database.prepare(`
+        SELECT proposal_digest FROM issued_cpu_consents
+        WHERE proposal_id = ? AND state_revision = ?
+      `).get(proposalId, stateRevision);
+      if (priorIssuance && priorIssuance.proposal_digest !== proposalDigest) {
+        throw new Error('Conflicting authoritative binding for issued proposal revision');
+      }
       database.prepare(`
         INSERT INTO authoritative_cpu_proposals
           (proposal_id, state_revision, controlled_team_id, receiving_team_id, proposal_digest, state_json, proposal_json)
@@ -308,12 +305,54 @@ function createLocalCpuConsentAuthority({
     return Object.freeze({proposalId, proposalDigest, stateRevision, ...teams});
   }
 
-  async function issueConsent(proposalId, expectedRevision) {
+  function cancelled() {
+    return {statusCode: 499, body: {error: 'consent-issuance-cancelled'}};
+  }
+
+  function envelopeResponse(record, authoritativeRow) {
+    let envelope;
+    try {
+      envelope = JSON.parse(record.envelope_json);
+    } catch {
+      return {statusCode: 503, body: {error: 'stored-consent-corrupt'}};
+    }
+    const {signature, ...payload} = envelope;
+    let signatureValid = false;
+    try {
+      signatureValid = envelope.keyId === keyId &&
+        crypto.verify(null, Buffer.from(canonicalJson(payload)), keyPair.publicKey,
+          Buffer.from(signature, 'base64url'));
+    } catch {}
+    if (!signatureValid || envelope.proposalId !== record.proposal_id ||
+        envelope.stateRevision !== record.state_revision ||
+        envelope.proposalDigest !== record.proposal_digest ||
+        envelope.proposalDigest !== authoritativeRow.proposal_digest ||
+        envelope.controlledTeamId !== authoritativeRow.controlled_team_id ||
+        envelope.teamId !== authoritativeRow.receiving_team_id) {
+      return {statusCode: 503, body: {error: 'stored-consent-binding-invalid'}};
+    }
+    const nowValue = now();
+    const nowMs = nowValue instanceof Date ? nowValue.getTime() : Date.parse(nowValue);
+    const issuedMs = Date.parse(envelope.issuedAt);
+    const expiresMs = Date.parse(envelope.expiresAt);
+    if (!Number.isFinite(nowMs) || !Number.isFinite(issuedMs) ||
+        !Number.isFinite(expiresMs) || expiresMs <= issuedMs ||
+        nowMs < issuedMs || nowMs >= expiresMs) {
+      return {statusCode: 410, body: {error: 'consent-expired'}};
+    }
+    return {statusCode: 200, body: envelope};
+  }
+
+  async function issueConsentOnce(proposalId, expectedRevision, signal) {
     if (closed) throw new Error('Authority is closed');
     if (typeof proposalId !== 'string' || !proposalId ||
         typeof expectedRevision !== 'string' || !expectedRevision) {
       return {statusCode: 400, body: {error: 'proposalId and expectedRevision are required'}};
     }
+    if (proposalId.length > 128 || expectedRevision.length > 256) {
+      return {statusCode: 400, body: {error: 'proposalId or expectedRevision is too long'}};
+    }
+    if (signal?.aborted) return cancelled();
     const row = database.prepare(
       'SELECT * FROM authoritative_cpu_proposals WHERE proposal_id = ?'
     ).get(proposalId);
@@ -321,14 +360,25 @@ function createLocalCpuConsentAuthority({
     if (row.state_revision !== expectedRevision) {
       return {statusCode: 409, body: {error: 'stale-authoritative-revision'}};
     }
+    const currentRevision = database.prepare(`
+      SELECT state_revision FROM consent_state_revisions WHERE team_id = ?
+    `).get(row.receiving_team_id);
+    if (!currentRevision || currentRevision.state_revision !== expectedRevision) {
+      return {statusCode: 409, body: {error: 'stale-authoritative-revision'}};
+    }
+    const priorIssuance = database.prepare(`
+      SELECT * FROM issued_cpu_consents WHERE proposal_id = ? AND state_revision = ?
+    `).get(proposalId, expectedRevision);
+    if (priorIssuance) {
+      if (priorIssuance.proposal_digest !== row.proposal_digest) {
+        return {statusCode: 409, body: {error: 'conflicting-authoritative-binding'}};
+      }
+      if (signal?.aborted) return cancelled();
+      return envelopeResponse(priorIssuance, row);
+    }
 
     const state = JSON.parse(row.state_json);
     const proposal = JSON.parse(row.proposal_json);
-    const issued = now();
-    const issuedMs = issued instanceof Date ? issued.getTime() : Date.parse(issued);
-    if (!Number.isFinite(issuedMs)) throw new Error('Authority clock returned an invalid time');
-    const issuedAt = new Date(issuedMs).toISOString();
-    const expiresAt = new Date(issuedMs + ttlMs).toISOString();
     const decisionId = crypto.randomUUID();
     const context = deepFreeze({
       proposalId,
@@ -339,10 +389,16 @@ function createLocalCpuConsentAuthority({
       receivingTeamId: row.receiving_team_id,
       proposalDigest: row.proposal_digest
     });
-    const cpuDecision = await policy.evaluate(context);
+    const cpuDecision = await policy.evaluate(context, {signal});
+    if (signal?.aborted) return cancelled();
     if (cpuDecision !== 'accepted' && cpuDecision !== 'declined') {
       throw new Error('Trusted CPU policy must return accepted or declined');
     }
+    const issued = now();
+    const issuedMs = issued instanceof Date ? issued.getTime() : Date.parse(issued);
+    if (!Number.isFinite(issuedMs)) throw new Error('Authority clock returned an invalid time');
+    const issuedAt = new Date(issuedMs).toISOString();
+    const expiresAt = new Date(issuedMs + ttlMs).toISOString();
 
     const unsigned = {
       version: 1,
@@ -364,30 +420,119 @@ function createLocalCpuConsentAuthority({
     const signature = crypto.sign(null, Buffer.from(canonicalJson(unsigned)), keyPair.privateKey)
       .toString('base64url');
     const envelope = Object.freeze({...unsigned, signature});
-    const verified = await evaluateCpuConsent({
-      envelope,
-      proposalDigest: row.proposal_digest,
-      teamId: row.receiving_team_id,
-      stateRevision: row.state_revision,
-      now: issuedAt,
-      verifier: {
-        verify(candidate) {
-          const {signature: candidateSignature, ...payload} = candidate;
-          if (candidate.keyId !== keyId ||
-              candidate.decision !== (candidate.cpuDecision === 'accepted' ? 'approve' : 'decline')) {
-            return false;
-          }
-          return crypto.verify(null, Buffer.from(canonicalJson(payload)), keyPair.publicKey,
-            Buffer.from(candidateSignature, 'base64url'));
+
+    if (signal?.aborted) return cancelled();
+    let transactionOpen = false;
+    try {
+      database.exec('BEGIN IMMEDIATE');
+      transactionOpen = true;
+      if (signal?.aborted) {
+        database.exec('ROLLBACK');
+        transactionOpen = false;
+        return cancelled();
+      }
+      const current = database.prepare(
+        'SELECT * FROM authoritative_cpu_proposals WHERE proposal_id = ?'
+      ).get(proposalId);
+      if (!current || current.state_revision !== expectedRevision) {
+        database.exec('ROLLBACK');
+        transactionOpen = false;
+        return {statusCode: 409, body: {error: 'stale-authoritative-revision'}};
+      }
+      const currentTeamRevision = database.prepare(`
+        SELECT state_revision FROM consent_state_revisions WHERE team_id = ?
+      `).get(current.receiving_team_id);
+      if (!currentTeamRevision || currentTeamRevision.state_revision !== expectedRevision) {
+        database.exec('ROLLBACK');
+        transactionOpen = false;
+        return {statusCode: 409, body: {error: 'stale-authoritative-revision'}};
+      }
+      if (current.proposal_digest !== row.proposal_digest ||
+          current.receiving_team_id !== row.receiving_team_id ||
+          current.controlled_team_id !== row.controlled_team_id) {
+        database.exec('ROLLBACK');
+        transactionOpen = false;
+        return {statusCode: 409, body: {error: 'conflicting-authoritative-binding'}};
+      }
+
+      const winner = database.prepare(`
+        SELECT * FROM issued_cpu_consents WHERE proposal_id = ? AND state_revision = ?
+      `).get(proposalId, expectedRevision);
+      if (winner) {
+        database.exec('ROLLBACK');
+        transactionOpen = false;
+        return envelopeResponse(winner, current);
+      }
+      const consumed = database.prepare(`
+        SELECT decision_id FROM consumed_cpu_decisions
+        WHERE proposal_digest = ? AND team_id = ? AND state_revision = ?
+      `).get(row.proposal_digest, row.receiving_team_id, expectedRevision);
+      if (consumed) {
+        database.exec('ROLLBACK');
+        transactionOpen = false;
+        return {statusCode: 409, body: {error: 'consent-already-consumed-without-recoverable-envelope'}};
+      }
+
+      const consumedResult = database.prepare(`
+        INSERT INTO consumed_cpu_decisions
+          (decision_id, proposal_digest, team_id, state_revision)
+        SELECT ?, ?, ?, ? WHERE EXISTS (
+          SELECT 1 FROM consent_state_revisions
+          WHERE team_id = ? AND state_revision = ?
+        )
+      `).run(decisionId, row.proposal_digest, row.receiving_team_id, expectedRevision,
+        row.receiving_team_id, expectedRevision);
+      if (Number(consumedResult.changes) !== 1) {
+        database.exec('ROLLBACK');
+        transactionOpen = false;
+        return {statusCode: 409, body: {error: 'stale-authoritative-revision'}};
+      }
+      database.prepare(`
+        INSERT INTO issued_cpu_consents
+          (proposal_id, state_revision, proposal_digest, envelope_json)
+        VALUES (?, ?, ?, ?)
+      `).run(proposalId, expectedRevision, row.proposal_digest, canonicalJson(envelope));
+      database.exec('COMMIT');
+      transactionOpen = false;
+    } catch (error) {
+      if (transactionOpen) {
+        try {
+          database.exec('ROLLBACK');
+        } catch (rollbackError) {
+          throw new AggregateError([error, rollbackError], 'Consent issuance rollback failed');
         }
-      },
-      ledger,
-      signal: {aborted: false}
-    });
-    if (verified.accepted !== true) {
-      return {statusCode: 409, body: {error: verified.reason || 'consent-issuance-rejected'}};
+      }
+      throw error;
     }
-    return {statusCode: 200, body: envelope};
+    return envelopeResponse({
+      proposal_id: proposalId,
+      state_revision: expectedRevision,
+      proposal_digest: row.proposal_digest,
+      envelope_json: canonicalJson(envelope)
+    }, row);
+  }
+
+  async function issueConsent(proposalId, expectedRevision, {signal} = {}) {
+    if (typeof proposalId !== 'string' || typeof expectedRevision !== 'string') {
+      return issueConsentOnce(proposalId, expectedRevision, signal);
+    }
+    const identity = JSON.stringify([proposalId, expectedRevision]);
+    const active = inFlight.get(identity);
+    if (active) {
+      const result = await active;
+      if (signal?.aborted) return cancelled();
+      if (result.statusCode === 499) {
+        return {statusCode: 409, body: {error: 'concurrent-issuance-cancelled-retry'}};
+      }
+      return result;
+    }
+    const operation = issueConsentOnce(proposalId, expectedRevision, signal);
+    inFlight.set(identity, operation);
+    try {
+      return await operation;
+    } finally {
+      if (inFlight.get(identity) === operation) inFlight.delete(identity);
+    }
   }
 
   async function start({port = 0} = {}) {
@@ -414,13 +559,23 @@ function createLocalCpuConsentAuthority({
       if (!request.headers['content-type']?.toLowerCase().startsWith('application/json')) {
         return send(415, {error: 'application-json-required'});
       }
+      const controller = new AbortController();
+      request.on('aborted', () => controller.abort());
+      response.on('close', () => {
+        if (!response.writableEnded) controller.abort();
+      });
       try {
         const body = await readJsonBody(request);
+        if (controller.signal.aborted || response.destroyed) return;
         if (!body || typeof body !== 'object' || Array.isArray(body) ||
             Object.keys(body).sort().join(',') !== 'expectedRevision,proposalId') {
           return send(400, {error: 'only proposalId and expectedRevision are accepted'});
         }
-        const result = await issueConsent(body.proposalId, body.expectedRevision);
+        const result = await issueConsent(body.proposalId, body.expectedRevision, {
+          signal: controller.signal
+        });
+        if (controller.signal.aborted || response.destroyed) return;
+        if (result.statusCode === 499) return;
         return send(result.statusCode, result.body);
       } catch (error) {
         if (response.destroyed) return;

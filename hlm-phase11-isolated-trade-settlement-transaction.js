@@ -211,9 +211,19 @@ function createIsolatedTradeSettlementTransaction({
     if (!pending) return blocked('review-required');
 
     const reviewed = pending;
-    pending = null;
-    if (action !== 'approve') return blocked(action);
-    if (signal?.aborted) return blocked('cancelled');
+    if (reviewed.commitRequest) {
+      if (action !== 'approve') return blocked('commit-outcome-unknown');
+      if (signal?.aborted) return blocked('cancelled');
+      return commitReviewedTrade(reviewed);
+    }
+    if (action !== 'approve') {
+      pending = null;
+      return blocked(action);
+    }
+    if (signal?.aborted) {
+      pending = null;
+      return blocked('cancelled');
+    }
 
     const snapshot = await repository.readSnapshot(key);
     if (!snapshot || snapshot.revision !== reviewed.revision) return blocked('stale-review');
@@ -234,7 +244,10 @@ function createIsolatedTradeSettlementTransaction({
     if (await consentVerifier.verify(reviewed.envelope) !== true) {
       return blocked('receiving-team-consent-unverified');
     }
-    if (signal?.aborted) return blocked('cancelled');
+    if (signal?.aborted) {
+      pending = null;
+      return blocked('cancelled');
+    }
 
     const candidateState = createCandidateState(
       snapshot.state,
@@ -242,26 +255,64 @@ function createIsolatedTradeSettlementTransaction({
       reviewed.envelope.decisionId,
       proposalDigest
     );
-    if (!candidateState) return blocked('duplicate-settlement-history');
+    if (!candidateState) {
+      pending = null;
+      return blocked('duplicate-settlement-history');
+    }
+    const approvedAtMs = clockMs();
+    const approvalProblem = consentProblem(reviewed.envelope, binding, proposalDigest, approvedAtMs);
+    if (approvalProblem) {
+      pending = null;
+      return blocked(approvalProblem === 'consent-expired-or-not-yet-valid'
+        ? approvalProblem
+        : 'review-invalidated');
+    }
 
     // This repository operation must compare revision, consume the decision ID,
-    // and persist the complete candidate in one durable transaction.
+    // binding, receipt, and complete candidate in one durable transaction.
     // Both injected adapters must be protected implementations in any future service.
     // The test doubles in this repository do not establish production trust or durability.
-    const committed = await repository.commitTradeAtomically({
-      key,
-      expectedRevision: reviewed.revision,
-      decisionId: reviewed.envelope.decisionId,
-      proposalDigest,
-      receivingTeamId: binding.receivingTeamId,
-      candidateState
-    });
-    if (committed !== true) return blocked('stale-or-replayed-settlement');
+    pending = {
+      ...reviewed,
+      commitRequest: {
+        key,
+        expectedRevision: reviewed.revision,
+        decisionId: reviewed.envelope.decisionId,
+        proposalDigest,
+        receivingTeamId: binding.receivingTeamId,
+        controlledTeamId: binding.controlledTeamId,
+        consentEnvelope: reviewed.envelope,
+        settledAt: new Date(approvedAtMs).toISOString(),
+        candidateState
+      }
+    };
+    return commitReviewedTrade(pending);
+  }
+
+  async function commitReviewedTrade(reviewed) {
+    let result;
+    try {
+      result = await repository.commitTradeAtomically(reviewed.commitRequest);
+    } catch (error) {
+      // The outcome may be unknown if storage committed before the response was lost.
+      // Retain the approved request so an explicit approval retry can recover its receipt.
+      throw error;
+    }
+    const committed = result === true || result?.committed === true;
+    if (!committed) {
+      pending = null;
+      return blocked(result?.code || 'stale-or-replayed-settlement');
+    }
+    pending = null;
 
     return Object.freeze({
       status: 'isolated-trade-candidate-committed',
-      decisionId: reviewed.envelope.decisionId,
-      proposalDigest,
+      decisionId: reviewed.commitRequest.decisionId,
+      proposalDigest: reviewed.commitRequest.proposalDigest,
+      ...(result && typeof result === 'object' ? {
+        replayed: result.replayed === true,
+        receipt: result.receipt
+      } : {}),
       saved: true,
       settlementAuthorized: false,
       atomicSettlementVerified: false,

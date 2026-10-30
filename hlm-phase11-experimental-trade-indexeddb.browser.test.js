@@ -87,27 +87,92 @@ async function openRepository(page, name) {
     }, {databaseName, isolatedKey});
     assert.deepEqual(staleTabSnapshot, initial);
 
-    const firstCommit = await pageA.evaluate(async ({databaseName, isolatedKey, initial}) => {
+    const commitRequest = {
+      key: isolatedKey,
+      expectedRevision: initial.revision,
+      decisionId: 'decision-1',
+      proposalDigest: 'digest-1',
+      receivingTeamId: 'B',
+      candidateState: {
+        ...initial.state,
+        universe: {players: [{id: 'p1', teamId: 'B'}]},
+        activity: {transactions: [{id: 'decision-1'}]}
+      }
+    };
+    const duplicateCommits = await Promise.all([pageA, pageB].map(page => page.evaluate(
+      async ({databaseName, request}) => {
+        const repo = window.HLMExperimentalTradeIndexedDB.createExperimentalTradeIndexedDbRepository({
+          indexedDB: window.guardedIndexedDB,
+          enabled: true,
+          databaseName
+        });
+        return repo.commitTradeAtomically(request);
+      },
+      {databaseName, request: commitRequest}
+    )));
+    assert.ok(duplicateCommits.every(result => result.committed === true));
+    assert.deepEqual(duplicateCommits[0].receipt, duplicateCommits[1].receipt);
+    assert.deepEqual(duplicateCommits.map(result => result.replayed).sort(), [false, true]);
+    const firstReceipt = duplicateCommits[0].receipt;
+    const replayAfterLostResponse = await pageA.evaluate(
+      async ({databaseName, request}) => {
+        const repo = window.HLMExperimentalTradeIndexedDB.createExperimentalTradeIndexedDbRepository({
+          indexedDB: window.guardedIndexedDB,
+          enabled: true,
+          databaseName
+        });
+        return repo.commitTradeAtomically(request);
+      },
+      {databaseName, request: commitRequest}
+    );
+    assert.equal(replayAfterLostResponse.replayed, true);
+    assert.deepEqual(replayAfterLostResponse.receipt, firstReceipt);
+    const conflictingRetry = await pageA.evaluate(
+      async ({databaseName, request}) => {
+        const repo = window.HLMExperimentalTradeIndexedDB.createExperimentalTradeIndexedDbRepository({
+          indexedDB: window.guardedIndexedDB,
+          enabled: true,
+          databaseName
+        });
+        return repo.commitTradeAtomically({...request, proposalDigest: 'conflicting-digest'});
+      },
+      {databaseName, request: commitRequest}
+    );
+    assert.equal(conflictingRetry.committed, false);
+    assert.equal(conflictingRetry.code, 'decision-binding-conflict');
+
+    const competingKey = `${isolatedKey}-competing`;
+    await pageA.evaluate(async ({databaseName, key, initial}) => {
       const repo = window.HLMExperimentalTradeIndexedDB.createExperimentalTradeIndexedDbRepository({
         indexedDB: window.guardedIndexedDB,
         enabled: true,
         databaseName
       });
-      const candidate = {
-        ...initial.state,
-        universe: {players: [{id: 'p1', teamId: 'B'}]},
-        activity: {transactions: [{id: 'decision-1'}]}
-      };
-      return repo.commitTradeAtomically({
-        key: isolatedKey,
-        expectedRevision: initial.revision,
-        decisionId: 'decision-1',
-        proposalDigest: 'digest-1',
-        receivingTeamId: 'B',
-        candidateState: candidate
-      });
-    }, {databaseName, isolatedKey, initial});
-    assert.equal(firstCommit, true);
+      await repo.initializeSnapshot(key, initial.state, initial.revision);
+    }, {databaseName, key: competingKey, initial});
+    const competingCommits = await Promise.all([pageA, pageB].map((page, index) =>
+      page.evaluate(async ({databaseName, key, initial, decisionId}) => {
+        const repo = window.HLMExperimentalTradeIndexedDB.createExperimentalTradeIndexedDbRepository({
+          indexedDB: window.guardedIndexedDB,
+          enabled: true,
+          databaseName
+        });
+        return repo.commitTradeAtomically({
+          key,
+          expectedRevision: initial.revision,
+          decisionId,
+          proposalDigest: `digest-${decisionId}`,
+          receivingTeamId: 'B',
+          candidateState: {
+            ...initial.state,
+            universe: {players: [{id: 'p1', teamId: decisionId}]},
+            activity: {transactions: [{id: decisionId}]}
+          }
+        });
+      }, {databaseName, key: competingKey, initial, decisionId: `competing-${index}`})
+    ));
+    assert.equal(competingCommits.filter(result => result.committed).length, 1);
+    assert.equal(competingCommits.filter(result => result.code === 'stale-revision').length, 1);
 
     const staleTabCommit = await pageB.evaluate(async ({databaseName, isolatedKey, staleTabSnapshot}) => {
       const repo = window.HLMExperimentalTradeIndexedDB.createExperimentalTradeIndexedDbRepository({
@@ -124,9 +189,10 @@ async function openRepository(page, name) {
         candidateState: {...staleTabSnapshot.state, staleTabMutation: true}
       });
     }, {databaseName, isolatedKey, staleTabSnapshot});
-    assert.equal(staleTabCommit, false);
+    assert.equal(staleTabCommit.committed, false);
+    assert.equal(staleTabCommit.code, 'stale-revision');
 
-    const outcomes = await pageA.evaluate(async ({databaseName, isolatedKey, productionKey}) => {
+    const outcomes = await pageA.evaluate(async ({databaseName, isolatedKey, productionKey, commitRequest}) => {
       const repo = window.HLMExperimentalTradeIndexedDB.createExperimentalTradeIndexedDbRepository({
         indexedDB: window.guardedIndexedDB,
         enabled: true,
@@ -134,11 +200,7 @@ async function openRepository(page, name) {
       });
       const committed = await repo.readSnapshot(isolatedKey);
       const replay = await repo.commitTradeAtomically({
-        key: isolatedKey,
-        expectedRevision: committed.revision,
-        decisionId: 'decision-1',
-        proposalDigest: 'digest-1',
-        receivingTeamId: 'B',
+        ...commitRequest,
         candidateState: {...committed.state, replayMutation: true}
       });
 
@@ -193,12 +255,14 @@ async function openRepository(page, name) {
         openedDatabases: window.openedDatabases,
         productionDatabaseRejected
       };
-    }, {databaseName, isolatedKey, productionKey});
+    }, {databaseName, isolatedKey, productionKey, commitRequest});
 
     assert.equal(outcomes.committed.revision, 'revision-1:trade:decision-1');
     assert.equal(outcomes.committed.state.universe.players[0].teamId, 'B');
     assert.deepEqual(outcomes.committed.state.activity.transactions, [{id: 'decision-1'}]);
-    assert.equal(outcomes.replay, false);
+    assert.equal(outcomes.replay.committed, true);
+    assert.equal(outcomes.replay.replayed, true);
+    assert.deepEqual(outcomes.replay.receipt, firstReceipt);
     assert.equal(outcomes.failedWrite, true);
     assert.deepEqual(outcomes.afterAbort, outcomes.committed);
     assert.equal(outcomes.abortedDecisionConsumed, false);
@@ -210,15 +274,20 @@ async function openRepository(page, name) {
     await pageA.reload();
     await pageA.addScriptTag({content: source});
     await installDatabaseGuard(pageA);
-    const recovered = await pageA.evaluate(async ({databaseName, isolatedKey}) => {
+    const recovered = await pageA.evaluate(async ({databaseName, isolatedKey, request}) => {
       const repo = window.HLMExperimentalTradeIndexedDB.createExperimentalTradeIndexedDbRepository({
         indexedDB: window.guardedIndexedDB,
         enabled: true,
         databaseName
       });
-      return repo.readSnapshot(isolatedKey);
-    }, {databaseName, isolatedKey});
-    assert.deepEqual(recovered, outcomes.committed);
+      const snapshot = await repo.readSnapshot(isolatedKey);
+      const retry = await repo.commitTradeAtomically(request);
+      return {snapshot, retry};
+    }, {databaseName, isolatedKey, request: commitRequest});
+    assert.deepEqual(recovered.snapshot, outcomes.committed);
+    assert.equal(recovered.retry.committed, true);
+    assert.equal(recovered.retry.replayed, true);
+    assert.deepEqual(recovered.retry.receipt, firstReceipt);
 
     const deleted = await pageA.evaluate(name => new Promise((resolve, reject) => {
       const request = indexedDB.deleteDatabase(name);
@@ -228,7 +297,7 @@ async function openRepository(page, name) {
     }), databaseName);
     assert.equal(deleted, true);
     await context.close();
-    console.log('Step 26 real-browser IndexedDB atomicity, stale-tab conflict, replay, abort, reload, cancellation and production isolation tests passed');
+    console.log('Step 26 real-browser IndexedDB receipt idempotency, concurrent duplicate, stale-tab conflict, rollback, reload, cancellation and production isolation tests passed');
   } finally {
     await browser.close();
     await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));

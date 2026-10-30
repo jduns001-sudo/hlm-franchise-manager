@@ -58,22 +58,37 @@ function setup(t, {state = fixture(), now, ttlMs, policy} = {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hlm-cpu-integration-'));
   const policyCalls = [];
   const realPolicy = policy ?? createCpuTradeEvaluationPolicy({enabled: true});
-  const authority = createLocalCpuConsentAuthority({
-    enabled: true,
-    databasePath: path.join(directory, 'authority.sqlite'),
-    privateKeyPath: path.join(directory, 'signing-key.pem'),
-    policy: {async evaluate(context) { policyCalls.push(context); return realPolicy.evaluate(context); }},
-    ...(now ? {now} : {}),
-    ...(ttlMs ? {ttlMs} : {})
-  });
+  const authorities = [];
+  const makeAuthority = (selectedPolicy = realPolicy) => {
+    const authority = createLocalCpuConsentAuthority({
+      enabled: true,
+      databasePath: path.join(directory, 'authority.sqlite'),
+      privateKeyPath: path.join(directory, 'signing-key.pem'),
+      policy: {async evaluate(context, options) {
+        policyCalls.push(context);
+        return selectedPolicy.evaluate(context, options);
+      }},
+      ...(now ? {now} : {}),
+      ...(ttlMs ? {ttlMs} : {})
+    });
+    authorities.push(authority);
+    return authority;
+  };
+  const authority = makeAuthority();
   t.after(async () => {
-    await authority.close();
+    for (const instance of authorities) await instance.close();
     fs.rmSync(directory, {recursive: true, force: true});
   });
   authority.registerAuthoritativeProposal({
     proposalId: PROPOSAL_ID, state, proposal: proposal(), stateRevision: REVISION
   });
-  return {authority, policyCalls, state};
+  return {
+    authority,
+    policyCalls,
+    state,
+    directory,
+    reopen: makeAuthority
+  };
 }
 
 function repositoryDouble(state) {
@@ -200,12 +215,156 @@ test('stale revisions are rejected before the CPU policy runs', async t => {
   assert.equal((await authority.issueConsent('unknown', 'revision-2')).statusCode, 404);
 });
 
-test('a second issuance for the same proposal and revision is refused as a replay', async t => {
-  const {authority} = setup(t);
-  assert.equal((await authority.issueConsent(PROPOSAL_ID, REVISION)).statusCode, 200);
+test('an authorized retry for the same proposal and revision returns the original envelope', async t => {
+  const {authority, policyCalls} = setup(t);
+  const first = await authority.issueConsent(PROPOSAL_ID, REVISION);
+  assert.equal(first.statusCode, 200);
   const replay = await authority.issueConsent(PROPOSAL_ID, REVISION);
-  assert.equal(replay.statusCode, 409);
-  assert.equal(replay.body.error, 'replayed-or-stale');
+  assert.equal(replay.statusCode, 200);
+  assert.deepEqual(replay.body, first.body);
+  assert.equal(policyCalls.length, 1);
+});
+
+test('authenticated retry recovers the original envelope and credential after authority restart', async t => {
+  const {authority, policyCalls, reopen} = setup(t);
+  const initialServer = await authority.start();
+  const first = await fetch(initialServer.url, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', authorization: `Bearer ${initialServer.apiToken}`},
+    body: JSON.stringify({proposalId: PROPOSAL_ID, expectedRevision: REVISION})
+  });
+  const originalEnvelope = await first.json();
+  assert.equal(first.status, 200);
+
+  await authority.close();
+  const restartedAuthority = reopen();
+  const restartedServer = await restartedAuthority.start();
+  assert.equal(restartedServer.apiToken, initialServer.apiToken);
+
+  const unauthorized = await fetch(restartedServer.url, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', authorization: 'Bearer invalid'},
+    body: JSON.stringify({proposalId: PROPOSAL_ID, expectedRevision: REVISION})
+  });
+  assert.equal(unauthorized.status, 401);
+  const retry = await fetch(restartedServer.url, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', authorization: `Bearer ${restartedServer.apiToken}`},
+    body: JSON.stringify({proposalId: PROPOSAL_ID, expectedRevision: REVISION})
+  });
+  assert.equal(retry.status, 200);
+  assert.deepEqual(await retry.json(), originalEnvelope);
+  assert.equal(policyCalls.length, 1);
+});
+
+test('concurrent duplicate requests return one persisted decision', async t => {
+  const {authority, policyCalls} = setup(t, {
+    policy: {async evaluate() {
+      await new Promise(resolve => setTimeout(resolve, 15));
+      return 'accepted';
+    }}
+  });
+  const results = await Promise.all(Array.from({length: 8}, () =>
+    authority.issueConsent(PROPOSAL_ID, REVISION)));
+  assert.ok(results.every(result => result.statusCode === 200));
+  for (const result of results.slice(1)) assert.deepEqual(result.body, results[0].body);
+  assert.equal(policyCalls.length, 1);
+});
+
+test('concurrent authority instances cannot return divergent decisions', async t => {
+  let arrived = 0;
+  let releaseBarrier;
+  const barrier = new Promise(resolve => { releaseBarrier = resolve; });
+  const evaluateAfterBarrier = decision => async () => {
+    if (++arrived === 2) releaseBarrier();
+    await barrier;
+    return decision;
+  };
+  const {authority, reopen} = setup(t, {
+    policy: {evaluate: evaluateAfterBarrier('accepted')}
+  });
+  const secondAuthority = reopen({evaluate: evaluateAfterBarrier('declined')});
+  const results = await Promise.all([
+    authority.issueConsent(PROPOSAL_ID, REVISION),
+    secondAuthority.issueConsent(PROPOSAL_ID, REVISION)
+  ]);
+  assert.deepEqual(results[0], results[1]);
+  assert.equal(results[0].statusCode, 200);
+  assert.ok(['accepted', 'declined'].includes(results[0].body.cpuDecision));
+});
+
+test('cancelled issuance is not persisted and a retry can issue a consent', async t => {
+  let releasePolicy;
+  let policyStarted;
+  const started = new Promise(resolve => { policyStarted = resolve; });
+  const policyGate = new Promise(resolve => { releasePolicy = resolve; });
+  const {authority, policyCalls} = setup(t, {
+    policy: {async evaluate(_context, {signal}) {
+      policyStarted();
+      await policyGate;
+      return signal?.aborted ? 'accepted' : 'accepted';
+    }}
+  });
+  const controller = new AbortController();
+  const cancelledRequest = authority.issueConsent(PROPOSAL_ID, REVISION, {
+    signal: controller.signal
+  });
+  await started;
+  controller.abort();
+  releasePolicy();
+  assert.equal((await cancelledRequest).statusCode, 499);
+
+  const retry = await authority.issueConsent(PROPOSAL_ID, REVISION);
+  assert.equal(retry.statusCode, 200);
+  assert.equal(policyCalls.length, 2);
+});
+
+test('expired retries, stale revisions, and conflicting proposal bindings are rejected', async t => {
+  let clock = Date.parse('2027-01-02T12:00:00.000Z');
+  const {authority, policyCalls} = setup(t, {
+    now: () => new Date(clock),
+    ttlMs: 1000
+  });
+  const first = await authority.issueConsent(PROPOSAL_ID, REVISION);
+  assert.equal(first.statusCode, 200);
+  clock += 1000;
+  assert.equal((await authority.issueConsent(PROPOSAL_ID, REVISION)).statusCode, 410);
+  assert.equal(policyCalls.length, 1);
+
+  const changedProposal = {
+    ...proposal(),
+    picks: [{pickId: 'pick2', fromTeamId: 'B', toTeamId: 'A'}]
+  };
+  assert.throws(() => authority.registerAuthoritativeProposal({
+    proposalId: PROPOSAL_ID,
+    state: fixture(),
+    proposal: changedProposal,
+    stateRevision: REVISION
+  }), /Conflicting authoritative binding/);
+  const changedState = fixture();
+  changedState.universe.players[0].ovr += 1;
+  assert.throws(() => authority.registerAuthoritativeProposal({
+    proposalId: PROPOSAL_ID,
+    state: changedState,
+    proposal: proposal(),
+    stateRevision: REVISION
+  }), /Conflicting authoritative binding/);
+  assert.equal((await authority.issueConsent(PROPOSAL_ID, REVISION)).statusCode, 410);
+});
+
+test('a persisted consent becomes stale after the authoritative team revision advances', async t => {
+  const {authority} = setup(t);
+  const first = await authority.issueConsent(PROPOSAL_ID, REVISION);
+  assert.equal(first.statusCode, 200);
+  authority.registerAuthoritativeProposal({
+    proposalId: PROPOSAL_ID,
+    state: fixture(),
+    proposal: proposal(),
+    stateRevision: 'revision-2'
+  });
+  assert.equal((await authority.issueConsent(PROPOSAL_ID, REVISION)).statusCode, 409);
+  const current = await authority.issueConsent(PROPOSAL_ID, 'revision-2');
+  assert.equal(current.statusCode, 200);
 });
 
 test('consent verification rejects expired envelopes and one-time ledger replays', async t => {

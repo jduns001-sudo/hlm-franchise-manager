@@ -185,6 +185,10 @@ function moduleLoaderScript() {
     }, {databaseName, key, trade: setup.trade, consent: setup.consent});
     assert.equal(approval.review.status, 'isolated-trade-awaiting-gm-approval');
     assert.equal(approval.result.status, 'isolated-trade-candidate-committed');
+    assert.equal(approval.result.replayed, false);
+    assert.equal(approval.result.receipt.schema, 'hlm-experimental-trade-settlement-receipt-v1');
+    assert.equal(approval.result.receipt.decisionId, 'step27-decision-1');
+    assert.equal(approval.result.receipt.proposalDigest, approval.review.proposalDigest);
     assert.equal(approval.result.settlementAuthorized, false);
     assert.deepEqual(approval.state.state.universe.players.map(player => player.teamId), ['B', 'A']);
     assert.deepEqual(approval.state.state.assets.contracts.map(contract => contract.teamId), ['B', 'A']);
@@ -203,7 +207,7 @@ function moduleLoaderScript() {
       const latest = await repository.readSnapshot(key);
       const replay = await repository.commitTradeAtomically({
         key,
-        expectedRevision: latest.revision,
+        expectedRevision: 'revision-1',
         decisionId: 'step27-decision-1',
         proposalDigest: 'digest',
         receivingTeamId: 'B',
@@ -230,7 +234,8 @@ function moduleLoaderScript() {
         openedDatabases: await indexedDB.databases().then(dbs => dbs.map(db => db.name))
       };
     }, {databaseName, key});
-    assert.equal(repoChecks.replay, false);
+    assert.equal(repoChecks.replay.committed, false);
+    assert.equal(repoChecks.replay.code, 'decision-binding-conflict');
     assert.equal(repoChecks.failed, true);
     assert.deepEqual(repoChecks.snapshot, approval.state);
     assert.equal(repoChecks.rollbackDecisionConsumed, false);
