@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const html=fs.readFileSync('hlm-phase11-isolated-single-game.html','utf8');
+const helper=html.match(/function a6DayTimingStart\(\)[\s\S]*?(?=let reviewedDay=null;)/);
+assert.ok(helper,'A-6 timing helpers must exist');
+const sandbox={window:{},performance:{now:()=>100}};vm.runInNewContext(helper[0],sandbox);
+assert.equal(sandbox.a6DayTimingStart(),null,'default off');
+sandbox.a6DayTimingRecord('approved-day-locked',null);assert.equal(sandbox.window.__HLM_A6_DAY_TIMINGS,undefined,'default off has no records');
+sandbox.window.__HLM_A6_DAY_TIMING_ENABLED=true;assert.equal(sandbox.a6DayTimingStart(),100);
+sandbox.performance.now=()=>112;sandbox.a6DayTimingRecord('approved-day-locked',100);
+assert.equal(sandbox.window.__HLM_A6_DAY_TIMINGS[0].elapsedMs,12);
+assert.equal(sandbox.window.__HLM_A6_DAY_TIMINGS[0].stage,'approved-day-locked');
+sandbox.performance.now=()=>NaN;sandbox.a6DayTimingRecord('approved-day-refresh',100);assert.equal(sandbox.window.__HLM_A6_DAY_TIMINGS.length,1,'invalid timing rejected');
+sandbox.performance.now=()=>{throw Error('clock failed')};assert.doesNotThrow(()=>sandbox.a6DayTimingRecord('approved-day-refresh',100));
+assert.match(html,/a6DayTimingRecord\('approved-day-locked',a6Start\)/);
+assert.match(html,/a6DayTimingRecord\('approved-day-refresh',a6RefreshStart\)/);
+assert.match(html,/navigator\.locks\.request/);
+console.log('A-6 timing: default off, in-memory, two stages, invalid clock resilience, lock path present');
