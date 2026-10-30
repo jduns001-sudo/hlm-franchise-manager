@@ -14,6 +14,7 @@ const moduleFiles = [
   'hlm-phase11-draft-pick-trade-readiness.js',
   'hlm-phase11-integrated-player-pick-trade.js',
   'hlm-phase11-protected-cpu-consent-contract.js',
+  'hlm-phase11-trade-proposal-digest.js',
   'hlm-phase11-isolated-trade-settlement-transaction.js',
   'hlm-phase11-experimental-trade-indexeddb.js',
   'hlm-phase11-experimental-trade-settlement-harness.js'
@@ -98,7 +99,8 @@ function moduleLoaderScript() {
         indexedDB,
         databaseName,
         enabled: true,
-        testOnlyConsentDouble: true
+        testOnlyConsentDouble: true,
+        now: () => new Date('2027-01-02T12:00:00Z')
       });
       await harness.repository.initializeSnapshot(key, fixture, 'revision-1');
       const trade = {
@@ -111,6 +113,8 @@ function moduleLoaderScript() {
         version: 1,
         decisionId: 'step27-decision-1',
         proposalDigest: binding.proposalDigest,
+        digestSchema: binding.schema,
+        controlledTeamId: 'A',
         teamId: 'B',
         stateRevision: 'revision-1',
         issuedAt: '2027-01-02T00:00:00Z',
@@ -156,7 +160,8 @@ function moduleLoaderScript() {
         indexedDB,
         databaseName,
         enabled: true,
-        testOnlyConsentDouble: true
+        testOnlyConsentDouble: true,
+        now: () => new Date('2027-01-02T12:00:00Z')
       });
       const review = await harness.transaction.review(trade, consent);
       window.step27PendingHarness = harness;
@@ -171,7 +176,8 @@ function moduleLoaderScript() {
         indexedDB,
         databaseName,
         enabled: true,
-        testOnlyConsentDouble: true
+        testOnlyConsentDouble: true,
+        now: () => new Date('2027-01-02T12:00:00Z')
       });
       const review = await harness.transaction.review(trade, consent);
       const result = await harness.transaction.decide('approve');
@@ -237,7 +243,8 @@ function moduleLoaderScript() {
         indexedDB,
         databaseName,
         enabled: true,
-        testOnlyConsentDouble: true
+        testOnlyConsentDouble: true,
+        now: () => new Date('2027-01-02T12:00:00Z')
       });
       return harness.repository.readSnapshot(key);
     }, {databaseName, key});

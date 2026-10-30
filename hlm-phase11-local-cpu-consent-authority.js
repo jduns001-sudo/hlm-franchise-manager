@@ -9,6 +9,7 @@ const {evaluateTradeEligibility} = require('./hlm-phase11-trade-financial-eligib
 const {evaluateTradeRestrictions} = require('./hlm-phase11-trade-restrictions');
 const {createD1ConsentLedger} = require('./hlm-phase11-d1-consent-ledger');
 const {evaluateCpuConsent} = require('./hlm-phase11-protected-cpu-consent-contract');
+const {DIGEST_SCHEMA, canonicalProposalDigestInput} = require('./hlm-phase11-trade-proposal-digest');
 
 const SCHEMA = 'hlm-local-cpu-consent-v1';
 const ENDPOINT = '/v1/consent';
@@ -35,14 +36,10 @@ function deepFreeze(value) {
   return Object.freeze(value);
 }
 
-function canonicalTradeDigest({proposalId, stateRevision, controlledTeamId, receivingTeamId, proposal}) {
-  return crypto.createHash('sha256').update(canonicalJson({
-    schema: SCHEMA,
-    proposalId,
-    stateRevision,
-    controlledTeamId,
-    receivingTeamId,
-    proposal
+// proposalId is accepted for compatibility but is not part of the shared versioned digest.
+function canonicalTradeDigest({stateRevision, controlledTeamId, receivingTeamId, proposal}) {
+  return crypto.createHash('sha256').update(canonicalProposalDigestInput({
+    stateRevision, controlledTeamId, receivingTeamId, proposal
   })).digest('hex');
 }
 
@@ -279,7 +276,6 @@ function createLocalCpuConsentAuthority({
     const canonicalProposal = JSON.parse(canonicalJson(proposal));
     const teams = validateProposal(canonicalState, canonicalProposal);
     const proposalDigest = canonicalTradeDigest({
-      proposalId,
       stateRevision,
       ...teams,
       proposal: canonicalProposal
@@ -354,6 +350,7 @@ function createLocalCpuConsentAuthority({
       decisionId,
       proposalId,
       proposalDigest: row.proposal_digest,
+      digestSchema: DIGEST_SCHEMA,
       controlledTeamId: row.controlled_team_id,
       teamId: row.receiving_team_id,
       teamIds: [row.controlled_team_id, row.receiving_team_id].sort(),

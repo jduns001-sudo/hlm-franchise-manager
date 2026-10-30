@@ -15,7 +15,8 @@ function createExperimentalTradeSettlementHarness({
   indexedDB = typeof globalThis !== 'undefined' ? globalThis.indexedDB : null,
   enabled = false,
   testOnlyConsentDouble = false,
-  databaseName = DEFAULT_DATABASE_NAME
+  databaseName = DEFAULT_DATABASE_NAME,
+  now = () => new Date()
 } = {}) {
   if (enabled !== false && enabled !== true) throw new TypeError('Invalid harness enable flag');
   if (testOnlyConsentDouble !== false && testOnlyConsentDouble !== true) {
@@ -42,7 +43,8 @@ function createExperimentalTradeSettlementHarness({
     repository,
     key: 'hlm-phase11-isolated-trade-settlement-test',
     enabled,
-    consentVerifier
+    consentVerifier,
+    now
   });
 
   return Object.freeze({

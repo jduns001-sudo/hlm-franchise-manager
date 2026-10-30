@@ -2,6 +2,7 @@
 /* Mission 1470: isolated transaction contract only; no live authority or storage provider. */
 const {inspect: inspectComposite} = require('./hlm-phase11-integrated-player-pick-trade');
 const {validEnvelope} = require('./hlm-phase11-protected-cpu-consent-contract');
+const {DIGEST_SCHEMA, canonicalProposalDigestInput} = require('./hlm-phase11-trade-proposal-digest');
 
 const PRODUCTION_KEY = 'hlm_front_office_v8';
 const blocked = (code, reason) => Object.freeze({
@@ -27,7 +28,7 @@ async function inspectAndBind(state, proposal, revision) {
     String(player.id) === String(reviewed.players.incomingPlayerId));
   const otherTeamId = String(incoming.teamId);
   const binding = {
-    schema: 'hlm-isolated-trade-settlement-v1',
+    schema: DIGEST_SCHEMA,
     stateRevision: revision,
     controlledTeamId,
     receivingTeamId: otherTeamId,
@@ -44,7 +45,12 @@ async function inspectAndBind(state, proposal, revision) {
   };
   const digest = await globalThis.crypto.subtle.digest(
     'SHA-256',
-    new TextEncoder().encode(JSON.stringify(binding))
+    new TextEncoder().encode(canonicalProposalDigestInput({
+      stateRevision: revision,
+      controlledTeamId,
+      receivingTeamId: otherTeamId,
+      proposal: binding
+    }))
   );
   const proposalDigest = Array.from(new Uint8Array(digest), byte =>
     byte.toString(16).padStart(2, '0')).join('');
@@ -56,12 +62,18 @@ async function createTradeProposalBinding(state, proposal, revision) {
   return Object.freeze({...binding, proposalDigest});
 }
 
-function envelopeMatches(envelope, binding, proposalDigest) {
-  return validEnvelope(envelope) &&
-    envelope.decision === 'approve' &&
-    envelope.teamId === binding.receivingTeamId &&
-    envelope.stateRevision === binding.stateRevision &&
-    envelope.proposalDigest === proposalDigest;
+function consentProblem(envelope, binding, proposalDigest, nowMs) {
+  if (!validEnvelope(envelope)) return 'receiving-team-consent-mismatch';
+  if (envelope.digestSchema !== DIGEST_SCHEMA) return 'incompatible-consent-version';
+  if (envelope.decision === 'decline') return 'receiving-team-declined';
+  if (envelope.decision !== 'approve' ||
+      envelope.teamId !== binding.receivingTeamId ||
+      envelope.controlledTeamId !== binding.controlledTeamId ||
+      envelope.stateRevision !== binding.stateRevision ||
+      envelope.proposalDigest !== proposalDigest) return 'receiving-team-consent-mismatch';
+  if (!Number.isFinite(nowMs) || nowMs < Date.parse(envelope.issuedAt) ||
+      nowMs >= Date.parse(envelope.expiresAt)) return 'consent-expired-or-not-yet-valid';
+  return null;
 }
 
 function createCandidateState(state, reviewed, decisionId, proposalDigest) {
@@ -124,7 +136,8 @@ function createIsolatedTradeSettlementTransaction({
   repository,
   key,
   enabled = false,
-  consentVerifier
+  consentVerifier,
+  now
 } = {}) {
   if (!repository || typeof repository.readSnapshot !== 'function' ||
       typeof repository.commitTradeAtomically !== 'function' ||
@@ -136,11 +149,19 @@ function createIsolatedTradeSettlementTransaction({
   if (enabled && (!consentVerifier || typeof consentVerifier.verify !== 'function')) {
     throw new TypeError('Protected receiving-team consent verifier required');
   }
+  if (enabled && typeof now !== 'function') {
+    throw new TypeError('Trusted review clock function required');
+  }
+  const clockMs = () => {
+    const value = now();
+    return value instanceof Date ? value.getTime() : Date.parse(value);
+  };
 
   let pending = null;
-  async function review(proposal, envelope) {
+  async function review(proposal, envelope, {signal} = {}) {
     pending = null;
     if (!enabled) return blocked('disabled-by-default');
+    if (signal?.aborted) return blocked('cancelled');
 
     const snapshot = await repository.readSnapshot(key);
     if (!snapshot) return blocked('missing-isolated-save');
@@ -159,9 +180,13 @@ function createIsolatedTradeSettlementTransaction({
     } catch (error) {
       return blocked('source-validation-failed', error.message);
     }
-    if (!envelopeMatches(consent, binding, proposalDigest)) {
-      return blocked('receiving-team-consent-mismatch');
+    const problem = consentProblem(consent, binding, proposalDigest, clockMs());
+    if (problem) return blocked(problem);
+    if (signal?.aborted) return blocked('cancelled');
+    if (await consentVerifier.verify(consent) !== true) {
+      return blocked('receiving-team-consent-unverified');
     }
+    if (signal?.aborted) return blocked('cancelled');
 
     pending = {
       proposal: input,
@@ -179,7 +204,7 @@ function createIsolatedTradeSettlementTransaction({
     });
   }
 
-  async function decide(action) {
+  async function decide(action, {signal} = {}) {
     if (!['approve', 'decline', 'cancel'].includes(action)) {
       throw new TypeError('Explicit human GM decision required');
     }
@@ -188,6 +213,7 @@ function createIsolatedTradeSettlementTransaction({
     const reviewed = pending;
     pending = null;
     if (action !== 'approve') return blocked(action);
+    if (signal?.aborted) return blocked('cancelled');
 
     const snapshot = await repository.readSnapshot(key);
     if (!snapshot || snapshot.revision !== reviewed.revision) return blocked('stale-review');
@@ -201,14 +227,14 @@ function createIsolatedTradeSettlementTransaction({
     } catch (error) {
       return blocked('review-invalidated', error.message);
     }
-    if (proposalDigest !== reviewed.proposalDigest ||
-        !envelopeMatches(reviewed.envelope, binding, proposalDigest)) {
-      return blocked('review-invalidated');
-    }
+    if (proposalDigest !== reviewed.proposalDigest) return blocked('review-invalidated');
+    const problem = consentProblem(reviewed.envelope, binding, proposalDigest, clockMs());
+    if (problem) return blocked(problem === 'consent-expired-or-not-yet-valid' ? problem : 'review-invalidated');
 
     if (await consentVerifier.verify(reviewed.envelope) !== true) {
       return blocked('receiving-team-consent-unverified');
     }
+    if (signal?.aborted) return blocked('cancelled');
 
     const candidateState = createCandidateState(
       snapshot.state,

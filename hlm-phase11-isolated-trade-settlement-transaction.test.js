@@ -6,6 +6,7 @@ const {
   createIsolatedTradeSettlementTransaction,
   createTradeProposalBinding
 } = require('./hlm-phase11-isolated-trade-settlement-transaction');
+const {DIGEST_SCHEMA} = require('./hlm-phase11-trade-proposal-digest');
 
 const KEY = 'hlm-phase11-isolated-settlement-test';
 const PRODUCTION_KEY = 'hlm_front_office_v8';
@@ -74,6 +75,8 @@ async function consentEnvelope(repository, overrides = {}) {
     version: 1,
     decisionId: 'consent-1',
     proposalDigest: proposalBinding.proposalDigest,
+    digestSchema: DIGEST_SCHEMA,
+    controlledTeamId: 'A',
     teamId: 'B',
     stateRevision: 'revision-1',
     issuedAt: '2027-01-02T00:00:00Z',
@@ -91,6 +94,7 @@ function createSession(repository, options = {}) {
     key: KEY,
     enabled: true,
     consentVerifier: {verify: async () => true},
+    now: () => new Date('2027-01-02T12:00:00Z'),
     ...options
   });
 }
@@ -131,7 +135,7 @@ test('approval atomically commits player, pick, contracts, and one settlement hi
   assert.equal(after.activity.transactions[0].proposalDigest, reviewed.proposalDigest);
   assert.deepEqual(before.universe.players.map(player => player.teamId), ['A', 'B']);
   assert.equal(repository.commits, 1);
-  assert.deepEqual(verifierCalls, ['consent-1']);
+  assert.deepEqual(verifierCalls, ['consent-1', 'consent-1']);
 });
 
 test('stale revision at decision time rejects before verifier or commit', async () => {
@@ -147,8 +151,10 @@ test('stale revision at decision time rejects before verifier or commit', async 
 
 test('atomic repository rejects a race after consent verification and before commit', async () => {
   const repository = memoryAtomicRepository();
+  let verifications = 0;
   const session = createSession(repository, {
     consentVerifier: {verify: async () => {
+      if (++verifications === 1) return true; // review-time verification
       const changed = repository.state();
       changed.meta.currentDate = '2027-01-03';
       repository.replace(changed, 'revision-2');
@@ -184,8 +190,13 @@ test('unverified consent, decline, cancel, replay, and duplicate history cannot 
   const rejected = createSession(repository, {
     consentVerifier: {verify: async () => false}
   });
-  await rejected.review(proposal(), await consentEnvelope(repository));
-  assert.equal((await rejected.decide('approve')).code, 'receiving-team-consent-unverified');
+  assert.equal((await rejected.review(proposal(), await consentEnvelope(repository))).code,
+    'receiving-team-consent-unverified');
+  assert.equal((await rejected.decide('approve')).code, 'review-required');
+  let calls = 0;
+  const revoked = createSession(repository, {consentVerifier: {verify: async () => ++calls === 1}});
+  await revoked.review(proposal(), await consentEnvelope(repository));
+  assert.equal((await revoked.decide('approve')).code, 'receiving-team-consent-unverified');
   assert.equal(repository.commits, 0);
 
   for (const action of ['decline', 'cancel']) {
