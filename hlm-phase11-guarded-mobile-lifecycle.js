@@ -10,6 +10,9 @@ function create(manager,storage,key){
   const state=manager.peek();
   if(!baseline||!state||!state.meta||!state.universe?.teams?.some(t=>String(t.id)===String(state.meta.controlledTeamId)))throw Error('Isolated controlled franchise required');
   if(action==='playoffs'){
+   const spots=options.spots===undefined?4:options.spots;
+   if(spots!==4&&spots!==16)throw Error('Playoff spots must be 4 or 16');
+   if(state.universe.teams.length<spots)throw Error('Not enough teams for requested playoff field');
    if(state.extensions?.phase10Playoffs||!state.activity.games.length||state.activity.games.some(g=>g.status!=='final')||state.universe.teams.length<4)throw Error('Completed regular season required');
   }else if(action==='playoff-game'){
    if(state.extensions?.phase10Playoffs?.status!=='active')throw Error('Active playoff series required');
@@ -24,7 +27,7 @@ function create(manager,storage,key){
   if(!pending||pending.sequence!==sequenceId)throw Error('Stale or replayed GM lifecycle review');
   const selected=pending;pending=null;
   if(storage.getItem(key)!==selected.baseline)throw Error('Isolated save changed; reload and review');
-  if(selected.action==='playoffs')return manager.startPlayoffs(true,4,7);
+  if(selected.action==='playoffs')return manager.startPlayoffs(true,selected.options.spots===undefined?4:selected.options.spots,7);
   if(selected.action==='playoff-game')return manager.advancePlayoff(1350,true);
   return manager.archiveSeason(selected.options.seasonId,true);
  }
