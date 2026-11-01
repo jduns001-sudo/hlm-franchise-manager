@@ -34,5 +34,29 @@ function create(manager,storage,key){
  function clear(){pending=null;++sequence;}
  return Object.freeze({review,approve,decline,clear});
 }
-return Object.freeze({create});
+// Transactional reviews bind to the authoritative epoch/revision and a private manager handle.
+function createTransactional(manager){
+ if(!manager||!['peek','snapshotToken','prepare','execute','cancel'].every(k=>typeof manager[k]==='function'))throw Error('Transactional isolated manager required');
+ let pending=null,sequence=0;
+ // Reuse qualification and ownership validation without introducing any storage writes.
+ const validation=create({peek:()=>manager.peek()}, {getItem:()=>JSON.stringify(manager.snapshotToken())},'hlm-phase11-m1340-isolated-single-game-v1');
+ function clear(){if(pending){try{manager.cancel(pending.handle)}catch(_){}pending=null}validation.clear();++sequence;}
+ function review(action,options={}){
+  clear();const validated=validation.review(action,options),token=manager.snapshotToken();
+  if(!token)throw Error('Active isolated authority required');
+  const name=action==='playoffs'?'startPlayoffs':action==='playoff-game'?'advancePlayoff':'archiveSeason';
+  const args=action==='playoffs'?[options.spots===undefined?4:options.spots,7]:action==='playoff-game'?[1350]:[options.seasonId];
+  const handle=manager.prepare(name,args);pending={sequence,handle,token};
+  return Object.freeze({...validated,reviewSequence:sequence,epoch:token.epoch,revision:token.revision});
+ }
+ function decline(id){if(!pending||pending.sequence!==id)return Object.freeze({saved:false,reason:'stale-review'});clear();return Object.freeze({saved:false,reason:'declined'});}
+ async function approve(id){
+  if(!pending||pending.sequence!==id)throw Error('Stale or replayed GM lifecycle review');
+  const selected=pending;pending=null;const token=manager.snapshotToken();
+  if(!token||token.epoch!==selected.token.epoch||token.revision!==selected.token.revision){try{manager.cancel(selected.handle)}catch(_){}throw Error('Isolated save changed; reload and review')}
+  return await manager.execute(selected.handle,true);
+ }
+ return Object.freeze({review,approve,decline,clear});
+}
+return Object.freeze({create,createTransactional});
 });

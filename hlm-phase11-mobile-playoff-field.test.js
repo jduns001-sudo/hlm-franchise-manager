@@ -2,6 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const {create}=require('./hlm-phase11-guarded-mobile-lifecycle');
 const html=fs.readFileSync(path.join(__dirname,'hlm-phase11-isolated-single-game.html'),'utf8');
+assert.ok(html.includes('HLMIsolatedSingleGame.createTransactional(engine,repository'));assert.ok(html.includes('HLMGuardedMobileLifecycle.createTransactional(manager)'));assert.ok(!html.includes('const state=manager.load(),bracket='));
 let assertions=0;function check(condition,label){++assertions;assert.ok(condition,label)}
 for(const match of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(match[1].trim())new vm.Script(match[1]);
 check(/<option value="4" selected>4 teams<\/option>/.test(html),'four-team HTML default');
@@ -14,7 +15,7 @@ function fixture(count=20){
  let raw='ORIGINAL',locks=0,approvals=[];
  const manager={peek:()=>state,startPlayoffs:(approved,spots,bestOf)=>{approvals.push([approved,spots,bestOf]);raw='SAVED';state.extensions.phase10Playoffs={rounds:[Array.from({length:spots/2},()=>({}))],status:'active'};return {seeds:Array.from({length:spots},(_,i)=>({teamId:i+1}))}}};
  const guard=create(manager,{getItem:()=>raw},'hlm-phase11-m1340-isolated-single-game-v1');
- const context=vm.createContext({$:id=>elements[id],manager,lifecycleReview:guard,locked:async fn=>{++locks;return fn()},refresh:()=>{},confirm:()=>false});
+ const context=vm.createContext({$:id=>elements[id],manager,lifecycleReview:guard,locked:async fn=>{++locks;return fn()},refresh:()=>{},applyStorageGate:()=>{},confirm:()=>false});
  vm.runInContext(helper+handler,context);
  return {elements,state,context,approvals,raw:()=>raw,locks:()=>locks,setRaw:s=>{raw=s},render:s=>context.refreshPlayoffField(s),click:()=>elements['playoff-start'].events.click()};
 }
