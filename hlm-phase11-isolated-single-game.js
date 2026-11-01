@@ -355,5 +355,68 @@ function create(engine,storage,boxScores=null){
  }
  return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,reviewPickTransfer,approveReviewedPickTransfer,careerSnapshot,postgameSkaterReview,seasonPostgameContext,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
-return {KEY,create};
+// Separate transactional API. The synchronous factory above remains unchanged for legacy callers.
+// Approval indexes refer to the original mutator signatures. prepare() arguments omit that flag.
+const TRANSACTIONAL_WRITERS=Object.freeze({stage:1,approveExperimentalRosterAware:1,advance:2,approveReviewedGameDaySkaters:1,approveGoalieChoice:1,approveSkaterParticipation:1,advanceNextDay:1,startPlayoffs:0,advancePlayoff:1,archiveSeason:1,approveReviewedDraftSelection:0,approveReviewedPickTransfer:0,approveReviewedProspectSigning:0,startNextSeason:1,approveReviewedOffseason:0});
+async function createTransactional(engine,repository,boxScores=null,{makeCommandId=()=>globalThis.crypto.randomUUID()}={}){
+ function error(code,message){const e=new Error(message);e.code=code;return e;}
+ if(!repository||!['read','commit','readCommandReceipt'].every(k=>typeof repository[k]==='function')||typeof makeCommandId!=='function')throw error('INVALID_REPOSITORY','Transactional repository and command factory required');
+ if(typeof globalThis.structuredClone!=='function')throw error('UNSUPPORTED_RUNTIME','Structured cloning required for private command snapshots');
+ const clone=v=>globalThis.structuredClone(v),handles=new Map(),issued=new Set();
+ let committed=null,legacy,shadowRaw=null,writeEnabled=false,writeCount=0,busy=false,needsReload=false,unknownCommand=null,lastOutcome=null;
+ const tokenOf=r=>r?Object.freeze({epoch:r.epoch,revision:r.revision}):null;
+ const equalToken=(a,b)=>a===null?b===null:!!b&&a.epoch===b.epoch&&a.revision===b.revision;
+ const storage=Object.freeze({getItem(key){if(key!==KEY)throw error('ISOLATION_VIOLATION','Only the isolated key is permitted');return shadowRaw},setItem(key,value){if(key!==KEY||!writeEnabled)throw error('PRIVATE_WRITE_BLOCKED','Writes require the private transactional runner');shadowRaw=String(value);++writeCount}});
+ function rebuild(){shadowRaw=committed?.payloadText??null;writeEnabled=false;writeCount=0;legacy=create(engine,storage,boxScores);}
+ function ready(){if(busy)throw error('BUSY','An isolated command or reload is in progress');if(needsReload)throw error('RELOAD_REQUIRED','Reload and review before another command');if(committed&&committed.authorityMode!=='active')throw error('AUTHORITY_INACTIVE','Gameplay requires active transactional authority');}
+ function invalidate(){handles.clear();rebuild();}
+ function verifyRecord(r){if(r===null)return;if(!r||r.formatVersion!==1||typeof r.epoch!=='string'||!r.epoch||!Number.isSafeInteger(r.revision)||r.revision<1||typeof r.payloadText!=='string'||!['active','migration-pending','rollback-pending','retired-to-legacy'].includes(r.authorityMode))throw error('INVALID_RECORD','Invalid authoritative repository record');JSON.parse(r.payloadText);}
+ function peek(){return committed?JSON.parse(committed.payloadText):null;}
+ async function load(){
+  if(busy)throw error('BUSY','Cannot reload during a command');busy=true;handles.clear();
+  try{
+   const receipt=unknownCommand?await repository.readCommandReceipt(unknownCommand):null;
+   const next=await repository.read();verifyRecord(next);
+   if(receipt&&(!next||receipt.epoch!==next.epoch||receipt.revision>next.revision))throw error('OUTCOME_UNKNOWN','Receipt and current authority require manual recovery');
+   committed=next?clone(next):null;needsReload=false;rebuild();legacy.peek();
+   if(unknownCommand){lastOutcome=Object.freeze({commandId:unknownCommand,committed:receipt!==null,receipt:receipt?Object.freeze({...receipt}):null});unknownCommand=null}
+   return peek();
+  }catch(e){needsReload=true;rebuild();throw e}finally{busy=false}
+ }
+ function prepare(action,args=[]){
+  ready();if(!Object.prototype.hasOwnProperty.call(TRANSACTIONAL_WRITERS,action)||!Array.isArray(args))throw error('INVALID_ACTION','Known isolated action and argument array required');
+  const commandId=makeCommandId();if(typeof commandId!=='string'||commandId.length>128||!/^[A-Za-z0-9_.:-]+$/.test(commandId)||issued.has(commandId))throw error('INVALID_COMMAND','A new unique command ID is required');
+  let snapshot;try{snapshot=clone(args)}catch{throw error('INVALID_ARGUMENTS','Command inputs must be cloneable data')}
+  issued.add(commandId);const expected=tokenOf(committed);const handle=Object.freeze({commandId,action,expected,requiresHumanApproval:true,saved:false});handles.set(handle,{commandId,action,args:snapshot,expected});return handle;
+ }
+ function cancel(handle){ready();if(!handles.has(handle))throw error('STALE_REVIEW','Unknown or consumed command review');invalidate();return Object.freeze({saved:false,reason:'declined'});}
+ async function execute(handle,approved){
+  ready();const command=handles.get(handle);if(!command)throw error('STALE_REVIEW','Unknown or consumed command review');handles.delete(handle);
+  if(approved!==true){invalidate();throw error('APPROVAL_REQUIRED','Explicit human GM approval required')}
+  if(!equalToken(command.expected,tokenOf(committed))){invalidate();throw error('STALE_REVIEW','Reviewed snapshot changed')}
+  busy=true;handles.clear();let submitted=false;
+  try{
+   const args=clone(command.args);args.splice(TRANSACTIONAL_WRITERS[command.action],0,true);
+   shadowRaw=committed?.payloadText??null;writeCount=0;writeEnabled=true;
+   let result;try{result=legacy[command.action](...args)}finally{writeEnabled=false}
+   if(writeCount!==1||typeof shadowRaw!=='string')throw error('INVALID_CANDIDATE','Each approved command must stage exactly one complete save');
+   const candidate=shadowRaw;submitted=true;
+   const next=await repository.commit({expected:command.expected,payloadText:candidate,commandId:command.commandId,approved:true});
+   verifyRecord(next);
+   if(next.payloadText!==candidate||next.lastCommandId!==command.commandId||next.authorityMode!=='active'||next.revision!==(command.expected?command.expected.revision+1:1)||(command.expected&&next.epoch!==command.expected.epoch))throw error('OUTCOME_UNKNOWN','Repository acknowledgement does not match the submitted command');
+   committed=clone(next);needsReload=false;rebuild();return result;
+  }catch(e){
+   const known=['STALE_EPOCH','STALE_REVISION','REPLAYED_COMMAND','AUTHORITY_INACTIVE','APPROVAL_REQUIRED','INVALID_PAYLOAD','INVALID_TOKEN','INVALID_COMMAND','REVISION_EXHAUSTED','TRANSACTION_ABORTED','TRANSACTION_TIMEOUT','OPEN_BLOCKED','OPEN_TIMEOUT','IDB_UNAVAILABLE','QUOTA_EXCEEDED','STORAGE_FAILED'];
+   if(submitted&&(!known.includes(e.code)||e.code==='OUTCOME_UNKNOWN'))unknownCommand=command.commandId;
+   needsReload=true;invalidate();throw e;
+  }finally{busy=false}
+ }
+ await load();
+ const api={key:KEY,peek,load,prepare,execute,cancel,snapshotToken:()=>tokenOf(committed),status:()=>Object.freeze({busy,needsReload,authorityMode:committed?.authorityMode??'empty',unresolvedCommandId:unknownCommand}),lastOutcome:()=>lastOutcome};
+ const readers=Object.keys(legacy).filter(k=>typeof legacy[k]==='function'&&!Object.prototype.hasOwnProperty.call(TRANSACTIONAL_WRITERS,k)&&k!=='peek'&&k!=='load');
+ for(const name of readers)api[name]=(...args)=>{ready();return legacy[name](...clone(args))};
+ for(const [name,index]of Object.entries(TRANSACTIONAL_WRITERS))api[name]=async(...args)=>{const callArgs=args.slice(),approved=callArgs.splice(index,1)[0];return execute(prepare(name,callArgs),approved)};
+ return Object.freeze(api);
+}
+return {KEY,create,createTransactional};
 });
