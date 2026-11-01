@@ -43,14 +43,53 @@ function importSourcePicks(universe,eligible){
  }
  return {accepted,excludedCount:excluded.length};
 }
-function build(universe,teamId,engine){
+// Position evidence is joined by permanent ID only. Roster ownership and ratings are never imported.
+// Source slash order supplies the primary position; LD/RD normalize to the engine's D role.
+function positionTokens(value){
+ if(typeof value!=='string')return null;
+ const tokens=value.trim().toUpperCase().split('/').map(p=>p.trim());
+ if(!tokens.length||tokens.some(p=>!['C','LW','RW','D','LD','RD','F','G'].includes(p)))return null;
+ const normalized=[...new Set(tokens.map(p=>p==='LD'||p==='RD'?'D':p))];
+ if(normalized.includes('G')&&normalized.length>1)return null;
+ return normalized;
+}
+function normalizePosition(value){return positionTokens(value)?.[0]??null;}
+function positionEvidence(record){
+ const values=[record?.position,record?.pos].filter(v=>v!==undefined&&v!==null&&v!=='');
+ if(!values.length)return null;
+ const evidence=values.map(positionTokens);
+ if(evidence.some(v=>!v)||evidence.some(v=>JSON.stringify(v)!==JSON.stringify(evidence[0])))return null;
+ return JSON.stringify(evidence[0]);
+}
+function permanentId(value){
+ if(typeof value!=='number'&&typeof value!=='string')return null;
+ const id=String(value);return /^[1-9]\d*$/.test(id)&&Number.isSafeInteger(Number(id))?id:null;
+}
+function positionIndex(sourceRoster){
+ if(sourceRoster===undefined)return new Map();
+ if(!sourceRoster||!Array.isArray(sourceRoster.players))throw Error('Position roster players required');
+ const byId=new Map();
+ for(const row of sourceRoster.players){
+  const id=permanentId(row?.id);if(!id)continue;
+  const evidence=positionEvidence(row);
+  if(!byId.has(id))byId.set(id,evidence);
+  else if(byId.get(id)!==evidence)byId.set(id,null); // Any ambiguity stays unresolved, regardless of row order.
+ }
+ return byId;
+}
+function build(universe,teamId,engine,sourceRoster){
  const eligible=teams(universe);if(!eligible.some(t=>String(t.id)===String(teamId)))throw Error('Select an active NHL franchise');
  if(!engine||typeof engine.createGameStateEnvelope!=='function'||typeof engine.generateRoundRobinSchedule!=='function'||typeof engine.validateGameStateEnvelope!=='function')throw Error('Validated Phase 10 engine required');
- const roster=universe.players.filter(p=>p&&!p.retired&&p.status!==-1&&eligible.some(t=>String(t.id)===String(p.teamId))).map(p=>({id:p.id,name:p.name||[p.first,p.last].filter(Boolean).join(' '),teamId:p.teamId,position:p.position||p.pos||null,overall:Number(p.ovr)||null,potential:p.potential??null}));
+ const positions=positionIndex(sourceRoster);
+ const roster=universe.players.filter(p=>p&&!p.retired&&p.status!==-1&&eligible.some(t=>String(t.id)===String(p.teamId))).map(p=>{
+  const hasCanonicalPosition=[p.position,p.pos].some(v=>v!==undefined&&v!==null&&v!=='');
+  const evidence=hasCanonicalPosition?positionEvidence(p):positions.get(permanentId(p.id));
+  return {id:p.id,name:p.name||[p.first,p.last].filter(Boolean).join(' '),teamId:p.teamId,position:evidence?JSON.parse(evidence)[0]:null,overall:Number(p.ovr)||null,potential:p.potential??null};
+ });
  const sourcePicks=importSourcePicks(universe,eligible);
  const state=engine.createGameStateEnvelope({meta:{saveId:'isolated-new-franchise',controlledTeamId:eligible.find(t=>String(t.id)===String(teamId)).id,currentDate:'2026-10-20'},teams:eligible,players:roster,draftPicks:sourcePicks.accepted,games:engine.generateRoundRobinSchedule(eligible,'2026-10-20',2),extensions:{phase11ExperimentalRosterAwareScores:false}});
  if(!engine.validateGameStateEnvelope(state).valid||!state.activity.games.length)throw Error('Invalid starter GameState');
  return state;
 }
-return {teams,build,importSourcePicks};
+return {teams,build,importSourcePicks,normalizePosition};
 });
