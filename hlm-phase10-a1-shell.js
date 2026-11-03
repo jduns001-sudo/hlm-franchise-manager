@@ -94,34 +94,42 @@ function mount(doc){
   dl.replaceChildren();
   for(const [k,v] of rows){const dt=doc.createElement('dt');dt.textContent=k;const dd=doc.createElement('dd');dd.textContent=v;dl.append(dt,dd)}
   doc.getElementById('a1-dashboard-empty').textContent=rows.length?'':'No isolated franchise loaded. Production Front Office save is unchanged.';
-  const r=routeFor(detail.nextTarget);
-  doc.getElementById('a1-continue').textContent='Continue Franchise: '+r.label;
+  refreshContinue();
+ }
+ // Resolve the real destination once for both presentation and navigation.
+ function destination(){
+  const target=detail.nextTarget;
+  if(!Object.prototype.hasOwnProperty.call(ROUTES,target))return {reason:'unrecognized franchise action'};
+  const route=ROUTES[target],el=doc.getElementById(route.focus);
+  if(!el||!body.contains(el))return {route,reason:'destination is missing'};
+  if(el.matches(':disabled'))return {route,reason:'review control is disabled'};
+  return {route,el};
+ }
+ function refreshContinue(){
+  const result=destination(),button=doc.getElementById('a1-continue'),status=doc.getElementById('a1-continue-status');
+  const label=result.route?result.route.label:'Unrecognized action';
+  const title='Continue Franchise: '+(result.reason?'Unavailable ('+label+')':label);
+  const message=result.reason?'Next decision unavailable: '+result.reason+'. Nothing was saved or approved.':'Next decision ready: '+label+'. Continue only navigates; explicit GM approval is still required.';
+  if(button.textContent!==title)button.textContent=title;
+  if(status.textContent!==message)status.textContent=message;
  }
  // Read-only text copy of the existing brief; calculations stay in the page.
  function syncBrief(){const src=doc.getElementById('gm-daily-brief'),dst=doc.getElementById('a1-home-brief');if(src&&dst)dst.textContent=src.textContent}
  function continueFranchise(){
-  const status=doc.getElementById('a1-continue-status');
-  const target=detail.nextTarget;
-  if(!Object.prototype.hasOwnProperty.call(ROUTES,target)){
-   status.textContent='Next decision unavailable: unrecognized franchise action. Nothing was saved or approved.';
-   return;
-  }
-  const r=routeFor(target),el=doc.getElementById(r.focus);
-  if(!el||!body.contains(el)){
-   status.textContent='Next decision unavailable: destination is missing. Nothing was saved or approved.';
-   return;
-  }
-  if(el.matches(':disabled')){
-   status.textContent='Next decision unavailable: review control is disabled. Nothing was saved or approved.';
-   return;
-  }
+  const result=destination();
+  if(result.reason){refreshContinue();return}
+  const r=result.route,el=result.el;
   activate(r.tab);
   if(!el.matches('button,input,select,textarea,a'))el.tabIndex=-1;
   el.focus({preventScroll:true});
   el.scrollIntoView({block:'center'});
-  status.textContent='Next decision: '+r.label+'. Nothing was saved or approved.';
+  doc.getElementById('a1-continue-status').textContent='Next decision: '+r.label+'. Nothing was saved or approved.';
  }
  doc.addEventListener('hlm:a1-state',e=>render(e.detail));
+ // Only reflect availability changes; do not activate controls or modify game state.
+ if(doc.defaultView.MutationObserver)new doc.defaultView.MutationObserver(changes=>{
+  if(changes.some(change=>!dash.contains(change.target)))refreshContinue();
+ }).observe(body,{subtree:true,attributes:true,attributeFilter:['disabled','id'],childList:true});
  doc.getElementById('a1-continue').addEventListener('click',continueFranchise);
  doc.addEventListener('click',e=>{
   const a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a||a.getAttribute('href').length<2)return;
