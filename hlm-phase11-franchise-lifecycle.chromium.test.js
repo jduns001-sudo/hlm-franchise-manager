@@ -18,6 +18,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
 (async()=>{await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await chromium.launch();try{
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
  await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html');
+ await page.locator('#a1-nav [data-a1-tab="more"]').click();
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
  const startupErrors=[];
  page.on('pageerror',error=>startupErrors.push('pageerror: '+error.message));
@@ -31,12 +32,13 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.dismiss());await page.locator('#new-franchise').click();
  assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),before,'declined franchise creation must not save');
  page.once('dialog',d=>d.accept());await page.locator('#new-franchise').click();
+ await page.locator('#a1-nav [data-a1-tab="season"]').click();
  await page.waitForFunction(key=>Boolean(localStorage.getItem(key)),KEY);
  let state=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  assert.equal(String(state.meta.controlledTeamId),team);
  assert.ok(state.activity.games.length>0,'real franchise must have scheduled games');
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
- await page.reload();await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true&&document.querySelector('#game')?.options.length>0);
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true&&document.querySelector('#game')?.options.length>0);
  assert.equal(await page.locator('#new-franchise').isDisabled(),true,'reload cannot overwrite existing franchise');
  const first=await page.locator('#game option').first().getAttribute('value');
  assert.ok(first,'scheduled game must be selectable');
@@ -65,7 +67,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const approved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  assert.ok(approved.activity.games.some(g=>g.status==='final'||g.status==='completed'||g.result),'GM-approved day must finalize a game');
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
- await page.reload();
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true);
  assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY)>0,true,'approved game must survive reload');
  // Mission 1432: advance a second separately reviewed day; cancelled approval remains no-save.
@@ -81,7 +83,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const finalsAfter=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY);
  assert.ok(finalsAfter>finalsBefore,'second approved day must finalize additional scheduled games');
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
- await page.reload();
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===true);
  assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).activity.games.filter(g=>g.status==='final'||g.status==='completed'||g.result).length,KEY),finalsAfter,'both approved days must survive reload');
  const reloadedSecondDay=JSON.parse(await page.evaluate(key=>localStorage.getItem(key),KEY));
@@ -104,7 +106,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assertUniqueFinals(completedRegular.activity.games,'completed regular season');
  assert.ok(completedRegular.activity.games.every(g=>g.status==='final'),'regular season must have exactly one final per scheduled game');
  const completedStandings=standings(completedRegular);
- await page.reload();await page.waitForFunction(()=>document.querySelector('#playoff-start')?.disabled===false);
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();await page.waitForFunction(()=>document.querySelector('#playoff-start')?.disabled===false);
  assert.deepEqual(standings(JSON.parse(await page.evaluate(key=>localStorage.getItem(key),KEY))),completedStandings,'completed regular-season standings must survive reload');
  assert.equal(await page.locator('#playoff-start').isEnabled(),true,'completed regular season must unlock playoff qualification');
  console.log('Mission 1434 completed real-universe season in '+regularSeasonApprovals+' additional explicitly GM-approved days');
@@ -123,7 +125,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    page.once('dialog',d=>d.dismiss());await page.locator('#playoff-next').click();
    assert.equal(await page.evaluate(key=>localStorage.getItem(key),KEY),playoffBeforeGame,'declined playoff game must not save');
    assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
-   await page.reload();await page.waitForFunction(()=>document.querySelector('#playoff-next')?.disabled===false);
+   await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();await page.waitForFunction(()=>document.querySelector('#playoff-next')?.disabled===false);
    // Mission 1435: finish the actual best-of-seven bracket with one explicit GM approval per game.
    let playoffApprovals=0;
    while(await page.locator('#playoff-next').isEnabled()){
@@ -144,7 +146,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    assertUniqueFinals(completedRegular.activity.games,'regular-season final identity remains distinct');
    assert.equal(await page.locator('#season-archive').isEnabled(),true,'completed playoffs must unlock championship archive');
    assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
-   await page.reload();
+   await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();
    await page.waitForFunction(()=>document.querySelector('#season-archive')?.disabled===false);
    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).extensions.phase10Playoffs.championTeamId,KEY),champion,'champion must persist unchanged after reload');
    assert.equal(await page.locator('#playoff-next').isDisabled(),true,'completed playoffs must stay complete after reload');
@@ -166,7 +168,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    assert.equal(archivedSeason.championTeamId,champion,'archived champion must match verified playoff winner');
    assert.equal(await page.locator('#season-archive').isDisabled(),true,'already archived season must not be archived twice');
    assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
-   await page.reload();
+   await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();
    await page.waitForFunction(()=>document.querySelector('#offseason-review')?.disabled===false);
    const historyAfterReload=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).history?.seasons||[],KEY);
    assert.deepEqual(historyAfterReload,archived.history,'championship archive must persist unchanged after reload');
@@ -224,7 +226,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
    assert.ok(nextState.games.some(g=>g.status==='scheduled'),'approved next season must schedule games');
    assert.equal(await page.locator('#next-season').isDisabled(),true,'approval must clear reviewed offseason state');
    assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
-   await page.reload();
+   await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();
    await page.waitForFunction(()=>document.querySelector('#offseason-review')!=null);
    const reloadedNext=await page.evaluate(key=>{
      const state=JSON.parse(localStorage.getItem(key));

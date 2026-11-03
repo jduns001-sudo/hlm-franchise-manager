@@ -7,6 +7,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
  const url='http://127.0.0.1:'+server.address().port;
  await page.goto(url+'/hlm-phase11-isolated-single-game.html');
+ await page.locator('#a1-nav [data-a1-tab="more"]').click();
  const teams=[1,2,3,4].map(id=>({id,name:'Club '+id}));
  const players=teams.flatMap(t=>Array.from({length:23},(_,i)=>({id:'p'+t.id+'-'+i,teamId:t.id,name:'Player '+i,position:i%6===0?'G':'C',ovr:75,metadata:{source:'front-office'}})));
  const contracts=players.map((p,i)=>({contractId:'c'+i,playerId:p.id,teamId:p.teamId,status:'active',aav:1000000}));
@@ -19,8 +20,9 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.locator('#file').setInputFiles({name:'real-franchise.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(gate.candidate))});
  await page.waitForFunction(()=>!document.querySelector('#import').disabled);
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
+ await page.locator('#a1-nav [data-a1-tab="season"]').click();
  await page.waitForFunction(()=>document.querySelector('#career-continuity')?.textContent.includes('"playerCount": 92'));
- await page.reload();
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();
  const snapshot=JSON.parse(await page.locator('#career-continuity').innerText());
  assert.equal(snapshot.playerCount,92);
  assert.equal(snapshot.contractCount,92);

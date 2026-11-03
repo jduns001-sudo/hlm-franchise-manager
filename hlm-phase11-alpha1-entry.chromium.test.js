@@ -23,6 +23,7 @@ const server=http.createServer((req,res)=>{
   await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','M1496_PRODUCTION_SENTINEL'));
   await link.click();
   await page.waitForURL('**/hlm-phase11-isolated-single-game.html');
+  await page.locator('#a1-nav [data-a1-tab="more"]').click();
   assert.match(await page.locator('#season-entry-safety').innerText(),/isolated save/i);
   await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===false,null,{timeout:30000});
   const before=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));

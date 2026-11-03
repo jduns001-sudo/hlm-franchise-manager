@@ -7,6 +7,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
 (async()=>{await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await chromium.launch();try{
 const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
 await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html');
+await page.locator('#a1-nav [data-a1-tab="more"]').click();
 const teams=[1,2,3,4].map(id=>({id,name:'Club '+id}));
 const players=teams.flatMap(t=>Array.from({length:23},(_,i)=>({id:t.id*100+i,teamId:t.id,position:['C','LW','RW','D','D','G'][i%6],ovr:70+i%10})));
 const contracts=players.map((p,i)=>({contractId:'c'+i,playerId:p.id,teamId:p.teamId,status:'Active'}));
@@ -22,8 +23,9 @@ await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_S
 await page.locator('#file').setInputFiles({name:'experimental-career.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(preview.nextState))});
 await page.waitForFunction(()=>!document.querySelector('#import').disabled);
 page.once('dialog',d=>d.accept());await page.locator('#import').click();
+await page.locator('#a1-nav [data-a1-tab="season"]').click();
 await page.waitForFunction(()=>document.querySelector('#career-continuity')?.textContent.includes('"playerCount": 92'));
-await page.reload();
+await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();
 const snapshot=JSON.parse(await page.locator('#career-continuity').innerText());
 assert.equal(snapshot.completedSeasons.length,1);
 const persisted=await page.evaluate(()=>{const key=Object.keys(localStorage).find(k=>k.startsWith('hlm-phase11-m1340-isolated-single-game'));return key?JSON.parse(localStorage.getItem(key)):null});

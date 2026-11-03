@@ -6,13 +6,16 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
  const url='http://127.0.0.1:'+server.address().port;
  await page.goto(url+'/hlm-phase11-isolated-single-game.html');
+ await page.locator('#a1-nav [data-a1-tab="roster"]').click();
  await page.locator('#gm-skater-choice').waitFor();
  assert.equal(await page.locator('#gm-skater-review').isDisabled(),true);
  assert.equal(await page.locator('#gm-skater-approve').isDisabled(),true);
  const state={schemaVersion:1,meta:{saveId:'isolated',createdAt:null,updatedAt:null,controlledTeamId:1,currentDate:'2026-10-18'},universe:{players:[{id:11,teamId:1,position:'G',overall:80,name:'Goalie'},{id:12,teamId:1,position:'C',overall:95,name:'Center'},{id:13,teamId:1,position:'LW',overall:95,name:'Wing'},{id:14,teamId:1,position:'D',overall:95,name:'Defender'},{id:15,teamId:1,position:'RW',overall:40,name:'Depth'},{id:21,teamId:2,position:'C',overall:99,name:'CPU'}],teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],leagues:[],prospects:[],staff:[]},assets:{contracts:[],draftPicks:[]},activity:{transactions:[],games:[{id:'g1',date:'2026-10-19',homeTeamId:1,awayTeamId:2,status:'scheduled'}],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{},extensions:{}};
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
+ await page.locator('#a1-nav [data-a1-tab="more"]').click();
  await page.locator('#file').setInputFiles({name:'state.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
+ await page.locator('#a1-nav [data-a1-tab="roster"]').click();
  await page.waitForFunction(()=>document.querySelector('#gm-skater-choice')?.options.length===4);
  assert.equal(await page.locator('#gm-skater-review').isDisabled(),false);
  await page.locator('#gm-skater-choice').selectOption(['12','13']);
@@ -30,7 +33,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const saved=await page.evaluate(()=>localStorage.getItem('hlm-phase11-m1340-isolated-single-game-v1'));
  assert.ok(saved.includes('phase11GmApprovedSkaters'));
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
- await page.reload();await page.locator('#gm-skater-choice').waitFor();
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="roster"]').click();await page.locator('#gm-skater-choice').waitFor();
  assert.deepEqual(await page.locator('#gm-skater-choice option:checked').evaluateAll(els=>els.map(e=>e.value)),['12','13','14']);
  assert.equal(await page.locator('#gm-skater-approve').isDisabled(),true);
  assert.match(await page.locator('#gm-roster-scores-status').innerText(),/disabled by default/i);

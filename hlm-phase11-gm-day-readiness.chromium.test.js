@@ -7,10 +7,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
  const url='http://127.0.0.1:'+server.address().port;
  await page.goto(url+'/hlm-phase11-isolated-single-game.html');
+ await page.locator('#a1-nav [data-a1-tab="more"]').click();
  const state={schemaVersion:1,meta:{saveId:'isolated',createdAt:null,updatedAt:null,controlledTeamId:1,currentDate:'2026-10-18'},universe:{players:[{id:11,teamId:1,position:'G',overall:80,name:'Goalie'},{id:12,teamId:1,position:'C',overall:95,name:'Center'},{id:13,teamId:1,position:'LW',overall:95,name:'Wing'},{id:14,teamId:1,position:'D',overall:95,name:'Defender'},{id:15,teamId:1,position:'RW',overall:40,name:'Depth'},{id:21,teamId:2,position:'G',overall:80,name:'CPU'}],teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],leagues:[],prospects:[],staff:[]},assets:{contracts:[],draftPicks:[]},activity:{transactions:[],games:[{id:'g1',date:'2026-10-19',homeTeamId:1,awayTeamId:2,status:'scheduled'},{id:'g2',date:'2026-10-19',homeTeamId:2,awayTeamId:1,status:'scheduled'}],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{},extensions:{}};
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
  await page.locator('#file').setInputFiles({name:'state.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
+ await page.locator('#a1-nav [data-a1-tab="roster"]').click();
  await page.waitForFunction(()=>document.querySelector('#gm-skater-choice')?.options.length===4);
  await page.locator('#gm-skater-choice').selectOption(['12','13','14']);await page.locator('#gm-skater-review').click();
  page.once('dialog',d=>d.accept());await page.locator('#gm-skater-approve').click();
@@ -24,6 +26,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.waitForFunction(()=>document.querySelector('#gm-roster-scores-status')?.textContent.includes('enabled by human GM'));
  let saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),KEY);
  assert.equal(saved.extensions.phase11ExperimentalRosterAwareScores,true);
+ await page.locator('#a1-nav [data-a1-tab="season"]').click();
  assert.deepEqual(saved.extensions.phase11GmApprovedSkaters.playerIds,[12,13,14]);
  assert.equal(saved.extensions.phase11GmGoaliePlan.playerId,11);
  await page.locator('#gm-game-day-review').click();
@@ -44,7 +47,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.ok(Number.isSafeInteger(game.homeGoals)&&Number.isSafeInteger(game.awayGoals)&&game.homeGoals!==game.awayGoals);
  assert.match(await page.locator('#season-dashboard').innerText(),/Standings:/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
- await page.reload();await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Completed: 1'));
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Completed: 1'));
  assert.equal(await page.locator('#approve').isDisabled(),false);
  assert.match(await page.locator('#season-dashboard').innerText(),/EXPERIMENTAL, NONOFFICIAL/,'Reload must expose persisted provenance');
  await page.locator('#day-review').click();
@@ -63,11 +66,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(saved.activity.games[1].status,'final');
  assert.equal(saved.activity.games[1].experimentalRosterAware,true);
  assert.equal(saved.activity.games[1].official,false);
- await page.reload();
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Completed: 2'));
  assert.equal(await page.locator('#approve').isDisabled(),true);
  assert.match(await page.locator('#season-dashboard').innerText(),/EXPERIMENTAL, NONOFFICIAL/,'Reload must show persisted nonofficial provenance');
  assert.equal(((await page.locator('#season-dashboard').innerText()).match(/EXPERIMENTAL, NONOFFICIAL/g)||[]).length,2);
+ await page.locator('#a1-nav [data-a1-tab="roster"]').click();
  assert.deepEqual(await page.locator('#gm-skater-choice option:checked').evaluateAll(els=>els.map(e=>e.value)),['12','13','14']);
  assert.match(await page.locator('#gm-roster-scores-status').innerText(),/enabled by GM/);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');

@@ -8,6 +8,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.goto(url+'/app.html',{waitUntil:'domcontentloaded'});await page.locator('#hlm-gm-season-entry').waitFor({timeout:90000});
  await page.evaluate(()=>{localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL');go('schedule')});
  await page.locator('#hlm-isolated-single-game-link').click();
+ await page.locator('#a1-nav [data-a1-tab="more"]').click();
  await page.locator('#file').waitFor();
  const state={schemaVersion:1,meta:{saveId:'isolated',createdAt:null,updatedAt:null,controlledTeamId:1,currentDate:'2026-10-18'},universe:{players:[],teams:[{id:1,name:'Owner'},{id:2,name:'CPU'}],leagues:[],prospects:[],staff:[]},assets:{contracts:[],draftPicks:[]},activity:{transactions:[],games:[{id:'g1',date:'2026-10-19',homeTeamId:1,awayTeamId:2,status:'scheduled'},{id:'g2',date:'2026-10-20',homeTeamId:2,awayTeamId:1,status:'scheduled'}],injuries:[]},history:{seasons:[],statistics:[],records:[]},finances:{},extensions:{}};
  await page.locator('#file').setInputFiles({name:'state.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(state))});
@@ -15,6 +16,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.dismiss());await page.locator('#import').click();
  assert.match(await page.locator('#output').innerText(),/No isolated save loaded/);
  page.once('dialog',d=>d.accept());await page.locator('#import').click();
+ await page.locator('#a1-nav [data-a1-tab="season"]').click();
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining: 2'));
  await page.locator('#day-review').click();
  assert.match(await page.locator('#day-report').innerText(),/2026-10-19/);
@@ -23,7 +25,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();
  await page.waitForFunction(()=>document.querySelector('#day-report')?.textContent.includes('Persisted isolated day'));
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
- await page.reload();await page.locator('#output').waitFor();
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();await page.locator('#output').waitFor();
  assert.match(await page.locator('#output').innerText(),/Completed: 1/);
  assert.match(await page.locator('#season-dashboard').innerText(),/Recent results:/);
  assert.match(await page.locator('#season-dashboard').innerText(),/Upcoming games: 1/);
@@ -31,7 +33,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.match(await page.locator('#day-report').innerText(),/2026-10-20/);
  page.once('dialog',d=>d.accept());await page.locator('#day-approve').click();
  await page.waitForFunction(()=>document.querySelector('#day-report')?.textContent.includes('Persisted isolated day 2026-10-20'));
- await page.reload();await page.locator('#output').waitFor();
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();await page.locator('#output').waitFor();
  assert.match(await page.locator('#output').innerText(),/Completed: 2/);
  assert.match(await page.locator('#season-dashboard').innerText(),/Upcoming games: 0/);
  assert.match(await page.locator('#season-dashboard').innerText(),/Standings:/);

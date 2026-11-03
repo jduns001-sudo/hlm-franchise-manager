@@ -5,6 +5,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
 (async()=>{await new Promise(ok=>server.listen(0,'127.0.0.1',ok));const browser=await chromium.launch();try{
  const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
  await page.goto('http://127.0.0.1:'+server.address().port+'/hlm-phase11-isolated-single-game.html',{waitUntil:'domcontentloaded'});
+ await page.locator('#a1-nav [data-a1-tab="more"]').click();
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
  await page.waitForFunction(()=>document.querySelector('#new-franchise')&&!document.querySelector('#new-franchise').disabled,{timeout:30000});
  const options=await page.locator('#new-team option').allTextContents();
@@ -14,12 +15,15 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  assert.equal(options.filter(s=>s==='Chicago (CHI)').length,1);
  assert.ok(!options.some(s=>/Chicoutimi/.test(s)),'junior Chicoutimi excluded');
  page.once('dialog',d=>d.dismiss());await page.locator('#new-franchise').click();
+ await page.locator('#a1-nav [data-a1-tab="season"]').click();
  assert.match(await page.locator('#output').innerText(),/No isolated save loaded/);
+ await page.locator('#a1-nav [data-a1-tab="more"]').click();
  page.once('dialog',d=>d.accept());await page.locator('#new-franchise').click();
+ await page.locator('#a1-nav [data-a1-tab="season"]').click();
  await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining:'),null,{timeout:30000});
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  assert.equal(await page.locator('#new-franchise').isDisabled(),true);
- await page.reload();await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining:'),null,{timeout:30000});
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="season"]').click();await page.waitForFunction(()=>document.querySelector('#output')?.textContent.includes('Scheduled games remaining:'),null,{timeout:30000});
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
  console.log('Mission 1381 mobile Chromium: real teams, decline, approve, reload, no overwrite, production isolation passed');
 }finally{await browser.close();await new Promise(ok=>server.close(ok))}})().catch(e=>{console.error(e);process.exitCode=1});

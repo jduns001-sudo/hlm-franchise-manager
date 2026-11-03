@@ -13,10 +13,12 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  await page.evaluate(()=>localStorage.setItem('hlm_front_office_v8','PRODUCTION_SENTINEL'));
  console.log('Mission 1441: waiting for new franchise readiness');
  await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===false,null,{timeout:30000});
+ await page.locator('#a1-nav [data-a1-tab="more"]').click();
  console.log('Mission 1441: new franchise ready');
  await page.locator('#new-team').selectOption('26'); // Source audit: Los Angeles owns eligible unique picks.
  console.log('Mission 1441: initiating GM-confirmed franchise creation');page.once('dialog',d=>d.accept());await page.locator('#new-franchise').click({timeout:15000}); console.log('Mission 1441: franchise creation click completed');
  await page.waitForFunction(key=>!!localStorage.getItem(key),KEY,{timeout:30000});
+ await page.locator('#a1-nav [data-a1-tab="moves"]').click();
  await page.waitForFunction(()=>document.querySelector('#gm-pick-transfer-review')?.disabled===false,null,{timeout:30000});
  assert.equal(await page.locator('#gm-pick-transfer-pick option').count()>0,true,'real universe must offer source-backed owned picks');
  console.log('Mission 1441: source-backed transfer review available');
@@ -36,7 +38,7 @@ const server=http.createServer((req,res)=>{const name=decodeURIComponent((req.ur
  const moved=after.assets.draftPicks.filter(p=>old.assets.draftPicks.some(o=>o.pickId===p.pickId&&String(o.currentOwnerId)!==String(p.currentOwnerId)));
  assert.equal(moved.length,1,'one source-backed pick must move');assert.equal(after.assets.contracts.length,0);assert.equal(after.universe.prospects.length,0);
  assert.equal(await page.evaluate(()=>localStorage.getItem('hlm_front_office_v8')),'PRODUCTION_SENTINEL');
- await page.reload();await page.waitForFunction(()=>document.querySelector('#gm-pick-transfer-review')?.disabled===false,null,{timeout:30000});
+ await page.reload();await page.locator('#a1-nav [data-a1-tab="moves"]').click();await page.waitForFunction(()=>document.querySelector('#gm-pick-transfer-review')?.disabled===false,null,{timeout:30000});
  assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).assets.draftPicks.length,KEY),old.assets.draftPicks.length,'pick count survives reload');
  assert.deepEqual(errors,[]);
  console.log('Mission 1441 real-universe mobile pick transfer review/cancel/approve/reload passed');
