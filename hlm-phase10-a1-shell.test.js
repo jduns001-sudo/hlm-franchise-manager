@@ -15,6 +15,9 @@ for(const target of new Set(targets)){
  assert.ok(html.includes('id="'+route.focus+'"'),'route destination missing: '+route.focus);
 }
 assert.equal(shell.routeFor('unknown-target'),shell.ROUTES['season-dashboard']);
+assert.deepEqual(Object.keys(shell.ROUTES).sort(),['file','day-review','playoff-start','playoff-next','season-id','offseason-review','season-dashboard'].sort());
+assert.equal(new Set(Object.values(shell.ROUTES).map(r=>r.focus)).size,7,'route destinations remain distinct');
+
 
 // Dashboard is built only from the verified snapshot and never invents values.
 assert.deepEqual(shell.dashboardRows(null),[]);
