@@ -18,6 +18,22 @@ function dateValue(s){
 function intOption(value,name,min,max){
   if(!Number.isSafeInteger(value)||value<min||value>max)throw new RangeError(name+' must be '+min+' through '+max);
 }
+// R2-RULES-07R: fixed, ordered, bounded recovery ladder [variation (null = requested), pacing pressure, tail days].
+const RECOVERY_STEPS=[[null,1.15,10],[0.2,1.15,10],[null,1.3,10],[0.2,1.3,10],[null,1.05,10],[0.2,1.05,10],[null,1.15,40],[0.2,1.3,40]];
+function recoveryLadder(volumeVariation){
+  return [[volumeVariation,1,10],...RECOVERY_STEPS.map(([v,p,t])=>[v===null?volumeVariation:Math.min(v,volumeVariation),p,t])];
+}
+// Provable infeasibility from hard caps only: capacity, playable days and per-team spacing.
+function assertFeasible(teamCount,gameCount,days,playable,maxGamesPerDay,maxBackToBacks){
+  const perDay=Math.min(maxGamesPerDay,Math.floor(teamCount/2));
+  if(playable*perDay<gameCount)
+    throw new RangeError('Calendar constraints infeasible: daily cap and blocked dates leave capacity for '+playable*perDay+' of '+gameCount+' games');
+  const perTeam=gameCount*2/teamCount;
+  // No three consecutive game days: consecutive 1-day gaps cannot be adjacent, so at most ceil((n-1)/2) gaps shrink to 1
+  const minSpan=2*(perTeam-1)-Math.min(maxBackToBacks,Math.ceil((perTeam-1)/2))+1;
+  if(playable<perTeam||minSpan>days)
+    throw new RangeError('Calendar constraints infeasible: a team needs at least '+minSpan+' days for '+perTeam+' games');
+}
 function scheduleNhl84CalendarPattern(teams,games,options={}){
   const {startDate,endDate,maxGamesPerDay=14,minGamesPerDay=2,volumeVariation=0.6,
     backToBackTarget=3,maxBackToBacks=6,maxInactiveDays=7,blockedDates=[]}=options;
@@ -38,24 +54,27 @@ function scheduleNhl84CalendarPattern(teams,games,options={}){
   if(!report.valid)throw new Error('Invalid NHL84 matchups: '+report.errors[0].code);
   const ids=[...new Set(teams.map(t=>String(t.id)))].sort();
   const idx=new Map(ids.map((id,i)=>[id,i]));
+  let playable=0;
+  for(let day=0;day<days;day++)if(!blocked.has(new Date(start+day*DAY).toISOString().slice(0,10)))playable++;
+  assertFeasible(ids.length,games.length,days,playable,maxGamesPerDay,maxBackToBacks);
+  // One pass of the greedy pattern scheduler; only soft shaping (variation, pacing pressure, tail) varies.
+  function attempt(variation,pressure,tail){
   const played=new Map(ids.map(id=>[id,0])),last=new Map(ids.map(id=>[id,null])),
     b2b=new Map(ids.map(id=>[id,0])),prevGap=new Map(ids.map(id=>[id,99]));
   const remaining=games.map(g=>({...g})).sort((a,b)=>String(a.id).localeCompare(String(b.id),'en'));
   const assigned=[];
-  let playable=0;
-  for(let day=0;day<days;day++)if(!blocked.has(new Date(start+day*DAY).toISOString().slice(0,10)))playable++;
   let left=playable;
   for(let day=0;day<days&&remaining.length;day++){
     const dt=new Date(start+day*DAY),date=dt.toISOString().slice(0,10);
     if(blocked.has(date))continue;
-    const base=remaining.length/left;
+    const base=remaining.length/left*pressure;
     const jitter=(((day*7+3)%5)-2)/10;
     const shape=WEEKDAY_SHAPE[dt.getUTCDay()]+jitter;
     // Final stretch drops the weekday shape and catches up so tight caps cannot strand games
-    const target=left<=10
+    const target=left<=tail
       ?Math.min(maxGamesPerDay,Math.ceil(base))
       :Math.max(Math.min(minGamesPerDay,remaining.length),
-        Math.min(maxGamesPerDay,Math.round(base*(1+volumeVariation*shape))));
+        Math.min(maxGamesPerDay,Math.round(base*(1+variation*shape))));
     left--;
     const occupied=new Set();
     const urgency=(day+1)*84/days;
@@ -89,13 +108,25 @@ function scheduleNhl84CalendarPattern(teams,games,options={}){
       assigned.push({...g,date});
     }
   }
-  if(remaining.length)throw new RangeError('Calendar constraints infeasible: '+remaining.length+' games unassigned');
-  const result=assigned.sort((a,b)=>String(a.id).localeCompare(String(b.id),'en'));
-  const audit=auditNhl84CalendarRealism(result);
-  if(audit.maxInactiveGap>maxInactiveDays)throw new RangeError('Calendar constraints infeasible: inactivity limit exceeded');
-  if(audit.maxBackToBacks>maxBackToBacks||audit.tripleRuns>0)throw new RangeError('Calendar constraints infeasible: back-to-back limit exceeded');
-  if(audit.maxGamesInDay>maxGamesPerDay)throw new RangeError('Calendar constraints infeasible: daily cap exceeded');
-  if(Object.keys(audit.months).length<7||!audit.months[endDate.slice(0,7)])throw new RangeError('Calendar constraints infeasible: October-April coverage');
-  return result;
+  return {assigned,remaining};
+  }
+  // Every hard constraint is verified on each candidate; a failing candidate is discarded, never accepted.
+  function verify(r){
+    if(r.remaining.length)return r.remaining.length+' games unassigned';
+    const result=r.assigned.sort((a,b)=>String(a.id).localeCompare(String(b.id),'en'));
+    const audit=auditNhl84CalendarRealism(result);
+    if(audit.maxInactiveGap>maxInactiveDays)return 'inactivity limit exceeded';
+    if(audit.maxBackToBacks>maxBackToBacks||audit.tripleRuns>0)return 'back-to-back limit exceeded';
+    if(audit.maxGamesInDay>maxGamesPerDay)return 'daily cap exceeded';
+    if(Object.keys(audit.months).length<7||!audit.months[endDate.slice(0,7)])return 'October-April coverage';
+    return result;
+  }
+  let reason='';
+  for(const [variation,pressure,tail] of recoveryLadder(volumeVariation)){
+    const outcome=verify(attempt(variation,pressure,tail));
+    if(typeof outcome!=='string')return outcome;
+    if(!reason)reason=outcome;
+  }
+  throw new RangeError('Calendar constraints infeasible: '+reason+' (recovery exhausted after '+(RECOVERY_STEPS.length+1)+' attempts)');
 }
 module.exports={scheduleNhl84CalendarPattern};

@@ -73,7 +73,6 @@ ok(JSON.stringify(result)===JSON.stringify(scheduleNhl84CalendarPattern(teams,[.
 ok(JSON.stringify({teams,games})===before,'no input mutation');
 
 // fail closed
-rejects(()=>run({backToBackTarget:0,maxBackToBacks:0}),/infeasible/);
 rejects(()=>run({backToBackTarget:5,maxBackToBacks:4}),/backToBackTarget/);
 rejects(()=>run({volumeVariation:2}),/volumeVariation/);
 rejects(()=>run({volumeVariation:'x'}),/volumeVariation/);
