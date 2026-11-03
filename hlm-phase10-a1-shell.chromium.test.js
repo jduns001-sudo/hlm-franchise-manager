@@ -168,6 +168,46 @@ const active=page=>page.locator('#a1-nav [aria-current="page"]').innerText();
   await page.locator('#a1-nav [data-a1-tab="home"]').click();
   assert.equal(await active(page),'Home');
   assert.ok(await page.locator('#a1-dashboard').isVisible());
+  // A2-05: navigation must not act on unavailable or unrecognized review destinations.
+  const safeSave=await page.evaluate(k=>localStorage.getItem(k),SAVE);
+  await page.evaluate(()=>document.getElementById('day-review').disabled=true);
+  await page.evaluate(()=>document.dispatchEvent(new CustomEvent('hlm:a1-state',{detail:{loaded:false,nextTarget:'day-review'}})));
+  await page.locator('#a1-continue').click();
+  assert.equal(await active(page),'Home','disabled review does not switch tabs');
+  assert.match(await page.locator('#a1-continue-status').innerText(),/review control is disabled/);
+  await page.evaluate(()=>document.getElementById('day-review').disabled=false);
+
+  await page.evaluate(()=>document.getElementById('day-review').id='a2-05-temporary-id');
+  await page.locator('#a1-continue').click();
+  assert.equal(await active(page),'Home','missing review does not switch tabs');
+  assert.match(await page.locator('#a1-continue-status').innerText(),/destination is missing/);
+  await page.evaluate(()=>document.getElementById('a2-05-temporary-id').id='day-review');
+
+  await page.evaluate(()=>document.dispatchEvent(new CustomEvent('hlm:a1-state',{detail:{loaded:false,nextTarget:'unexpected-action'}})));
+  await page.locator('#a1-continue').click();
+  assert.equal(await active(page),'Home','unknown review does not silently route to dashboard');
+  assert.match(await page.locator('#a1-continue-status').innerText(),/unrecognized franchise action/);
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),SAVE),safeSave,'blocked navigation does not save');
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),PROD),'A1_PRODUCTION_SENTINEL','blocked navigation leaves production sentinel untouched');
+
+  // Exercise all seven source-backed routes without invoking their approval handlers.
+  for(const [target,tab,focus] of [
+   ['file','More','new-franchise'],['day-review','Season','day-review'],
+   ['playoff-start','Season','playoff-start'],['playoff-next','Season','playoff-next'],
+   ['season-id','Season','season-id'],['offseason-review','Season','offseason-review'],
+   ['season-dashboard','Season','season-dashboard']
+  ]){
+   await page.evaluate(([id,nextTarget])=>{
+    const el=document.getElementById(id);if('disabled' in el)el.disabled=false;
+    document.dispatchEvent(new CustomEvent('hlm:a1-state',{detail:{loaded:false,nextTarget}}));
+   },[focus,target]);
+   await page.locator('#a1-nav [data-a1-tab="home"]').click();
+   await page.locator('#a1-continue').click();
+   assert.equal(await active(page),tab,'route tab for '+target);
+   assert.equal(await page.evaluate(()=>document.activeElement.id),focus,'route focus for '+target);
+   assert.equal(await page.evaluate(k=>localStorage.getItem(k),SAVE),safeSave,'route must not save: '+target);
+  }
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),PROD),'A1_PRODUCTION_SENTINEL');
   assert.deepEqual(errors,[]);
   console.log('Phase 10 A1 mobile navigation, dashboard, Continue routing, persistence and stale-tab guard passed');
  }finally{await browser.close();server.close();}
