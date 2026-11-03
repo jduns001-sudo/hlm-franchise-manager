@@ -100,11 +100,26 @@ function mount(doc){
  // Read-only text copy of the existing brief; calculations stay in the page.
  function syncBrief(){const src=doc.getElementById('gm-daily-brief'),dst=doc.getElementById('a1-home-brief');if(src&&dst)dst.textContent=src.textContent}
  function continueFranchise(){
-  const r=routeFor(detail.nextTarget);
+  const status=doc.getElementById('a1-continue-status');
+  const target=detail.nextTarget;
+  if(!Object.prototype.hasOwnProperty.call(ROUTES,target)){
+   status.textContent='Next decision unavailable: unrecognized franchise action. Nothing was saved or approved.';
+   return;
+  }
+  const r=routeFor(target),el=doc.getElementById(r.focus);
+  if(!el||!body.contains(el)){
+   status.textContent='Next decision unavailable: destination is missing. Nothing was saved or approved.';
+   return;
+  }
+  if(el.matches(':disabled')){
+   status.textContent='Next decision unavailable: review control is disabled. Nothing was saved or approved.';
+   return;
+  }
   activate(r.tab);
-  const el=doc.getElementById(r.focus);
-  if(el){if(!el.matches('button,input,select,textarea,a'))el.tabIndex=-1;el.focus({preventScroll:true});el.scrollIntoView({block:'center'})}
-  doc.getElementById('a1-continue-status').textContent='Next decision: '+r.label+'. Nothing was saved or approved.';
+  if(!el.matches('button,input,select,textarea,a'))el.tabIndex=-1;
+  el.focus({preventScroll:true});
+  el.scrollIntoView({block:'center'});
+  status.textContent='Next decision: '+r.label+'. Nothing was saved or approved.';
  }
  doc.addEventListener('hlm:a1-state',e=>render(e.detail));
  doc.getElementById('a1-continue').addEventListener('click',continueFranchise);
