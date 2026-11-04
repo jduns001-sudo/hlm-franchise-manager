@@ -16,6 +16,10 @@ for(const target of new Set(targets)){
 }
 assert.equal(shell.routeFor('unknown-target'),shell.ROUTES['season-dashboard']);
 assert.ok(shell.ROUTES.file.label==='Start or import a franchise');
+assert.equal(shell.guidanceFor('file').title,'Set up your franchise');
+assert.equal(shell.guidanceFor('day-review').title,'Prepare for game day');
+assert.equal(shell.guidanceFor('unknown-target'),null);
+for(const target of Object.keys(shell.ROUTES)){const g=shell.guidanceFor(target);assert.ok(g&&g.title&&g.description,'guided text missing: '+target)}
 assert.equal(Object.keys(shell.ROUTES).length,7,'seven existing routes remain unchanged');
 
 assert.deepEqual(Object.keys(shell.ROUTES).sort(),['file','day-review','playoff-start','playoff-next','season-id','offseason-review','season-dashboard'].sort());
@@ -39,6 +43,10 @@ const src=fs.readFileSync(path.join(__dirname,'hlm-phase10-a1-shell.js'),'utf8')
 assert.ok(!/\.click\(\)|localStorage|sessionStorage|innerHTML\s*=\s*[^'"]/.test(src.replace(/dash\.innerHTML='[^']*'/,'')),'shell must not click handlers, touch saves or inject dynamic HTML');
 assert.ok(src.includes('id="a1-home-brief"')&&src.includes('href="#gm-daily-brief"')&&/function syncBrief\(\)\{[^}]*textContent=src\.textContent\}/.test(src),'Home brief is a read-only text copy linked to the existing brief');
 assert.equal((html.match(/id="gm-daily-brief"/g)||[]).length,1,'brief element is not duplicated');
+assert.match(src,/id="a1-next-title"/);
+assert.match(src,/id="a1-next-description"/);
+assert.match(src,/button\.disabled=!!result\.reason/,'unavailable Continue is disabled');
+assert.match(src,/button\.textContent='Continue'/,'one simple Continue label');
 assert.match(src,/function destination\(\)/,'availability shares a single destination resolver');
 assert.match(src,/function refreshContinue\(\)/,'availability presentation updates without navigation');
 assert.match(src,/attributeFilter:\['disabled','id'\]/,'disabled and missing-ID recovery is observed');
