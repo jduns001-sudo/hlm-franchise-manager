@@ -5,7 +5,6 @@ const CSS=`
 :root{--hlm-ink:#142b3e;--hlm-gold:#f3cb6a;--hlm-card:#f5f7fa;--hlm-text:#17283a}
 .hlm-visual{color:var(--hlm-text);background:#fff;border-radius:16px;overflow:hidden;margin:14px 0;font:16px system-ui,sans-serif}
 .hlm-visual *{box-sizing:border-box}
-.hlm-visual + #gm-roster{display:none!important}
 .hlm-visual__header{background:var(--hlm-ink);color:white;padding:18px}
 .hlm-visual__header h2{margin:0;color:white}
 .hlm-visual__content{padding:12px}
