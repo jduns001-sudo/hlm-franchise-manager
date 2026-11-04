@@ -31,10 +31,11 @@ const CSS='.a1-off{display:none!important}'
 +'#a1-nav{position:fixed;z-index:30;left:0;right:0;bottom:0;display:flex;background:#0d1826;border-top:1px solid #6f91b4;padding-bottom:env(safe-area-inset-bottom)}'
 +'#a1-nav button{flex:1 1 0;margin:0;min-height:56px;padding:6px 2px;border:0;border-radius:0;background:transparent;color:#d7e6f8;font-weight:650}'
 +'#a1-nav button[aria-current="page"]{background:#305477;color:#fff;box-shadow:inset 0 3px 0 #ffda78}'
-+'body.a1-shell{padding-bottom:84px}'
++'body.a1-shell{padding-bottom:calc(84px + env(safe-area-inset-bottom))}'
 +'body.a1-shell label,body.a1-shell select,body.a1-shell input,body.a1-shell textarea,body.a1-shell button{max-width:100%;box-sizing:border-box}body.a1-shell label{display:block}body.a1-shell select{width:100%}'
 +'#a1-dashboard dl{display:grid;grid-template-columns:1fr;gap:4px;margin:8px 0}#a1-dashboard dt{font-weight:650;color:#a9d6ff}#a1-dashboard dd{margin:0 0 6px}'
 +'#a1-continue{width:100%;margin:8px 0;font-weight:750;background:#ffda78;color:#101d2c;border:0;border-radius:10px;min-height:52px}'
++'@media(max-width:899px){body.a1-shell{font-size:16px;line-height:1.45;overflow-wrap:anywhere}body.a1-shell h1{font-size:clamp(1.65rem,6vw,2rem);line-height:1.2;margin:16px 0}body.a1-shell h2{font-size:clamp(1.35rem,5vw,1.65rem);line-height:1.25}body.a1-shell h3{font-size:1.2rem;line-height:1.3}body.a1-shell section,body.a1-shell pre{max-width:100%;box-sizing:border-box}body.a1-shell pre{white-space:pre-wrap;overflow-wrap:anywhere}body.a1-shell button,body.a1-shell select,body.a1-shell input,body.a1-shell textarea{font-size:inherit}#a1-nav button{font-size:clamp(13px,3.5vw,16px);min-width:0;min-height:56px;touch-action:manipulation}#a1-dashboard{scroll-margin-top:12px}}'
 +'@media(min-width:900px){#a1-nav{top:0;right:auto;bottom:0;width:180px;flex-direction:column;justify-content:flex-start;gap:4px;padding:16px 8px;border-top:0;border-right:1px solid #6f91b4}#a1-nav button{flex:0 0 auto;border-radius:8px;text-align:left;padding:8px 14px}body.a1-shell{margin:0 auto 0 200px;padding-bottom:18px;max-width:860px}#a1-dashboard dl{grid-template-columns:200px 1fr}}';
 const HEADING_TAB=[['New Franchise','more'],['Import isolated','more'],['Saved isolated','season'],['GM-reviewed future pick','moves'],['GM draft selection','moves'],['Sign owned','moves'],['GM signing transaction','moves'],['Controlled team roster','roster'],['Experimental GM player','roster'],['Season dashboard:','season']];
 const ID_TAB={'block-a-navigation':'more','season-entry-safety':'all','block-a-dashboard':'home','gm-next-action-heading':'home','gm-goalie-choice':'roster','approve':'season','gm-postgame-game':'season'};
@@ -81,6 +82,10 @@ function mount(doc){
   for(const [el,t] of items)el.classList.toggle('a1-off',t!=='all'&&t!==tab);
   for(const c of containers)c.classList.toggle('a1-off',!items.some(i=>i[2]===c&&!i[0].classList.contains('a1-off')));
   for(const id of TAB_IDS){if(id===tab)buttons[id].setAttribute('aria-current','page');else buttons[id].removeAttribute('aria-current')}
+  // User-initiated tab changes begin at that tab's first visible section; quiet restores do not scroll.
+  if(!quiet){const first=items.find(([el,t])=>t===tab&&!el.classList.contains('a1-off'));
+   if(first&&typeof first[0].scrollIntoView==='function')first[0].scrollIntoView({block:'start',behavior:'instant'});
+  }
  }
  function tabOfElement(el){
   let node=el;
