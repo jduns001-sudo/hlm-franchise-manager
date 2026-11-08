@@ -1,5 +1,6 @@
 'use strict';
-const assert=require('node:assert/strict'),fs=require('node:fs'),http=require('node:http'),path=require('node:path');
+let assertionCount=0;const nativeAssert=require('node:assert/strict');const assert=new Proxy(nativeAssert,{get(t,k){return typeof t[k]==='function'?(...args)=>{assertionCount++;return t[k](...args)}:t[k]}});const started=performance.now();
+const fs=require('node:fs'),http=require('node:http'),path=require('node:path');
 const {chromium}=require('playwright');
 const SAVE='hlm-phase11-m1340-isolated-single-game-v1',PROD='hlm_front_office_v8';
 const server=http.createServer((req,res)=>{
@@ -19,7 +20,9 @@ const active=page=>page.locator('#a1-nav [aria-current="page"]').innerText();
   const origin='http://127.0.0.1:'+server.address().port,url=origin+'/hlm-phase11-isolated-single-game.html';
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,serviceWorkers:'block'});
   const page=await context.newPage();
-  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  const errors=[];let dialogs=0;page.on('dialog',()=>dialogs++);page.on('pageerror',e=>errors.push(e.message));
+  await context.route('**/*',r=>r.request().url().startsWith(origin+'/')?r.continue():r.abort());
+  await context.addInitScript(()=>{window.__a207={writes:[],actions:[],lastState:null};const set=Storage.prototype.setItem,remove=Storage.prototype.removeItem,clear=Storage.prototype.clear;Storage.prototype.setItem=function(k,v){__a207.writes.push({key:k,local:this===localStorage});return set.call(this,k,v)};Storage.prototype.removeItem=function(k){__a207.writes.push({key:k,local:this===localStorage});return remove.call(this,k)};Storage.prototype.clear=function(){__a207.writes.push({key:'*',local:this===localStorage});return clear.call(this)};document.addEventListener('hlm:a1-state',e=>__a207.lastState=e.detail);document.addEventListener('click',e=>{const el=e.target.closest('button');if(el&&['new-franchise','import','day-review','day-approve','approve','playoff-start','playoff-next','season-archive','offseason-review','next-season'].includes(el.id))__a207.actions.push(el.id)},true);});
   await page.goto(url);
   await page.evaluate(p=>localStorage.setItem(p,'A1_PRODUCTION_SENTINEL'),PROD);
   await page.waitForFunction(()=>document.querySelector('#new-franchise')?.disabled===false,null,{timeout:30000});
@@ -37,6 +40,8 @@ const active=page=>page.locator('#a1-nav [aria-current="page"]').innerText();
   assert.ok(!(await page.locator('#gm-next-action-link').isVisible()),'legacy next-action card is replaced by the unified Dashboard');
   assert.ok(!(await page.locator('#new-franchise').isVisible()),'More content hidden on Home');
 
+  assert.equal(await page.evaluate(()=>__a207.lastState.nextTarget),'file','genuine empty-franchise route');
+  // Genuine lifecycle-generated route: fresh page chooses file, without event injection.
   // Continue routes without saving.
   await page.locator('#a1-continue').click();
   assert.equal(await active(page),'More');
@@ -92,6 +97,7 @@ const active=page=>page.locator('#a1-nav [aria-current="page"]').innerText();
   assert.equal(await page.evaluate(()=>document.getElementById('gm-daily-brief').textContent),dayBefore,'viewing the brief does not advance the day');
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),SAVE),selectedFranchise,'viewing the brief performs no save');
 
+  assert.equal(await page.evaluate(()=>__a207.lastState.nextTarget),'day-review','genuine loaded regular-season route');
   const beforeContinue=await page.evaluate(k=>localStorage.getItem(k),SAVE);
   await page.locator('#a1-continue').click();
   assert.equal(await active(page),'Season');
@@ -157,6 +163,31 @@ const active=page=>page.locator('#a1-nav [aria-current="page"]').innerText();
 
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),PROD),'A1_PRODUCTION_SENTINEL','production save untouched');
 
+  // A2-07: synthetic route events exercise navigation only, not lifecycle generation.
+  assert.deepEqual(page.viewportSize(),{width:390,height:844});
+  const mobileBefore=await page.evaluate(([save,prod])=>({save:localStorage.getItem(save),prod:localStorage.getItem(prod),writes:__a207.writes.length,actions:__a207.actions.length}),[SAVE,PROD]);
+  const beforeDialogs=dialogs;
+  async function noMobileAction(label){
+   const after=await page.evaluate(([save,prod])=>({save:localStorage.getItem(save),prod:localStorage.getItem(prod),writes:__a207.writes.length,actions:__a207.actions.length}),[SAVE,PROD]);
+   assert.deepEqual(after,mobileBefore,label+' preserves exact bytes and performs no storage or action calls');assert.equal(dialogs,beforeDialogs,label+' never prompts GM approval');
+  }
+  const mobileRoutes=[['file','More','new-franchise'],['day-review','Season','day-review'],['playoff-start','Season','playoff-start'],['playoff-next','Season','playoff-next'],['season-id','Season','season-id'],['offseason-review','Season','offseason-review'],['season-dashboard','Season','season-dashboard']];
+  for(const [target,tab,focus]of mobileRoutes){
+   const disabled=await page.evaluate(([target,focus])=>{const el=document.getElementById(focus),disabled='disabled'in el?el.disabled:null;if(disabled!==null)el.disabled=false;document.dispatchEvent(new CustomEvent('hlm:a1-state',{detail:{loaded:false,nextTarget:target}}));return disabled},[target,focus]);
+   await page.locator('#a1-nav [data-a1-tab="home"]').click();await page.locator('#a1-continue').click();
+   assert.equal(await active(page),tab,'mobile tab '+target);assert.ok(await page.locator('#'+focus).isVisible(),'mobile destination visible '+target);assert.equal(await page.evaluate(()=>document.activeElement.id),focus,'mobile focus '+target);await noMobileAction(target);
+   await page.evaluate(([focus,disabled])=>{if(disabled!==null)document.getElementById(focus).disabled=disabled},[focus,disabled]);
+  }
+  // Each rejection must leave Home selected and retain every protected byte.
+  for(const mode of ['disabled','missing','unknown']){
+   await page.locator('#a1-nav [data-a1-tab="home"]').click();
+   const wasDisabled=await page.evaluate(mode=>{const el=document.getElementById('day-review'),old=el.disabled;if(mode==='disabled')el.disabled=true;if(mode==='missing')el.id='a207-hidden-target';document.dispatchEvent(new CustomEvent('hlm:a1-state',{detail:{loaded:false,nextTarget:mode==='unknown'?'a207-unknown':'day-review'}}));return old},mode);
+   await page.locator('#a1-continue').click();assert.equal(await active(page),'Home','mobile rejection '+mode);assert.match(await page.locator('#a1-continue-status').innerText(),mode==='disabled'?/review control is disabled/:mode==='missing'?/destination is missing/:/unrecognized franchise action/);await noMobileAction(mode);
+   await page.evaluate(([mode,wasDisabled])=>{const el=document.getElementById(mode==='missing'?'a207-hidden-target':'day-review');el.id='day-review';el.disabled=wasDisabled},[mode,wasDisabled]);
+  }
+  await page.reload();await page.waitForFunction(()=>document.querySelector('#a1-dashboard-rows dd'));
+  assert.deepEqual(page.viewportSize(),{width:390,height:844});assert.equal(await active(page),'Home','mobile reload restores genuine dashboard');assert.equal(await page.evaluate(k=>localStorage.getItem(k),SAVE),mobileBefore.save,'mobile reload retains authoritative franchise bytes');assert.equal(await page.evaluate(k=>localStorage.getItem(k),PROD),mobileBefore.prod,'mobile reload retains production sentinel');assert.equal(await page.evaluate(()=>__a207.lastState.nextTarget),'day-review','reload regenerates actual next action');assert.deepEqual(await page.evaluate(()=>__a207.actions),[],'reload never invokes GM actions');assert.equal(await page.evaluate(()=>__a207.writes.length),0,'reload does not write storage');
+
   // Responsive desktop layout.
   await page.setViewportSize({width:1280,height:800});
   const side=await page.locator('#a1-nav').boundingBox();
@@ -210,5 +241,6 @@ const active=page=>page.locator('#a1-nav [aria-current="page"]').innerText();
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),PROD),'A1_PRODUCTION_SENTINEL');
   assert.deepEqual(errors,[]);
   console.log('Phase 10 A1 mobile navigation, dashboard, Continue routing, persistence and stale-tab guard passed');
+  console.log(JSON.stringify({status:'passed',assertions:assertionCount,failedAssertions:0,elapsedSeconds:(performance.now()-started)/1000,mobileViewport:{width:390,height:844},syntheticMobileRoutes:mobileRoutes.map(r=>r[0]),genuineLifecycleRoutes:['file','day-review'],limitations:['Other five route states are injected navigation fixtures, not full lifecycle acceptance.','No full-season simulation or production release qualification.'],pageErrors:errors}));
  }finally{await browser.close();server.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;server.close()});
