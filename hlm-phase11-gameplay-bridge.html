@@ -20,7 +20,7 @@
 <script src="./hlm-phase11-human-gm-review-workbench.js"></script>
 <script src="./hlm-phase11-simulation-review-bridge.js"></script>
 <script src="./hlm-phase11-real-simulation-evidence-adapter.js"></script>
-<section><h2>Isolated season checkpoint</h2><p>Read-only controlled-team season record and schedule. No production saves or automatic decisions.</p><button id="season-checkpoint-review">Review current season checkpoint</button><pre id="season-checkpoint-output" role="status" aria-live="polite">Load an isolated franchise to review its season.</pre></section><script src="./hlm-phase11-season-checkpoint.js"></script><script>
+<section><h2>Isolated season checkpoint</h2><p>Read-only controlled-team season record and schedule. No production saves or automatic decisions.</p><button id="season-checkpoint-review">Review current season checkpoint</button><pre id="season-checkpoint-output" role="status" aria-live="polite">Load an isolated franchise to review its season.</pre></section><section><h2>Human GM season review brief (experimental)</h2><p>Read-only score and schedule evidence. Personnel changes require independent verification and a human GM decision. No production saves are accessed or modified.</p><button id="season-gm-brief-review">Review human GM season brief</button><pre id="season-gm-brief-output" role="status" aria-live="polite">Load an isolated franchise to review score-only evidence.</pre></section><script src="./hlm-phase11-season-gm-brief.js"></script><script src="./hlm-phase11-season-checkpoint.js"></script><script>
 (function(){
 'use strict';
 const el=id=>document.getElementById(id),engine=window.HLMPhase10,bridge=window.HLMGameplayBridge.createBridge(engine,window.localStorage);
@@ -107,6 +107,7 @@ el('file').addEventListener('change',async e=>{candidate=null;schedulePlan=null;
 el('optin').addEventListener('change',controls);
 el('save').addEventListener('click',()=>{try{if(!el('optin').checked||!candidate)throw Error('Opt-in and imported state required');if(!confirm('Replace ONLY the isolated experimental copy? Production Front Office saves are not touched.'))return;show(bridge.importIsolated(candidate,true));el('status').textContent='Isolated copy saved';}catch(e){error(e)}controls()});
 const playableSession=window.HLMPlayableSession.createSession(bridge);
+el('season-gm-brief-review').addEventListener('click',()=>{try{const snapshot=window.HLMSeasonCheckpoint.checkpoint(bridge);el('season-gm-brief-output').textContent=JSON.stringify(window.HLMSeasonGMBrief.build(snapshot),null,2)}catch(e){el('season-gm-brief-output').textContent='Brief unavailable: '+e.message}});
 el('season-checkpoint-review').addEventListener('click',()=>{try{el('season-checkpoint-output').textContent=JSON.stringify(window.HLMSeasonCheckpoint.checkpoint(bridge),null,2)}catch(e){el('season-checkpoint-output').textContent='Checkpoint unavailable: '+e.message}});
 function sessionShow(value){el('session-output').textContent=JSON.stringify(value,null,2);el('session-approve').disabled=!el('optin').checked||value.cancelled||!value.snapshot.simulationAvailable;}
 el('session-inspect').addEventListener('click',()=>{try{sessionShow(playableSession.inspect())}catch(e){el('session-output').textContent='Session unavailable: '+e.message;el('session-approve').disabled=true}});
