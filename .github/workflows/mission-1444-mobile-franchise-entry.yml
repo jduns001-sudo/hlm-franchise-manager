@@ -1,0 +1,22 @@
+name: Mission 1444 Mobile Franchise Entry
+on:
+  pull_request:
+    paths:
+      - 'index.html'
+      - 'hlm-phase11-mobile-franchise-entry.test.js'
+      - 'hlm-phase11-isolated-single-game.html'
+      - '.github/workflows/mission-1444-mobile-franchise-entry.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  navigation-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify isolated franchise entry and save separation
+        run: node --test hlm-phase11-mobile-franchise-entry.test.js
