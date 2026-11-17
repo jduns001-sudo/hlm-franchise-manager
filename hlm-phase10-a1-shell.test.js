@@ -44,3 +44,5 @@ const vm=require('node:vm');for(const search of ['', '?a22Navigation=0','?a22Nav
 assert.ok(src.includes("get('a22Navigation')==='1'"));
 console.log('A2-20 eight routes, unknown rejection, default-off bootstrap and post-controls event ordering passed');
 assert.equal(shell.fragmentId('#gm-next-decision-review'),'gm-next-decision-review');assert.equal(shell.fragmentId('#%ZZ'),'');assert.equal(shell.fragmentId('#gm%2Droster'),'gm-roster');console.log(JSON.stringify({suite:'A2-26 Node',passed:assertions,failed:0}));
+
+const presentation=require('./hlm-phase10-a1-presentation');assert.equal(presentation.project(null).season,'Not recorded');assert.ok(html.includes('HLMPhase10A1Presentation.project(JSON.parse(JSON.stringify(state)))'));console.log(JSON.stringify({suite:'A2-30 shell wiring',passed:assertions,failed:0}));
