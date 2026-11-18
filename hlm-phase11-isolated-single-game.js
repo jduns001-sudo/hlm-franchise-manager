@@ -75,6 +75,13 @@ function create(engine,storage,boxScores=null,{lineupPlanning=false}={}){
   const standings=engine.calculateStandings(result.nextState.universe.teams,result.nextState.activity.games);
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
   let next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
+  next=appendPostgameSkaterReview(before,next,gameId);
+  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
+  store.save(next);
+  baseline=storage.getItem(KEY);
+  return {result:result.result,standings,state:next};
+ }
+ function appendPostgameSkaterReview(before,next,gameId){
   const approval=before.extensions?.phase11GmGameDaySkaterApproval;
   if(approval&&String(approval.gameId)===String(gameId)){
    const final=next.activity?.games?.find(g=>String(g.id)===String(gameId));
@@ -84,10 +91,7 @@ function create(engine,storage,boxScores=null,{lineupPlanning=false}={}){
    const entry={gameId:final.id,teamId:approval.teamId,playerIds:[...approval.playerIds],date:final.date,homeTeamId:final.homeTeamId,awayTeamId:final.awayTeamId,homeGoals:final.homeGoals??null,awayGoals:final.awayGoals??null,source:'human-gm-approved-plan',actualParticipationVerified:false};
    next={...next,extensions:{...next.extensions,phase11GmPostgameSkaterReviews:[...previous,entry]}};
   }
-  if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
-  store.save(next);
-  baseline=storage.getItem(KEY);
-  return {result:result.result,standings,state:next};
+  return next;
  }
  function postgameSkaterReview(gameId){
   const state=store.load();if(!state)throw Error('No isolated save');
@@ -139,9 +143,10 @@ function create(engine,storage,boxScores=null,{lineupPlanning=false}={}){
   store.save(next);baseline=storage.getItem(KEY);
   return Object.freeze({gameId:current.gameId,teamId:current.teamId,playerIds:current.playerIds});
  }
- function verifyGameDaySkaters(state,gameId){
+ function verifyGameDaySkaters(state,gameId,required=false){
   const plan=state.extensions?.phase11GmApprovedSkaters;
-  if(!plan)return;
+  if(!plan){if(required)throw Error('Human GM game-day skater approval required: no approved skater plan');return;}
+  if(required&&typeof engine.reviewGameDaySkaters!=='function')throw Error('Game-day readiness engine unavailable');
   if(typeof engine.reviewGameDaySkaters!=='function')return; // Legacy simulation adapters do not expose game-day readiness.
   const readiness=engine.reviewGameDaySkaters(state,gameId);
   if(!readiness.ready)throw Error('GM game-day skaters need review: '+readiness.issues.join('; '));
@@ -214,10 +219,19 @@ function create(engine,storage,boxScores=null,{lineupPlanning=false}={}){
   const before=store.load();if(!before)throw Error('No isolated save');
   if(!before.activity.games.some(g=>g.status==='scheduled'))throw Error('No scheduled games remain');
   verifyApprovedGoaliePlan(before);
+  let controlledGames=[];
+  if(lineupPlanning===true){
+   const calendar=typeof engine.addCalendarDays==='function'?engine:typeof module==='object'&&module.exports?require('./hlm-master-calendar'):null;
+   if(!calendar)throw Error('Existing calendar required for experimental day approval');
+   const date=calendar.addCalendarDays(before.meta.currentDate,1),owner=String(before.meta.controlledTeamId);
+   controlledGames=before.activity.games.filter(g=>g.status==='scheduled'&&g.date===date&&(String(g.homeTeamId)===owner||String(g.awayTeamId)===owner));
+   for(const game of controlledGames)verifyGameDaySkaters(before,game.id,true);
+  }
   const result=engine.simulateNextDay(before,seed,experimentalOptions(before));
   if(result.toDate===before.meta.currentDate)throw Error('Duplicate day advance refused');
   if(storage.getItem(KEY)!==baseline)throw Error('Concurrent isolated save change; reload');
-  const next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
+  let next=boxScores?boxScores.append(before,result.nextState,boxScores.build,seed):result.nextState;
+  for(const game of controlledGames)next=appendPostgameSkaterReview(before,next,game.id);
   store.save(next);baseline=storage.getItem(KEY);
   return {fromDate:result.fromDate,toDate:result.toDate,results:result.results,standings:result.standings,state:next};
  }
