@@ -2,7 +2,7 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLMIsolatedSingleGame=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
 const KEY='hlm-phase11-m1340-isolated-single-game-v1';
-function create(engine,storage,boxScores=null){
+function create(engine,storage,boxScores=null,{lineupPlanning=false}={}){
  if(!engine||typeof engine.applyScheduledGame!=='function'||typeof engine.createBrowserFranchiseSaveStore!=='function'||typeof engine.calculateStandings!=='function')throw Error('Existing Phase 10 game, standings and save engine required');
  const store=engine.createBrowserFranchiseSaveStore(storage,KEY);
  let baseline=storage.getItem(KEY);
@@ -12,6 +12,14 @@ function create(engine,storage,boxScores=null){
  let pendingPickTransfer=null;
  function peek(){return store.load()}
  function load(){const state=store.load();baseline=storage.getItem(KEY);pendingOffseason=null;pendingProspectSigning=null;pendingDraftSelection=null;pendingPickTransfer=null;return state}
+ function lineupModule(){if(lineupPlanning!==true)throw Object.assign(new Error('Lineup planning disabled'),{code:'FEATURE_DISABLED'});const api=typeof module==='object'&&module.exports?require('./hlm-phase11-lineup-plan'):globalThis.HLMLineupPlan;if(!api)throw Object.assign(new Error('Lineup validator unavailable'),{code:'DEPENDENCY_MISSING'});return api;}
+ function reviewLineupPlan(payload){return lineupModule().replacement(store.load(),payload).extensions.phase11LineupPlan;}
+ function saveReviewedLineupPlan(payload,approved){
+  if(approved!==true)throw Object.assign(new Error('Explicit human GM lineup approval required'),{code:'APPROVAL_REQUIRED'});
+  if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
+  const next=lineupModule().replacement(store.load(),payload);store.save(next);baseline=storage.getItem(KEY);
+  return Object.freeze({saved:true,planningOnly:true,plan:next.extensions.phase11LineupPlan});
+ }
  function stage(state,approved){
   if(approved!==true)throw Error('Human GM import approval required');
   if(storage.getItem(KEY)!==baseline)throw Error('Isolated save changed; reload first');
@@ -353,12 +361,12 @@ function create(engine,storage,boxScores=null){
   store.save(result.nextState);baseline=storage.getItem(KEY);
   return result;
  }
- return {key:KEY,load,peek,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,reviewPickTransfer,approveReviewedPickTransfer,careerSnapshot,postgameSkaterReview,seasonPostgameContext,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
+ return {key:KEY,load,peek,reviewLineupPlan,saveReviewedLineupPlan,stage,review,advance,reviewNextDay,advanceNextDay,startPlayoffs,advancePlayoff,archiveSeason,startNextSeason,reviewOffseason,approveReviewedOffseason,reviewProspectSigning,approveReviewedProspectSigning,reviewDraftSelection,approveReviewedDraftSelection,reviewPickTransfer,approveReviewedPickTransfer,careerSnapshot,postgameSkaterReview,seasonPostgameContext,reviewGameDaySkaters,approveReviewedGameDaySkaters,reviewGoalieChoice,approveGoalieChoice,approveSkaterParticipation,approveExperimentalRosterAware};
 }
-// Separate transactional API. The synchronous factory above remains unchanged for legacy callers.
+// Separate transactional API. Legacy behavior remains unchanged with lineupPlanning disabled.
 // Approval indexes refer to the original mutator signatures. prepare() arguments omit that flag.
-const TRANSACTIONAL_WRITERS=Object.freeze({stage:1,approveExperimentalRosterAware:1,advance:2,approveReviewedGameDaySkaters:1,approveGoalieChoice:1,approveSkaterParticipation:1,advanceNextDay:1,startPlayoffs:0,advancePlayoff:1,archiveSeason:1,approveReviewedDraftSelection:0,approveReviewedPickTransfer:0,approveReviewedProspectSigning:0,startNextSeason:1,approveReviewedOffseason:0});
-async function createTransactional(engine,repository,boxScores=null,{makeCommandId=()=>globalThis.crypto.randomUUID()}={}){
+const TRANSACTIONAL_WRITERS=Object.freeze({saveReviewedLineupPlan:1,stage:1,approveExperimentalRosterAware:1,advance:2,approveReviewedGameDaySkaters:1,approveGoalieChoice:1,approveSkaterParticipation:1,advanceNextDay:1,startPlayoffs:0,advancePlayoff:1,archiveSeason:1,approveReviewedDraftSelection:0,approveReviewedPickTransfer:0,approveReviewedProspectSigning:0,startNextSeason:1,approveReviewedOffseason:0});
+async function createTransactional(engine,repository,boxScores=null,{makeCommandId=()=>globalThis.crypto.randomUUID(),lineupPlanning=false}={}){
  function error(code,message){const e=new Error(message);e.code=code;return e;}
  if(!repository||!['read','commit','readCommandReceipt'].every(k=>typeof repository[k]==='function')||typeof makeCommandId!=='function')throw error('INVALID_REPOSITORY','Transactional repository and command factory required');
  if(typeof globalThis.structuredClone!=='function')throw error('UNSUPPORTED_RUNTIME','Structured cloning required for private command snapshots');
@@ -367,7 +375,7 @@ async function createTransactional(engine,repository,boxScores=null,{makeCommand
  const tokenOf=r=>r?Object.freeze({epoch:r.epoch,revision:r.revision}):null;
  const equalToken=(a,b)=>a===null?b===null:!!b&&a.epoch===b.epoch&&a.revision===b.revision;
  const storage=Object.freeze({getItem(key){if(key!==KEY)throw error('ISOLATION_VIOLATION','Only the isolated key is permitted');return shadowRaw},setItem(key,value){if(key!==KEY||!writeEnabled)throw error('PRIVATE_WRITE_BLOCKED','Writes require the private transactional runner');shadowRaw=String(value);++writeCount}});
- function rebuild(){shadowRaw=committed?.payloadText??null;writeEnabled=false;writeCount=0;legacy=create(engine,storage,boxScores);}
+ function rebuild(){shadowRaw=committed?.payloadText??null;writeEnabled=false;writeCount=0;legacy=create(engine,storage,boxScores,{lineupPlanning});}
  function ready(){if(busy)throw error('BUSY','An isolated command or reload is in progress');if(needsReload)throw error('RELOAD_REQUIRED','Reload and review before another command');if(committed&&committed.authorityMode!=='active')throw error('AUTHORITY_INACTIVE','Gameplay requires active transactional authority');}
  function invalidate(){handles.clear();rebuild();}
  function verifyRecord(r){if(r===null)return;if(!r||r.formatVersion!==1||typeof r.epoch!=='string'||!r.epoch||!Number.isSafeInteger(r.revision)||r.revision<1||typeof r.payloadText!=='string'||!['active','migration-pending','rollback-pending','retired-to-legacy'].includes(r.authorityMode))throw error('INVALID_RECORD','Invalid authoritative repository record');JSON.parse(r.payloadText);}
@@ -385,6 +393,7 @@ async function createTransactional(engine,repository,boxScores=null,{makeCommand
  }
  function prepare(action,args=[]){
   ready();if(!Object.prototype.hasOwnProperty.call(TRANSACTIONAL_WRITERS,action)||!Array.isArray(args))throw error('INVALID_ACTION','Known isolated action and argument array required');
+  if(action==='saveReviewedLineupPlan'){if(args.length!==1)throw error('INVALID_ARGUMENTS','Exactly one lineup payload required');legacy.reviewLineupPlan(args[0]);}
   const commandId=makeCommandId();if(typeof commandId!=='string'||commandId.length>128||!/^[A-Za-z0-9_.:-]+$/.test(commandId)||issued.has(commandId))throw error('INVALID_COMMAND','A new unique command ID is required');
   let snapshot;try{snapshot=clone(args)}catch{throw error('INVALID_ARGUMENTS','Command inputs must be cloneable data')}
   issued.add(commandId);const expected=tokenOf(committed);const handle=Object.freeze({commandId,action,expected,requiresHumanApproval:true,saved:false});handles.set(handle,{commandId,action,args:snapshot,expected});return handle;
