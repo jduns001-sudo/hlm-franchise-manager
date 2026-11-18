@@ -61,6 +61,16 @@ function replacement(state,payload){
  if(existing&&JSON.stringify(existing)===JSON.stringify(plan))fail('NO_CHANGE','Lineup plan has no changes');
  return {...state,extensions:{...state.extensions,phase11LineupPlan:clone(plan)}};
 }
+// Deployment is explicit and uses the established roster-order approved-skater contract.
+function deployment(state){
+ const a=authority(state),saved=state.extensions?.phase11LineupPlan;
+ if(saved===undefined)fail('PLAN_UNAVAILABLE','Save a lineup plan before reviewing deployment');
+ const plan=validate(state,saved),selected=new Set();
+ for(const [slot,pos]of Object.entries(slots))if(slot!=='G'&&plan.slots[slot]!==null)selected.add(id(player(state,plan.slots[slot],pos,a).id));
+ if(selected.size<3)fail('INSUFFICIENT_SKATERS','At least three eligible saved starting skaters required');
+ const playerIds=state.universe.players.filter(p=>selected.has(id(p.id))).map(p=>p.id);
+ return {...a,playerIds,plan:clone(plan)};
+}
 function choices(state,position){const a=authority(state);return state.universe.players.filter(p=>{try{player(state,p.id,position,a);return true}catch{return false}}).map(p=>({id:p.id,name:typeof p.name==='string'?p.name:String(p.id),position:p.position}));}
-return Object.freeze({slots,groups,id,authority,empty,structure,inspect,validate,replacement,choices});
+return Object.freeze({slots,groups,id,authority,empty,structure,inspect,validate,replacement,deployment,choices});
 });

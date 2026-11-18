@@ -39,4 +39,14 @@ const depthInjury=state();depthInjury.extensions.phase11LineupPlan=clone(plan);d
 for(const corrupt of [p=>p.formatVersion=9,p=>delete p.slots.C,p=>p.slots.extra=null,p=>p.depth.C=null,p=>delete p.depth.F,p=>p.slots.D2=4,p=>p.depth.D=[4,4],p=>p.teamId=2,p=>p.slots.C={},p=>p.depth.extra=[]]){
  const changed=state();changed.extensions.phase11LineupPlan=clone(plan);corrupt(changed.extensions.phase11LineupPlan);a.throws(()=>api.replacement(changed,payload(api.empty(changed))));
 }
+// A2-49: project committed starting skaters only; preserve established roster order.
+const deployState=clone(next),deployBytes=JSON.stringify(deployState),deployment=api.deployment(deployState);
+a.deepEqual(deployment.playerIds,[1,2,3,4,5]);a.deepEqual(deployment.plan,plan);a.equal(deployment.saveId,s.meta.saveId);a.equal(deployment.teamId,'1');a.equal(JSON.stringify(deployState),deployBytes);
+deployment.plan.slots.C=null;a.equal(deployState.extensions.phase11LineupPlan.slots.C,1);
+const partial=clone(deployState);partial.extensions.phase11LineupPlan.slots.D1=null;partial.extensions.phase11LineupPlan.slots.D2=null;a.deepEqual(api.deployment(partial).playerIds,[1,2,3]);partial.extensions.phase11LineupPlan.slots.RW=null;a.throws(()=>api.deployment(partial),e=>e.code==='INSUFFICIENT_SKATERS');
+a.throws(()=>api.deployment(state()),e=>e.code==='PLAN_UNAVAILABLE');
+for(const [code,mutate]of [
+ ['INJURED',st=>st.activity.injuries.push({playerId:1,status:'active'})],['NOT_OWNED',st=>st.universe.players[0].teamId=2],['PLAYER_IDENTITY',st=>st.universe.players.splice(0,1)],['POSITION_MISMATCH',st=>st.universe.players[0].position='F'],['RETIRED',st=>st.universe.players[0].retired=true],['CONTRACT_REQUIRED',st=>st.activity.transactions.push({type:'drafted-prospect-signing',playerId:1,teamId:1})],['INVALID_RATING',st=>st.universe.players[0].overall=0],['DUPLICATE_SLOT',st=>st.extensions.phase11LineupPlan.slots.D2=4],['PLAYER_IDENTITY',st=>st.universe.players.push(clone(st.universe.players[0]))],['INVALID_PLAN',st=>st.extensions.phase11LineupPlan.formatVersion=9],['TEAM_MISMATCH',st=>st.extensions.phase11LineupPlan.teamId=2]]){
+ const st=clone(deployState);mutate(st);const bytes=JSON.stringify(st);a.throws(()=>api.deployment(st),e=>e.code===code);a.equal(JSON.stringify(st),bytes);
+}
 console.log(JSON.stringify({suite:'lineup planning validator',assertions,failed:0}));
