@@ -46,3 +46,9 @@ console.log('A2-20 eight routes, unknown rejection, default-off bootstrap and po
 assert.equal(shell.fragmentId('#gm-next-decision-review'),'gm-next-decision-review');assert.equal(shell.fragmentId('#%ZZ'),'');assert.equal(shell.fragmentId('#gm%2Droster'),'gm-roster');console.log(JSON.stringify({suite:'A2-26 Node',passed:assertions,failed:0}));
 
 const presentation=require('./hlm-phase10-a1-presentation');assert.equal(presentation.project(null).season,'Not recorded');assert.ok(html.includes('HLMPhase10A1Presentation.project(JSON.parse(JSON.stringify(state)))'));console.log(JSON.stringify({suite:'A2-30 shell wiring',passed:assertions,failed:0}));
+
+// A2-59: same-origin legacy workspace detection does not invent alternate routes.
+for(const href of ['./app.html','app.html?test=1#x','./hlm-phase11-gameplay-bridge.html','./index.html?tools=1','/app.html'])assert.equal(shell.excludedWorkspace(href,'https://preview.example/game/hlm-phase11-isolated-single-game.html?a22Navigation=1'),true);
+for(const href of ['#gm-roster','./hlm-phase11-isolated-single-game.html?a22Navigation=1','https://other.example/app.html','javascript:void(0)'])assert.equal(shell.excludedWorkspace(href,'https://preview.example/game/hlm-phase11-isolated-single-game.html'),false);
+assert.equal(shell.excludedWorkspace('./app.html','invalid-base'),false);
+console.log(JSON.stringify({suite:'A2-59 preview workspace boundary',passed:assertions,failed:0}));

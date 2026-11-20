@@ -48,8 +48,22 @@ function keyTab(el){
 }
 function assign(list,start){let current=start;return list.map(el=>{const t=keyTab(el);if(t)current=t;return [el,current]})}
 function fragmentId(hash){try{return decodeURIComponent(String(hash).replace(/^#/,''))}catch{return ''}}
+// Excluded workspaces own different saves; they have no equivalent isolated route.
+function excludedWorkspace(href,base){
+ try{const url=new URL(href,base),origin=new URL(base).origin;return url.origin===origin&&['app.html','hlm-phase11-gameplay-bridge.html','index.html'].includes(url.pathname.split('/').pop());}catch{return false;}
+}
+function guardPreviewLinks(doc){
+ for(const a of doc.querySelectorAll('a[href]')){
+  if(!excludedWorkspace(a.getAttribute('href'),doc.baseURI))continue;
+  const button=doc.createElement('button');button.type='button';button.disabled=true;button.setAttribute('aria-disabled','true');button.dataset.a1UnavailableWorkspace='true';
+  button.textContent=a.textContent+' — unavailable in isolated preview';
+  button.title='This legacy workspace is excluded from the isolated development preview and uses a different save authority. Use the supported isolated tabs.';
+  a.replaceWith(button);
+ }
+}
 function mount(doc){
  if(!doc||!doc.body||doc.getElementById('a1-nav'))return null;
+ guardPreviewLinks(doc);
  const body=doc.body;body.classList.add('a1-shell');
  for(const a of body.querySelectorAll('a[href="#gm-next-action-heading"]'))a.href='#a1-dashboard';
  const style=doc.createElement('style');style.id='a1-shell-style';style.textContent=CSS;doc.head.append(style);
@@ -161,5 +175,5 @@ function mount(doc){
  render(detail);
  return {activate,render,get active(){return active}};
 }
-return {TABS,ROUTES,routeFor,fragmentId,dashboardRows,mount};
+return {TABS,ROUTES,routeFor,fragmentId,dashboardRows,excludedWorkspace,mount};
 });
