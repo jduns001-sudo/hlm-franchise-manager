@@ -49,4 +49,24 @@ for(const [code,mutate]of [
  ['INJURED',st=>st.activity.injuries.push({playerId:1,status:'active'})],['NOT_OWNED',st=>st.universe.players[0].teamId=2],['PLAYER_IDENTITY',st=>st.universe.players.splice(0,1)],['POSITION_MISMATCH',st=>st.universe.players[0].position='F'],['RETIRED',st=>st.universe.players[0].retired=true],['CONTRACT_REQUIRED',st=>st.activity.transactions.push({type:'drafted-prospect-signing',playerId:1,teamId:1})],['INVALID_RATING',st=>st.universe.players[0].overall=0],['DUPLICATE_SLOT',st=>st.extensions.phase11LineupPlan.slots.D2=4],['PLAYER_IDENTITY',st=>st.universe.players.push(clone(st.universe.players[0]))],['INVALID_PLAN',st=>st.extensions.phase11LineupPlan.formatVersion=9],['TEAM_MISMATCH',st=>st.extensions.phase11LineupPlan.teamId=2]]){
  const st=clone(deployState);mutate(st);const bytes=JSON.stringify(st);a.throws(()=>api.deployment(st),e=>e.code===code);a.equal(JSON.stringify(st),bytes);
 }
+// A2-89: pure deterministic starting-six recommendations, never persistence/approval.
+{
+ const st=state(),draft=api.empty(st);draft.depth.C=[8];
+ const bytes=JSON.stringify(st),draftBytes=JSON.stringify(draft),result=api.autoSelect(st,draft);
+ a.deepEqual(result.plan.slots,{C:1,LW:2,RW:3,D1:4,D2:5,G:6});a.deepEqual(result.unavailable,[]);
+ a.deepEqual(result.plan.depth,draft.depth);a.equal(JSON.stringify(st),bytes);a.equal(JSON.stringify(draft),draftBytes);
+ a.deepEqual(api.autoSelect({...st,universe:{...st.universe,players:[...st.universe.players].reverse()}},draft),result);
+ a.deepEqual(api.validate(st,result.plan),result.plan);a.equal(new Set(Object.values(result.plan.slots)).size,6);
+ st.universe.players.find(p=>p.id===8).overall=99;a.equal(api.autoSelect(st,draft).plan.slots.C,8);
+ for(const change of [x=>x.activity.injuries.push({playerId:8,status:'active'}),x=>x.universe.players.find(p=>p.id===8).retired=true,x=>x.universe.players.find(p=>p.id===8).teamId=2,x=>x.universe.players.find(p=>p.id===8).position='F',x=>x.activity.transactions.push({type:'drafted-prospect-signing',playerId:8,teamId:1})]){const x=clone(st);change(x);a.equal(api.autoSelect(x,draft).plan.slots.C,1);}
+ const contract=clone(st);contract.activity.transactions=[{type:'drafted-prospect-signing',playerId:8,teamId:1}];contract.assets.contracts=[{playerId:8,teamId:1,status:'active'}];a.equal(api.autoSelect(contract,draft).plan.slots.C,8);
+ for(const rating of [undefined,null,'99',NaN,100,-1,0]){const x=clone(st);x.universe.players.find(p=>p.id===8).overall=rating;a.equal(api.autoSelect(x,draft).plan.slots.C,1);}
+ const fallback=clone(st);delete fallback.universe.players.find(p=>p.id===8).overall;fallback.universe.players.find(p=>p.id===8).ovr=98;a.equal(api.autoSelect(fallback,draft).plan.slots.C,8);
+ const thin=clone(st);thin.universe.players=thin.universe.players.filter(p=>p.position==='D');const missing=api.autoSelect(thin,api.empty(thin));a.deepEqual(missing.plan.slots,{C:null,LW:null,RW:null,D1:4,D2:5,G:null});a.equal(missing.unavailable.length,4);
+ thin.universe.players.pop();a.equal(api.autoSelect(thin,api.empty(thin)).plan.slots.D2,null);
+ const goalieMissing=state();delete goalieMissing.universe.players.find(p=>p.id===6).overall;a.equal(api.autoSelect(goalieMissing,api.empty(goalieMissing)).plan.slots.G,null);
+ goalieMissing.universe.players.find(p=>p.id===6).overall=0;a.equal(api.autoSelect(goalieMissing,api.empty(goalieMissing)).plan.slots.G,6);
+ const duplicate=state();duplicate.universe.players.push({...duplicate.universe.players[0]});a.throws(()=>api.autoSelect(duplicate,api.empty(duplicate)),e=>e.code==='PLAYER_IDENTITY');
+ const wrong=clone(draft);wrong.teamId=2;a.throws(()=>api.autoSelect(st,wrong),e=>e.code==='TEAM_MISMATCH');
+}
 console.log(JSON.stringify({suite:'lineup planning validator',assertions,failed:0}));

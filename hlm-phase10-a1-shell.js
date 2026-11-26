@@ -100,10 +100,57 @@ function mount(doc){
  close.addEventListener('click',()=>drawer.close());drawer.addEventListener('click',e=>{if(e.target===drawer){const r=drawer.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)drawer.close()}});drawer.addEventListener('close',()=>{buttons.more.setAttribute('aria-expanded','false');if(drawer.returnValue!=='destination')buttons.more.focus();drawer.returnValue=''});drawer.addEventListener('keydown',e=>{if(e.key!=='Tab')return;const list=[...drawer.querySelectorAll('button:not(:disabled)')],first=list[0],last=list.at(-1);if(e.shiftKey&&doc.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&doc.activeElement===last){e.preventDefault();first.focus()}});
  const breakpoint=doc.defaultView.matchMedia('(min-width:900px)');breakpoint.addEventListener('change',()=>{if(!breakpoint.matches&&(doc.activeElement===toggle||doc.activeElement===body))buttons[active]?.focus();if(breakpoint.matches&&drawer.open)drawer.close()});
  const seasonText=element('p','Season: Not recorded',{id:'a1-season'}),availability=element('p','Loading authoritative franchise state…',{id:'a1-availability',role:'status'}),alerts=element('p','',{id:'a1-alerts'});dash.querySelector('h2').after(seasonText,availability,alerts);
- const secondary=element('div',undefined,{class:'a1-toolbar'});for(const [tab,label]of [['roster','Open Team'],['season','Open Season']]){const b=element('button',label,{type:'button'});b.addEventListener('click',()=>activate(tab));secondary.append(b)}dash.append(secondary);
+ const secondary=element('div',undefined,{class:'a1-toolbar'});for(const [tab,label]of [['roster','Open Team'],['season','Open Season']]){const b=element('button',label,{type:'button'});b.addEventListener('click',()=>{activate(tab);focusDestination(tab==='roster'?'a1-roster':'a1-season-overview');});secondary.append(b)}dash.append(secondary);
  const roster=element('section',undefined,{id:'a1-roster',class:'a1-panel','aria-labelledby':'a1-roster-heading'});roster.append(element('h2','Roster Management',{id:'a1-roster-heading'}),element('p','Read-only authoritative controlled-team roster.'));
  const toolbar=element('div',undefined,{class:'a1-toolbar'}),search=element('input',undefined,{type:'search','aria-label':'Search saved players by name or ID',placeholder:'Search name or ID'}),position=element('select',undefined,{'aria-label':'Filter saved position'}),sorter=element('select',undefined,{'aria-label':'Sort saved players'});for(const [value,label]of [['name','Name'],['position','Position'],['rating','Rating']])sorter.append(element('option',label,{value}));toolbar.append(search,position,sorter);roster.append(toolbar);const summary=element('p','No isolated roster loaded.',{id:'a1-roster-summary',role:'status'}),cards=element('div',undefined,{class:'a1-mobile-roster'}),tableWrap=element('div',undefined,{class:'a1-desktop-roster a1-table-wrap','aria-label':'Saved roster table',tabindex:'0'}),detailPanel=element('section',undefined,{id:'a1-player-detail',tabindex:'-1','aria-label':'Read-only player details'});roster.append(summary,cards,tableWrap,detailPanel);
  const plans=element('section',undefined,{id:'a1-saved-plan',class:'a1-panel',tabindex:'-1','aria-labelledby':'a1-saved-plan-heading'});plans.append(element('h2','Saved plans / Lines & Depth',{id:'a1-saved-plan-heading'}));dash.after(roster,plans);items.push([roster,'roster'],[plans,'roster']);
+
+ // Navigation-only shortcuts: disabled controls are never activated by proxy.
+ function focusDestination(id){const target=doc.getElementById(id);if(!target||target.matches(':disabled')||!target.getClientRects().length)return false;if(!target.matches('button,input,select,textarea,a'))target.tabIndex=-1;target.focus({preventScroll:true});target.scrollIntoView({block:'center'});return true;}
+ function shortcut(host,label,tab,id){const b=element('button',label,{type:'button'});b.addEventListener('click',()=>{const target=doc.getElementById(id);if(!target||target.matches(':disabled'))return;activate(tab,false,id);focusDestination(id);});host.append(b);return b;}
+ const teamLinks=element('div',undefined,{class:'a1-toolbar'});shortcut(teamLinks,'Open saved plans','roster','a1-saved-plan');shortcut(teamLinks,'Open roster','roster','a1-roster');roster.prepend(teamLinks);
+ const seasonOverview=element('section',undefined,{id:'a1-season-overview',class:'a1-panel',tabindex:'-1','aria-labelledby':'a1-season-overview-title'}),seasonMessage=element('p','',{role:'status'}),seasonFacts=element('dl'),seasonLinks=element('div',undefined,{class:'a1-toolbar'});
+ seasonOverview.append(element('h2','Season at a glance',{id:'a1-season-overview-title'}),seasonMessage,seasonFacts,seasonLinks);
+ const seasonShortcuts=[['League standings','a1-league-standings'],['Scheduled games','game'],['Saved results and season report','season-dashboard']].map(([label,id])=>({button:shortcut(seasonLinks,label,'season',id),id}));
+ dash.after(seasonOverview);items.push([seasonOverview,'season']);
+ doc.head.append(element('style','#a1-season-overview dd{margin:0 0 12px;overflow-wrap:anywhere}.a1-panel dl{min-width:0}.a1-panel button{white-space:normal;overflow-wrap:anywhere}#a1-dashboard{overflow-wrap:anywhere}#a1-continue-status{white-space:pre-wrap}'));
+ function renderSeason(snapshot){const view=P?.seasonView?.(snapshot);seasonMessage.textContent=view?.message||'Season overview unavailable.';seasonFacts.replaceChildren();for(const [label,value]of view?.rows||[])seasonFacts.append(element('dt',label),element('dd',value));for(const {button,id}of seasonShortcuts){const target=doc.getElementById(id);button.disabled=!target||target.matches(':disabled')||snapshot?.loaded!==true;button.title=button.disabled?'Load an isolated franchise and wait for this destination to become available.':'Open this read-only destination. No save or approval.';}}
+ // Experimental presentation only: shortcuts focus existing controls, never activate them.
+ const workflow=element('section',undefined,{id:'a1-team-workflow',class:'a1-panel','aria-labelledby':'a1-team-workflow-title'});
+ workflow.append(element('h2','Team & Lines — game-day checklist',{id:'a1-team-workflow-title'}),element('p','Save your lines, approve your skater deployment, then review the selected game. Each approval is a separate GM decision.'));
+ const steps=[
+  ['roster','lineup-begin','1. Edit Lines & Depth','lineup-status'],
+  ['roster','lineup-deployment-review','2. Review saved skater deployment','lineup-deployment-report'],
+  ['roster','gm-skater-choice','Or select skaters manually','gm-skater-status'],
+  ['roster','gm-goalie-review','3. Review goalie preference','gm-goalie-status'],
+  ['season','gm-workspace-review','4. Open game-day skater review','gm-game-day-approval-status']
+ ];
+ const workflowStatuses=[];
+ for(const [tab,id,label,statusId] of steps){
+  const row=element('div',undefined,{class:'a1-workflow-step'}),shortcut=element('button',label,{type:'button','data-a1-team-target':id}),status=element('p','',{role:'status','aria-live':'polite'});
+  shortcut.addEventListener('click',()=>{const target=doc.getElementById(id);if(!target)return;activate(tab,false,id);target.focus({preventScroll:true});target.scrollIntoView({block:'center'});});
+  row.append(shortcut,status);workflow.append(row);workflowStatuses.push({shortcut,status,id,statusId});
+ }
+ workflow.append(element('p','Opening a step does not save or approve anything. Game approval and simulation remain separate actions in Season.'));
+ roster.before(workflow);items.push([workflow,'roster']);
+ const workflowStyle=element('style','#a1-team-workflow{overflow-wrap:anywhere}#a1-team-workflow button{width:100%;text-align:left;min-height:48px;min-width:44px}#a1-team-workflow .a1-workflow-step{border-top:1px solid var(--a1-border);padding:12px 0}#a1-team-workflow p{margin:8px 0;white-space:pre-wrap}');doc.head.append(workflowStyle);
+ function syncWorkflow(){for(const {shortcut,status,id,statusId} of workflowStatuses){const target=doc.getElementById(id);const disabled=!target||target.disabled;if(shortcut.disabled!==disabled)shortcut.disabled=disabled;const text=doc.getElementById(statusId)?.textContent||'Load an isolated franchise to begin.';if(status.textContent!==text)status.textContent=text;}}
+ if(doc.defaultView.MutationObserver)new doc.defaultView.MutationObserver(syncWorkflow).observe(body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:['disabled']});syncWorkflow();
+ // Experimental, read-only league context from the existing snapshot event.
+ const league=element('section',undefined,{id:'a1-league-standings',class:'a1-panel',tabindex:'-1','aria-labelledby':'a1-league-standings-title'}),leagueStatus=element('p','',{role:'status','aria-live':'polite'}),leagueRows=element('div');
+ league.append(element('h2','Experimental isolated league standings',{id:'a1-league-standings-title'}),element('p','Saved simulation results only. Existing engine order; not official league standings or playoff seeding.'),leagueStatus,leagueRows);
+ const seasonHost=doc.getElementById('season-dashboard');if(seasonHost)seasonHost.before(league);else dash.after(league);items.push([league,'season']);
+ doc.head.append(element('style','#a1-league-standings table{width:100%;table-layout:fixed;border-collapse:collapse}#a1-league-standings th,#a1-league-standings td{padding:6px 2px;border-bottom:1px solid var(--a1-border);text-align:right;overflow-wrap:anywhere}#a1-league-standings th:first-child{width:40%;text-align:left}#a1-league-standings tr[data-controlled-team="true"]{background:var(--a1-active);font-weight:700}#a1-league-standings caption{text-align:left;margin-bottom:8px}'));
+ function renderStandings(snapshot){
+  const view=P?.standingsView?.(snapshot);leagueRows.replaceChildren();leagueStatus.textContent=view?.message||'Standings unavailable.';
+  ownStanding.disabled=!view?.rows.some(row=>row.controlled);if(!view?.rows.length)return;
+  const table=element('table'),head=element('tr');table.append(element('caption','Standings in saved simulation engine order'));
+  for(const label of ['Team','GP','W','L','OTL','Pts'])head.append(element('th',label,{scope:'col'}));
+  const thead=element('thead');thead.append(head);table.append(thead);const tbody=element('tbody');
+  for(const row of view.rows){const tr=element('tr',undefined,{'data-team-id':row.teamId,'data-controlled-team':String(row.controlled)});if(row.controlled){tr.id='a1-controlled-standing';tr.tabIndex=-1;}tr.append(element('th',row.teamName+(row.controlled?' — Your franchise':''),{scope:'row'}));for(const key of ['gp','w','l','otl','points'])tr.append(element('td',String(row[key])));tbody.append(tr);}
+  table.append(tbody);leagueRows.append(table);
+ }
+ const ownStanding=element('button','Find your franchise in standings',{type:'button'});league.insertBefore(ownStanding,leagueRows);ownStanding.disabled=true;ownStanding.addEventListener('click',()=>focusDestination('a1-controlled-standing'));
  let display=null,direction='asc',selectedId=null;
  function openDetail(player){selectedId=player.id;detailPanel.replaceChildren(element('h3',player.name),element('p','Player ID: '+player.id),element('p','Team: '+player.team+' | '+player.teamId),element('p','Saved position: '+player.position),element('p','Saved rating: '+P.rating(player.rating)),element('p','Read only. This view grants no eligibility or approval.'));detailPanel.focus()}
  function renderRoster(){if(!P)return;const source=display?.players||[],rows=P.sort(P.filter(source,{query:search.value,position:position.value||'all'}),sorter.value,direction);summary.textContent=rows.length+' of '+source.length+' saved players';cards.replaceChildren();const table=element('table',undefined,{class:'a1-roster-table'}),head=element('tr');for(const [key,label]of [['name','Player'],['position','Position'],['rating','Rating']]){const th=element('th',undefined,{scope:'col','aria-sort':sorter.value===key?(direction==='asc'?'ascending':'descending'):'none'}),b=element('button',label,{type:'button','data-sort-key':key});b.addEventListener('click',e=>{const keyboard=e.detail===0;direction=sorter.value===key&&direction==='asc'?'desc':'asc';sorter.value=key;renderRoster();if(keyboard)tableWrap.querySelector('[data-sort-key="'+key+'"]').focus()});th.append(b);head.append(th)}head.append(element('th','Details',{scope:'col'}));const thead=element('thead');thead.append(head);table.append(thead);const tbody=element('tbody');for(const player of rows){const card=element('article',undefined,{class:'a1-player-card'});card.append(element('h3',player.name),element('p','ID '+player.id+' | '+player.team),element('p',player.position+' | Rating '+P.rating(player.rating)));const cb=element('button','View '+player.name,{type:'button'});cb.addEventListener('click',()=>openDetail(player));card.append(cb);cards.append(card);const tr=element('tr');for(const value of [player.name,player.position,P.rating(player.rating)])tr.append(element('td',value));const td=element('td'),b=element('button','View '+player.name,{type:'button'});b.addEventListener('click',()=>openDetail(player));td.append(b);tr.append(td);tbody.append(tr)}table.append(tbody);tableWrap.replaceChildren(table);if(!rows.length)cards.append(element('p','No saved players match these filters.'));if(selectedId&&!source.some(p=>p.id===selectedId)){selectedId=null;detailPanel.replaceChildren(element('p','Selected player is unavailable in this saved roster.'))}}
@@ -119,6 +166,7 @@ function mount(doc){
   selectedDestination=destination||({home:'a1-dashboard',roster:'a1-roster'})[tab]||null;
   for(const [el,t] of items)el.classList.toggle('a1-off',t!=='all'&&t!==tab);
   for(const c of containers)c.classList.toggle('a1-off',!items.some(i=>i[2]===c&&!i[0].classList.contains('a1-off')));
+  if(!quiet&&!doc.activeElement?.getClientRects().length)buttons[tab]?.focus();
   for(const id of TAB_IDS){if(id===tab)buttons[id].setAttribute('aria-current','page');else buttons[id].removeAttribute('aria-current')}
  }
  function tabOfElement(el){
@@ -129,12 +177,15 @@ function mount(doc){
  function render(d){
   detail=d||detail;
   syncBrief();
+  renderStandings(detail);
+  renderSeason(detail);
   renderDisplay(detail);
   const rows=dashboardRows(detail),dl=doc.getElementById('a1-dashboard-rows');
   dl.replaceChildren();
   for(const [k,v] of rows){const dt=doc.createElement('dt');dt.textContent=k;const dd=doc.createElement('dd');dd.textContent=v;dl.append(dt,dd)}
   doc.getElementById('a1-dashboard-empty').textContent=rows.length?'':'No isolated franchise loaded. Production Front Office save is unchanged.';
   const r=routeFor(detail.nextTarget);
+  const nextControl=r&&doc.getElementById(r.focus);doc.getElementById('a1-continue-status').textContent=!r?'Next decision unavailable. Nothing was saved or approved.':!nextControl?'Next destination is missing. Nothing was saved or approved.':nextControl.matches(':disabled')?'Next decision is not ready. Complete the required review first. Nothing was saved or approved.':'Next: '+r.label+'. Opening this step never saves, approves or simulates.';
   doc.getElementById('a1-continue').textContent='Continue Franchise: '+(r?r.label:'Next decision unavailable');
  }
  // Read-only text copy of the existing brief; calculations stay in the page.
@@ -165,7 +216,7 @@ function mount(doc){
  doc.getElementById('a1-continue').addEventListener('click',continueFranchise);
  doc.addEventListener('click',e=>{
   const a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a||a.getAttribute('href').length<2)return;
-  const target=doc.getElementById(fragmentId(a.getAttribute('href')));const tab=target&&tabOfElement(target);if(tab)activate(tab,false,target.id);
+  const target=doc.getElementById(fragmentId(a.getAttribute('href')));const tab=target&&tabOfElement(target);if(tab){activate(tab,false,target.id);focusDestination(target.id);}
  },true);
  doc.defaultView.addEventListener('hashchange',()=>{const target=doc.getElementById(fragmentId(doc.defaultView.location.hash));const tab=target&&tabOfElement(target);if(tab)activate(tab,false,target.id)});
  const hashTarget=doc.defaultView.location.hash.length>1?doc.getElementById(fragmentId(doc.defaultView.location.hash)):null;

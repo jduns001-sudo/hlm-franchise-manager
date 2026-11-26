@@ -71,6 +71,26 @@ function deployment(state){
  const playerIds=state.universe.players.filter(p=>selected.has(id(p.id))).map(p=>p.id);
  return {...a,playerIds,plan:clone(plan)};
 }
+// Pure local recommendation: eligibility remains the existing player() contract.
+function autoSelect(state,draft){
+ const a=authority(state),plan=structure(state,draft),used=new Set(),unavailable=[];
+ const candidates=state.universe.players.filter(p=>{
+  const pos=typeof p.position==='string'?p.position.toUpperCase():'';
+  try{player(state,p.id,pos,a)}catch{return false}
+  const rating=p.overall??p.ovr;
+  return Number.isSafeInteger(rating)&&rating>=0&&rating<=99;
+ }).slice().sort((left,right)=>{
+  const difference=(right.overall??right.ovr)-(left.overall??left.ovr);
+  if(difference)return difference;
+  const x=id(left.id),y=id(right.id);return x<y?-1:x>y?1:0;
+ });
+ for(const [slot,pos] of Object.entries(slots)){
+  const choice=candidates.find(p=>p.position.toUpperCase()===pos&&!used.has(id(p.id)));
+  plan.slots[slot]=choice?choice.id:null;
+  if(choice)used.add(id(choice.id));else unavailable.push(slot+': no remaining eligible '+pos+' with a verified saved rating.');
+ }
+ return {plan,unavailable}; // Depth is preserved; complete validation still occurs at review/save.
+}
 function choices(state,position){const a=authority(state);return state.universe.players.filter(p=>{try{player(state,p.id,position,a);return true}catch{return false}}).map(p=>({id:p.id,name:typeof p.name==='string'?p.name:String(p.id),position:p.position}));}
-return Object.freeze({slots,groups,id,authority,empty,structure,inspect,validate,replacement,deployment,choices});
+return Object.freeze({slots,groups,id,authority,empty,structure,inspect,validate,replacement,deployment,autoSelect,choices});
 });

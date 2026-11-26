@@ -40,7 +40,7 @@ for(const [input,expected] of [['C','C'],['LW','LW'],['RW','RW'],['D','D'],['F',
 for(const input of [null,undefined,1,'','X','C/X','G/C','C/','/C'])assert.equal(normalizePosition(input),null,'unsupported evidence');
 const make=rows=>build(universe,5,engine,{players:rows});
 let overlay=make([{id:'10',name:'Not the canonical name',teamId:3,ovr:1,pos:'C/LW'},{id:11,teamId:5,pos:'G'},{id:12,pos:'G'}]);
-assert.equal(overlay.universe.players[0].position,'C');assert.equal(overlay.universe.players[0].id,10);assert.equal(overlay.universe.players[0].name,'A');assert.equal(overlay.universe.players[0].teamId,5);assert.equal(overlay.universe.players[0].overall,82);
+assert.equal(overlay.universe.players[0].position,'C');assert.equal(overlay.universe.players[0].id,10);assert.equal(overlay.universe.players[0].name,'A');assert.equal(overlay.universe.players[0].teamId,5);assert.equal(overlay.universe.players[0].overall,1);
 assert.equal(overlay.universe.players[1].teamId,3);assert.equal(overlay.universe.players[1].position,'G');assert.ok(!overlay.universe.players.some(p=>p.id===12));
 assert.equal(make([{id:99,name:'A',pos:'C'}]).universe.players[0].position,null,'never match by name');
 for(const rows of [[],[{id:'010',pos:'C'}],[{id:'10.0',pos:'C'}],[{id:10,pos:'X'}],[{id:10,pos:'C'},{id:10,pos:'G'}],[{id:10,pos:'C'},{id:10}],[{id:10,pos:'C/LW'},{id:10,pos:'C/RW'}],[{id:10,pos:'C',position:'G'}]]){
@@ -55,11 +55,30 @@ canonical.players[0].pos='C';assert.equal(build(canonical,5,engine,{players:[{id
 const sourceRoster=require('./hlm-roster-2026.json');const sourceBefore=JSON.stringify(shipped),rosterBefore=JSON.stringify(sourceRoster);
 const legacyReal=build(shipped,5,engine),real=build(shipped,5,engine,sourceRoster);
 assert.equal(real.universe.teams.length,32);assert.equal(real.universe.players.length,1641);
-assert.deepEqual(real.universe.players.map(({position,...p})=>p),legacyReal.universe.players.map(({position,...p})=>p),'all canonical player fields other than position remain identical');
+assert.deepEqual(real.universe.players.map(({position,overall,...p})=>p),legacyReal.universe.players.map(({position,overall,...p})=>p),'all canonical player fields other than source-backed position and rating remain identical');
 assert.deepEqual(real.activity.games,legacyReal.activity.games,'schedule unchanged');assert.deepEqual(real.assets,legacyReal.assets,'contracts and draft rights unchanged');assert.deepEqual(real.extensions,legacyReal.extensions,'no schema/extension or scoring switch change');
 assert.equal(JSON.stringify(shipped),sourceBefore,'universe input immutable');assert.equal(JSON.stringify(sourceRoster),rosterBefore,'roster input immutable');
 const counts=real.universe.teams.map(t=>{const players=real.universe.players.filter(p=>String(p.teamId)===String(t.id));return {team:t.name,teamId:t.id,players:players.length,positioned:players.filter(p=>p.position!==null).length,unresolved:players.filter(p=>p.position===null).length,skaters:players.filter(p=>['C','LW','RW','D','F'].includes(p.position)).length,goalies:players.filter(p=>p.position==='G').length}});
 for(const c of counts){assert.ok(c.skaters>=3,c.team+' source-backed skaters');assert.ok(c.goalies>=1,c.team+' source-backed goalie')}
 assert.equal(real.extensions.phase11ExperimentalRosterAwareScores,false);
 console.log('REAL_DATA_POSITION_COUNTS='+JSON.stringify(counts));
-console.log('A22-S182 source-backed positions passed; assertions: '+assertions);
+// A2-67: only unambiguous roster OVR evidence is an ability rating.
+const rating=rows=>make(rows).universe.players.find(p=>p.id===10).overall;
+assert.equal(state.universe.players[0].overall,null,'no universe/jersey fallback without roster evidence');
+assert.equal(rating([{id:'10',ovr:'90',name:'Different name',teamId:999}]),90,'permanent ID alone joins ratings, not ownership');
+assert.equal(rating([{id:99,name:'A',ovr:90}]),null,'matching name cannot substitute for permanent ID');
+for(const rows of [[],[{ovr:90}],[{id:'010',ovr:90}],[{id:'10.0',ovr:90}],[{id:10,ovr:80},{id:'10',ovr:81}],[{id:10,ovr:80},{id:10}],[{id:10,ovr:80},{id:10,ovr:-1},{id:10,ovr:80}]]){
+ assert.equal(rating(rows),null);assert.equal(rating(rows.slice().reverse()),null,'ambiguity cannot depend on record order');
+}
+for(const value of [undefined,null,'',false,true,'abc','90junk','1e1','9.5',-1,100,1.5,NaN,Infinity,{},[]])assert.equal(rating([{id:10,ovr:value}]),null,'invalid rating '+String(value));
+for(const value of [0,'0',99,'99'])assert.equal(rating([{id:10,ovr:value}]),Number(value),'zero and supported range endpoints survive');
+assert.equal(rating([{id:10,ovr:0},{id:'10',ovr:'0'}]),0,'equivalent zero duplicates');
+assert.equal(rating([{id:10,ovr:90},{id:'10',ovr:'90'}]),90,'identical numeric evidence duplicates');
+for(const [id,expected] of [[1003093,90],[1003094,86],[1003127,85],[3509596,85],[3519795,67]]){
+ assert.equal(real.universe.players.find(p=>p.id===id).overall,expected,'verified Pittsburgh ID '+id);
+ assert.equal(shipped.players.find(p=>p.id===id).ovr,{1003093:87,1003094:71,1003127:65,3509596:96,3519795:99}[id],'original universe unchanged');
+}
+assert.equal(engine.validateGameStateEnvelope(real).valid,true,'null ratings require no schema change');
+assert.deepEqual(JSON.parse(JSON.stringify(real)),real,'zero/null ratings survive save serialization');
+assert.equal(JSON.stringify(shipped),sourceBefore);assert.equal(JSON.stringify(sourceRoster),rosterBefore);
+console.log('Source-backed position and rating validation passed; assertions: '+assertions);

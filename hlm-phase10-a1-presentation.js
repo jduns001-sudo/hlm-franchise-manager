@@ -21,6 +21,35 @@ function project(state){
  let lineup={};if(state.extensions?.phase11LineupPlan!==undefined){try{const validator=typeof module==='object'&&module.exports?require('./hlm-phase11-lineup-plan'):globalThis.HLMLineupPlan;if(!validator)throw Error('Lineup validator unavailable');const info=validator.inspect(state,state.extensions.phase11LineupPlan);if(!info.eligible)warnings.push(...info.issues);lineup={lineupPlan:info.plan,lines:info.eligible?'Recorded starting-unit plan (not actual participation)':'Recorded starting-unit plan — currently ineligible; review required',depth:'Recorded depth plan'};}catch(e){warnings.push('Saved lineup unavailable: '+e.message)}}
  return {status:'ready',team:text(team[0].name),teamId:owner,season:typeof state.extensions?.phase10CurrentSeasonId==='string'&&state.extensions.phase10CurrentSeasonId.trim()?state.extensions.phase10CurrentSeasonId:'Not recorded',players:sort(players),plans,warnings,lines:'Unavailable',depth:'Unavailable',...lineup};
 }
+// Standings consume only calculated snapshot rows, never lineup or storage authority.
+function standingsView(snapshot){
+ if(snapshot?.loaded!==true)return {status:'empty',rows:[],message:'No isolated franchise loaded. Load a franchise to view standings.'};
+ const owner=id(snapshot.teamId),source=snapshot.standings;
+ if(owner===null||!Array.isArray(source))return {status:'unavailable',rows:[],message:'Standings unavailable in this franchise snapshot.'};
+ const counts=new Map();for(const row of source){const key=id(row?.teamId);if(key!==null)counts.set(key,(counts.get(key)||0)+1);}
+ const rows=[];let omitted=0;
+ for(const row of source){
+  const key=id(row?.teamId),metrics=['gp','w','l','otl','points'];
+  if(!row||typeof row!=='object'||Array.isArray(row)||key===null||counts.get(key)!==1||metrics.some(k=>!Number.isSafeInteger(row[k])||row[k]<0)){omitted++;continue;}
+  rows.push({teamId:key,teamName:typeof row.teamName==='string'&&row.teamName.trim()?row.teamName:'Team ID '+key,gp:row.gp,w:row.w,l:row.l,otl:row.otl,points:row.points,controlled:key===owner});
+ }
+ const warnings=[];if(omitted)warnings.push(omitted+' malformed or ambiguous standing rows omitted.');
+ if(rows.length&&!rows.some(row=>row.controlled))warnings.push('Controlled franchise is not present in the available standings.');
+ return {status:rows.length?'ready':'unavailable',rows,message:(rows.length?rows.length+' teams.':'No valid standings rows available.')+(warnings.length?' '+warnings.join(' '):'')};
+}
+// Read-only overview of the existing snapshot, never a schedule or result generator.
+function seasonView(snapshot){
+ if(snapshot?.loaded!==true)return {message:'No isolated franchise loaded. Create or load one in More.',rows:[]};
+ const value=x=>typeof x==='string'&&x.trim()?x:'Not recorded';
+ const count=x=>Number.isSafeInteger(x)&&x>=0?String(x):'Unavailable';
+ const game=snapshot.nextGame;
+ return {message:'Experimental isolated season. Review and approval remain separate GM decisions.',rows:[
+  ['Franchise',value(snapshot.teamName)],['Current date',value(snapshot.date)],
+  ['Completed team games',count(snapshot.ownerFinals)],['Remaining team games',count(snapshot.ownerRemaining)],
+  ['Next team game',game&&typeof game==='object'?value(game.date)+' | '+value(game.home)+' vs '+value(game.away):'No upcoming team game recorded'],
+  ['Latest team result',value(snapshot.lastResult)],['Recent form',value(snapshot.form)]
+ ]};
+}
 function sort(players,key='name',direction='asc'){
  const dir=direction==='desc'?-1:1;return players.map(p=>({...p})).sort((a,b)=>{if(key==='rating'){if(a.rating===null||b.rating===null){if(a.rating===b.rating)return compare(a.id,b.id);return a.rating===null?1:-1}return dir*(a.rating-b.rating)||compare(a.id,b.id)}return dir*compare(text(a[key]).toLowerCase(),text(b[key]).toLowerCase())||compare(a.id,b.id)});
 }
@@ -63,5 +92,5 @@ function lineupReview(state,proposed){
  if(warnings.length)lines.push('','Warnings about currently saved assignments:',...warnings);
  return {savedPresent:!!saved,plan,slots,depth,warnings,text:lines.join('\n')};
 }
-return Object.freeze({project,sort,filter,escape,rating,lineupReview});
+return Object.freeze({project,standingsView,seasonView,sort,filter,escape,rating,lineupReview});
 });

@@ -391,11 +391,11 @@ function create(engine,storage,boxScores=null,{lineupPlanning=false}={}){
 // Separate transactional API. Legacy behavior remains unchanged with lineupPlanning disabled.
 // Approval indexes refer to the original mutator signatures. prepare() arguments omit that flag.
 const TRANSACTIONAL_WRITERS=Object.freeze({deployReviewedStartingSkaters:1,saveReviewedLineupPlan:1,stage:1,approveExperimentalRosterAware:1,advance:2,approveReviewedGameDaySkaters:1,approveGoalieChoice:1,approveSkaterParticipation:1,advanceNextDay:1,startPlayoffs:0,advancePlayoff:1,archiveSeason:1,approveReviewedDraftSelection:0,approveReviewedPickTransfer:0,approveReviewedProspectSigning:0,startNextSeason:1,approveReviewedOffseason:0});
-async function createTransactional(engine,repository,boxScores=null,{makeCommandId=()=>globalThis.crypto.randomUUID(),lineupPlanning=false}={}){
+async function createTransactional(engine,repository,boxScores=null,{makeCommandId=()=>globalThis.crypto.randomUUID(),lineupPlanning=false,ratingOrigin=null}={}){
  function error(code,message){const e=new Error(message);e.code=code;return e;}
  if(!repository||!['read','commit','readCommandReceipt'].every(k=>typeof repository[k]==='function')||typeof makeCommandId!=='function')throw error('INVALID_REPOSITORY','Transactional repository and command factory required');
  if(typeof globalThis.structuredClone!=='function')throw error('UNSUPPORTED_RUNTIME','Structured cloning required for private command snapshots');
- const clone=v=>globalThis.structuredClone(v),handles=new Map(),issued=new Set();
+ const clone=v=>globalThis.structuredClone(v),handles=new Map(),issued=new Set(),ratingReviews=new WeakMap();
  let committed=null,legacy,shadowRaw=null,writeEnabled=false,writeCount=0,busy=false,needsReload=false,unknownCommand=null,lastOutcome=null;
  const tokenOf=r=>r?Object.freeze({epoch:r.epoch,revision:r.revision}):null;
  const equalToken=(a,b)=>a===null?b===null:!!b&&a.epoch===b.epoch&&a.revision===b.revision;
@@ -420,20 +420,59 @@ async function createTransactional(engine,repository,boxScores=null,{makeCommand
   ready();if(!Object.prototype.hasOwnProperty.call(TRANSACTIONAL_WRITERS,action)||!Array.isArray(args))throw error('INVALID_ACTION','Known isolated action and argument array required');
   if(action==='deployReviewedStartingSkaters'){if(args.length!==1||args[0]===undefined)throw error('INVALID_ARGUMENTS','Exactly one reviewed deployment required');legacy.reviewStartingSkaterDeployment(args[0]);}
   if(action==='saveReviewedLineupPlan'){if(args.length!==1)throw error('INVALID_ARGUMENTS','Exactly one lineup payload required');legacy.reviewLineupPlan(args[0]);}
-  const commandId=makeCommandId();if(typeof commandId!=='string'||commandId.length>128||!/^[A-Za-z0-9_.:-]+$/.test(commandId)||issued.has(commandId))throw error('INVALID_COMMAND','A new unique command ID is required');
+  return issue(action,args);
+ }
+ function issue(action,args,commandId=makeCommandId()){
+  if(typeof commandId!=='string'||commandId.length>128||!/^[A-Za-z0-9_.:-]+$/.test(commandId)||issued.has(commandId))throw error('INVALID_COMMAND','A new unique command ID is required');
   let snapshot;try{snapshot=clone(args)}catch{throw error('INVALID_ARGUMENTS','Command inputs must be cloneable data')}
   issued.add(commandId);const expected=tokenOf(committed);const handle=Object.freeze({commandId,action,expected,requiresHumanApproval:true,saved:false});handles.set(handle,{commandId,action,args:snapshot,expected});return handle;
+ }
+ function ratingModule(){if(lineupPlanning!==true||!ratingOrigin)throw error('FEATURE_DISABLED','Rating repair requires explicit isolated navigation');return typeof module==='object'&&module.exports?require('./hlm-phase11-new-franchise'):globalThis.HLMNewFranchise;}
+ async function currentRatingRecord(){const r=await repository.read();verifyRecord(r);if(!r||r.authorityMode!=='active'||!equalToken(tokenOf(r),tokenOf(committed))||r.payloadText!==committed.payloadText||r.lastCommandId!==committed.lastCommandId)throw error('STALE_REVIEW','Authoritative franchise changed; reload and review');return r;}
+ async function restoreRatingRecord(backup){
+  const r=await currentRatingRecord(),b=backup.body,id='rating-correction-'+backup.sha256,receipt=await repository.readCommandReceipt(id);
+  if(!receipt||receipt.commandId!==id||receipt.authorityMode!=='active'||receipt.epoch!==b.record.epoch||receipt.revision!==b.record.revision+1||r.epoch!==b.record.epoch||r.revision!==receipt.revision||r.lastCommandId!==id||r.payloadText!==b.candidatePayloadText)throw error('RESTORE_CONFLICT','Original correction receipt and immediate unchanged correction result required');
+  return r;
+ }
+ async function reviewRatingOperation(sourceText,backupText=null){
+  ready();const api=ratingModule();busy=true;
+  try{
+   const current=await currentRatingRecord();
+   const backup=backupText===null?await api.createRatingBackup(current,sourceText,ratingOrigin,makeCommandId()):await api.verifyRatingBackup(backupText,sourceText,ratingOrigin);
+   if(backupText!==null)await restoreRatingRecord(backup);
+   const text=JSON.stringify(backup,null,2)+'\n',restoring=backupText!==null,action=restoring?'restoreReviewedRatingCorrection':'applyReviewedRatingCorrection';
+   const handle=issue(action,[],restoring?makeCommandId():'rating-correction-'+backup.sha256);
+   ratingReviews.set(handle,{backup:clone(backup),sourceText,text,verified:false,restoring});
+   return Object.freeze({handle,backupText:text,backupFileSha256:await api.ratingDigest(text),review:api.ratingReviewText(backup,restoring),changes:backup.body.changes.length});
+  }finally{busy=false}
+ }
+ async function verifyRatingBackupFile(handle,text){
+  ready();const info=ratingReviews.get(handle);if(!handles.has(handle)||!info)throw error('STALE_REVIEW','Unknown or consumed rating review');
+  info.verified=false;if(text!==info.text)throw error('INVALID_BACKUP','Reimport the exact downloaded original backup file');
+  const backup=await ratingModule().verifyRatingBackup(text,info.sourceText,ratingOrigin);
+  if(!handles.has(handle)||!equalToken(handle.expected,tokenOf(committed)))throw error('STALE_REVIEW','Rating review changed during backup verification');
+  info.verified=true;return Object.freeze({verified:true,sha256:backup.sha256});
  }
  function cancel(handle){ready();if(!handles.has(handle))throw error('STALE_REVIEW','Unknown or consumed command review');invalidate();return Object.freeze({saved:false,reason:'declined'});}
  async function execute(handle,approved){
   ready();const command=handles.get(handle);if(!command)throw error('STALE_REVIEW','Unknown or consumed command review');handles.delete(handle);
   if(approved!==true){invalidate();throw error('APPROVAL_REQUIRED','Explicit human GM approval required')}
   if(!equalToken(command.expected,tokenOf(committed))){invalidate();throw error('STALE_REVIEW','Reviewed snapshot changed')}
+  const rating=ratingReviews.get(handle);if(rating&&!rating.verified)throw error('BACKUP_REQUIRED','Download and reimport the verified backup before confirmation');
   busy=true;handles.clear();let submitted=false;
   try{
-   const args=clone(command.args);args.splice(TRANSACTIONAL_WRITERS[command.action],0,true);
-   shadowRaw=committed?.payloadText??null;writeCount=0;writeEnabled=true;
-   let result;try{result=legacy[command.action](...args)}finally{writeEnabled=false}
+   let result;
+   if(rating){
+    const api=ratingModule(),backup=await api.verifyRatingBackup(rating.text,rating.sourceText,ratingOrigin),current=await currentRatingRecord();
+    if(rating.restoring)await restoreRatingRecord(backup);
+    else if(JSON.stringify(current)!==JSON.stringify(backup.body.record))throw error('STALE_REVIEW','Backup snapshot no longer matches the franchise');
+    shadowRaw=rating.restoring?backup.body.record.payloadText:backup.body.candidatePayloadText;writeCount=1;
+    result=Object.freeze({saved:true,restored:rating.restoring,changes:backup.body.changes.length,backupSha256:backup.sha256});
+   }else{
+    const args=clone(command.args);args.splice(TRANSACTIONAL_WRITERS[command.action],0,true);
+    shadowRaw=committed?.payloadText??null;writeCount=0;writeEnabled=true;
+    try{result=legacy[command.action](...args)}finally{writeEnabled=false}
+   }
    if(writeCount!==1||typeof shadowRaw!=='string')throw error('INVALID_CANDIDATE','Each approved command must stage exactly one complete save');
    const candidate=shadowRaw;submitted=true;
    const next=await repository.commit({expected:command.expected,payloadText:candidate,commandId:command.commandId,approved:true});
@@ -447,7 +486,7 @@ async function createTransactional(engine,repository,boxScores=null,{makeCommand
   }finally{busy=false}
  }
  await load();
- const api={key:KEY,peek,load,prepare,execute,cancel,snapshotToken:()=>tokenOf(committed),status:()=>Object.freeze({busy,needsReload,authorityMode:committed?.authorityMode??'empty',unresolvedCommandId:unknownCommand}),lastOutcome:()=>lastOutcome};
+ const api={key:KEY,peek,load,prepare,execute,cancel,reviewRatingCorrection:sourceText=>reviewRatingOperation(sourceText),reviewRatingRestoration:(text,sourceText)=>reviewRatingOperation(sourceText,text),verifyRatingBackupFile,snapshotToken:()=>tokenOf(committed),status:()=>Object.freeze({busy,needsReload,authorityMode:committed?.authorityMode??'empty',unresolvedCommandId:unknownCommand}),lastOutcome:()=>lastOutcome};
  const readers=Object.keys(legacy).filter(k=>typeof legacy[k]==='function'&&!Object.prototype.hasOwnProperty.call(TRANSACTIONAL_WRITERS,k)&&k!=='peek'&&k!=='load');
  for(const name of readers)api[name]=(...args)=>{ready();return legacy[name](...clone(args))};
  for(const [name,index]of Object.entries(TRANSACTIONAL_WRITERS))api[name]=async(...args)=>{const callArgs=args.slice(),approved=callArgs.splice(index,1)[0];return execute(prepare(name,callArgs),approved)};
