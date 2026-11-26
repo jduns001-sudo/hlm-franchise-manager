@@ -1,0 +1,327 @@
+{
+  "head": "a2c70b43fadce65b4fac787e7c56bc326ab3bd0c",
+  "branch": "experiment/a2-26-s182-navigation-integration",
+  "implementationFiles": [
+    {
+      "file": "docs/V1_VISUAL_ARCHITECTURE.md",
+      "role": "documentation",
+      "blob": "f06a42e79d6b9f318a7fb9f1ed2e3134cecefd7f",
+      "bytes": 3099,
+      "sha256": "021196f88d585911982bf84f73432f439fb1a3725b0639efdb33bc0d82748748"
+    },
+    {
+      "file": "docs/V2_01_CORE_FRONT_OFFICE.md",
+      "role": "documentation",
+      "blob": "6c17a28d3c1e8fdfaf5ca68156af59b456146a63",
+      "bytes": 4234,
+      "sha256": "eeab52b32fba5d89bae1cad05cc849718070f02014a27261cecbec211f5ab55d"
+    },
+    {
+      "file": "docs/V2_02_TEAM_MANAGEMENT.md",
+      "role": "documentation",
+      "blob": "b44df89cc6ab011d34a560a32bf68adc34c16003",
+      "bytes": 3153,
+      "sha256": "23bf0553b51a141d9408fef608a6540bd5809c9911fcb53cfbbad4c203f70329"
+    },
+    {
+      "file": "docs/V2_03_COMPETITION_DRAFT_SCOUTING.md",
+      "role": "documentation",
+      "blob": "88989cc22b3886b8b894bc5e0b9582f7ebd6cd76",
+      "bytes": 5066,
+      "sha256": "f25e5cd6c3c2381cd86d1ba8f47fbc42c50dbf1027aadb385c87f8ce3ad9553a"
+    },
+    {
+      "file": "docs/V2_04_ACCEPTANCE_AND_RELEASE.md",
+      "role": "documentation",
+      "blob": "7ce78693e364e31c8cc5525b8801c9e84796f898",
+      "bytes": 13164,
+      "sha256": "9b8683df16f22c464dddc6da1d68e4f5b66c409a5ca6d276089d2de87cd2db42"
+    },
+    {
+      "file": "hlm-v1-acceptance.chromium.test.js",
+      "role": "test",
+      "blob": "8ca24bc6cca998b41c1acfa699547870bd13e512",
+      "bytes": 10159,
+      "sha256": "4190f7ce12d91d77b304dd388439b1080b2dd5e5e2b964ad5dd5f947c220a223"
+    },
+    {
+      "file": "hlm-v1-design.css",
+      "role": "runtime",
+      "blob": "73a2665fb277e2a522606d2fc830e94dce340e66",
+      "bytes": 21152,
+      "sha256": "5b190317af159a934c002b3e258a267ed8a89dd5e43984f3c9ed4c3b6210b51f"
+    },
+    {
+      "file": "hlm-v1-icons.js",
+      "role": "runtime",
+      "blob": "2e9b2b30ef2ccfd1b03eb0c4ca91ed75ac8c2534",
+      "bytes": 3920,
+      "sha256": "236acd43ca82ceaa3bc5411694f31ad6e80f91e786f01cb761ee2c4e47ed44b0"
+    },
+    {
+      "file": "hlm-v1-presentation.js",
+      "role": "runtime",
+      "blob": "29f9e38883c0fa89de68ecaad022ea6e8f2d1579",
+      "bytes": 20438,
+      "sha256": "76c9a884a2d7dcd293b0d656cce05876bcc270f639bd6d3692fa7576bcd0b0f1"
+    },
+    {
+      "file": "hlm-v1-presentation.test.js",
+      "role": "test",
+      "blob": "616a972bf8adbe8a682990aa37a53344b61992b2",
+      "bytes": 3900,
+      "sha256": "45d00fa66dce5cb16ed60582ae795c5675ee66f21ce8893ecd49f1d89eed8a30"
+    },
+    {
+      "file": "hlm-v1-preview.html",
+      "role": "historical visual entry",
+      "blob": "aed206b771d7b2f988c51e6096c4c0317beabb2c",
+      "bytes": 1540,
+      "sha256": "2826d72d1766c7567c573ece07ce9931f193834bb65aaf38c421082f33eb8c7d"
+    },
+    {
+      "file": "hlm-v1-prototypes.html",
+      "role": "fixture-only visual study",
+      "blob": "2c34d0d1aa8b11072acdd4dd0985e08c50472260",
+      "bytes": 16058,
+      "sha256": "3feadb51c8b0875e53b35b4387527222add8c484e58755daa75e4d52c23410bb"
+    },
+    {
+      "file": "hlm-v1-prototypes.js",
+      "role": "fixture-only visual study",
+      "blob": "bcb102016bc38521f55c7d72b2e0d6caa715f3b1",
+      "bytes": 19636,
+      "sha256": "c36fe780ef126baec5aa1b395b8f4b015677a79d3741fff9929229d8fb837414"
+    },
+    {
+      "file": "hlm-v2-acceptance.chromium.test.js",
+      "role": "test",
+      "blob": "bcdd19b2bb5cac681a4884afaedfd3013bc7195e",
+      "bytes": 16295,
+      "sha256": "4c856718b85d532abe9be81e8acd6cea04e13add763b4b3f1e4e1c76663fe7d7"
+    },
+    {
+      "file": "hlm-v2-competition.chromium.test.js",
+      "role": "test",
+      "blob": "22557c050264c368877e83281d66f9638872da0b",
+      "bytes": 16798,
+      "sha256": "c48f92ebc5f9daf5ae2a5e8bb49d5c6d89d91b060d8156cf50447584834b8f85"
+    },
+    {
+      "file": "hlm-v2-competition.css",
+      "role": "runtime",
+      "blob": "d4782fd9fa2daecd6637dfae1c21c48540150e0c",
+      "bytes": 4462,
+      "sha256": "51cf91e8b0984288503db87dc2ee2cded673f9d2adb600fb240caa2f8133707e"
+    },
+    {
+      "file": "hlm-v2-competition.js",
+      "role": "runtime",
+      "blob": "1f304c1533b52882f7b9e45e004f1b44682b9882",
+      "bytes": 21221,
+      "sha256": "6c40d86fcf488808dca3d6588cefb1cd08f7432621e3a424932bf0c17fe890fd"
+    },
+    {
+      "file": "hlm-v2-competition.test.js",
+      "role": "test",
+      "blob": "6f0e1954f9ba1e84760b4322d90cee26b6625fd8",
+      "bytes": 4724,
+      "sha256": "0090f19ea4ad5f11223b83c563ce6588c4a770e40bacd3476b514ef2075105f9"
+    },
+    {
+      "file": "hlm-v2-design.css",
+      "role": "runtime",
+      "blob": "a042ce7135b81c4ed68a64864fab2778538364c8",
+      "bytes": 8724,
+      "sha256": "f1dbab0a42039817159375f578fdafc41990de13065a2022aee68f9d3273ef02"
+    },
+    {
+      "file": "hlm-v2-integrated.chromium.test.js",
+      "role": "test",
+      "blob": "992c6e8a7c6b304ab10f439c1cf2f1f584776d82",
+      "bytes": 31428,
+      "sha256": "ef9c69486ff6233659318c89347262ebe71f697a6f8344f833dd1abab8b12e6c"
+    },
+    {
+      "file": "hlm-v2-presentation.js",
+      "role": "runtime",
+      "blob": "9077e1882709b1b5a665d78ca01e7f54ec8a0a15",
+      "bytes": 26592,
+      "sha256": "23e5b6a07ebf5b8e425a0da3b501f88706b131c9d12fbeb17de9c5023f769313"
+    },
+    {
+      "file": "hlm-v2-presentation.test.js",
+      "role": "test",
+      "blob": "c69e5ed8d484981dd5cb70f4fee8a321ebbee514",
+      "bytes": 3787,
+      "sha256": "3a36539b6bde8af5caadf13843307ff7a9ca15bcd5d110a554514cc526a46d40"
+    },
+    {
+      "file": "hlm-v2-preview.html",
+      "role": "runtime",
+      "blob": "f9db864e341256d0e13248aa0c0131e40faa610b",
+      "bytes": 2975,
+      "sha256": "dff7f0d063a30285828ba6f3fe0d3e78f630a1d0e48861ebddee62f7b223970d"
+    },
+    {
+      "file": "hlm-v2-team.chromium.test.js",
+      "role": "test",
+      "blob": "11d38d07fcc75d4dcc43c941893388171446dcb8",
+      "bytes": 15842,
+      "sha256": "29de7aa02fd0f99a8d204768dfce70c8558298442d9f7b9951189b13495f7350"
+    },
+    {
+      "file": "hlm-v2-team.css",
+      "role": "runtime",
+      "blob": "d2653cc7d96cee56661e045e3a3879ff1c895bb7",
+      "bytes": 10521,
+      "sha256": "5b2faed4f13bc49c51e5c8c9ac43cc766365bca4ec08430228c2d4a5a79931cb"
+    },
+    {
+      "file": "hlm-v2-team.js",
+      "role": "runtime",
+      "blob": "adaaf8afdac7d32589f1bce159736f180984a1ab",
+      "bytes": 22587,
+      "sha256": "068e7114db63e86ec246403676a5e70610cb4b11e17fdfff6178fbc61d1834fa"
+    },
+    {
+      "file": "hlm-v2-team.test.js",
+      "role": "test",
+      "blob": "58944963c1900b695e483f1d1e7b12726fe5a3b8",
+      "bytes": 4775,
+      "sha256": "d2fc169ece2c844cdafb247ecb64596c2e3d0ba2001f1dc00b23c19e2fdeacbc"
+    }
+  ],
+  "inventorySelfHash": "Recorded externally to avoid a self-referential digest",
+  "futurePresentationCommitPaths": [
+    "docs/V1_VISUAL_ARCHITECTURE.md",
+    "docs/V2_01_CORE_FRONT_OFFICE.md",
+    "docs/V2_02_TEAM_MANAGEMENT.md",
+    "docs/V2_03_COMPETITION_DRAFT_SCOUTING.md",
+    "docs/V2_04_ACCEPTANCE_AND_RELEASE.md",
+    "docs/V2_04_IMPLEMENTATION_INVENTORY.json",
+    "hlm-v1-acceptance.chromium.test.js",
+    "hlm-v1-design.css",
+    "hlm-v1-icons.js",
+    "hlm-v1-presentation.js",
+    "hlm-v1-presentation.test.js",
+    "hlm-v1-preview.html",
+    "hlm-v1-prototypes.html",
+    "hlm-v1-prototypes.js",
+    "hlm-v2-acceptance.chromium.test.js",
+    "hlm-v2-competition.chromium.test.js",
+    "hlm-v2-competition.css",
+    "hlm-v2-competition.js",
+    "hlm-v2-competition.test.js",
+    "hlm-v2-design.css",
+    "hlm-v2-integrated.chromium.test.js",
+    "hlm-v2-presentation.js",
+    "hlm-v2-presentation.test.js",
+    "hlm-v2-preview.html",
+    "hlm-v2-team.chromium.test.js",
+    "hlm-v2-team.css",
+    "hlm-v2-team.js",
+    "hlm-v2-team.test.js"
+  ],
+  "preexistingTrackedPrerequisites": [
+    {
+      "file": "hlm-phase10-a1-presentation.js",
+      "blob": "4064fcfb58e22bdd83add5b36bcd722cb4ee1807",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase10-a1-presentation.test.js",
+      "blob": "da485a8659b96cbdffbaf93e95cac43d1094fd64",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase10-a1-shell.chromium.test.js",
+      "blob": "c354c488271aaa8ec0e78b6f5ae0996d37771ae9",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase10-a1-shell.js",
+      "blob": "3002e3f36cb55fd86876d5a774f3ceeee6be9c3d",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase11-isolated-single-game.html",
+      "blob": "9921ec00bbc03edea53ca264354df740f0205071",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase11-isolated-single-game.js",
+      "blob": "4b62e35317698f257cf2f1d10d2903b08e602ea6",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase11-lineup-plan.chromium.test.js",
+      "blob": "86416665b2d3806e806fe7fbd12aa477e291d10c",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase11-lineup-plan.js",
+      "blob": "e437cfa041805d1080711613a89310fd25a80406",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase11-lineup-plan.test.js",
+      "blob": "a9b38fe6314c143cf40f9b9d891c1aab79df040f",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase11-new-franchise.chromium.test.js",
+      "blob": "bcc20d310e711ddb1cdebc514a7e0d53d126a55a",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase11-new-franchise.js",
+      "blob": "93e9c1b9d28adb5ee3de3aacba96fb1d20b8f52e",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    },
+    {
+      "file": "hlm-phase11-new-franchise.test.js",
+      "blob": "dec210581a65ff46f71461d8c0d7bd011a3147c9",
+      "classification": "pre-existing reviewed prerequisite, excluded from presentation commit"
+    }
+  ],
+  "excludedUntrackedA2Tests": [
+    "hlm-phase11-game-day-controls.chromium.test.js",
+    "hlm-phase11-rating-repair.test.js"
+  ],
+  "runtimeClosure": [
+    "hlm-phase10-a1-presentation.js",
+    "hlm-phase10-a1-shell.js",
+    "hlm-phase10-browser.bundle.js",
+    "hlm-phase11-game-day-skater-readiness.js",
+    "hlm-phase11-gm-injury-readiness.js",
+    "hlm-phase11-gm-matchup-review.js",
+    "hlm-phase11-gm-stat-review.js",
+    "hlm-phase11-gm-upcoming-readiness-board.js",
+    "hlm-phase11-guarded-mobile-lifecycle.js",
+    "hlm-phase11-isolated-atomic-save.js",
+    "hlm-phase11-isolated-box-scores.js",
+    "hlm-phase11-isolated-save-handoff.js",
+    "hlm-phase11-isolated-season-dashboard.js",
+    "hlm-phase11-isolated-single-game.html",
+    "hlm-phase11-isolated-single-game.js",
+    "hlm-phase11-lineup-plan.js",
+    "hlm-phase11-new-franchise.js",
+    "hlm-phase11-source-pick-transfer.js",
+    "hlm-phase11-unified-box-scores.js",
+    "hlm-roster-2026.json",
+    "hlm-universe.json",
+    "hlm-v1-design.css",
+    "hlm-v1-icons.js",
+    "hlm-v1-presentation.js",
+    "hlm-v2-competition.css",
+    "hlm-v2-competition.js",
+    "hlm-v2-design.css",
+    "hlm-v2-presentation.js",
+    "hlm-v2-preview.html",
+    "hlm-v2-team.css",
+    "hlm-v2-team.js"
+  ],
+  "runtimeOnly404": "Approved safeguard added only to temporary candidate",
+  "noStagingPerformed": true
+}
